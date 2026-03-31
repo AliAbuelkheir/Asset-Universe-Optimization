@@ -1,0 +1,36 @@
+---
+title: RL Flowchart
+---
+flowchart LR
+    subgraph INPUTS["Inputs"]
+        A["Asset Price & Yield Data (All 5 Classes)"]
+        B["Inflation Metrics (CPI + USD Price)"]
+        C["Investor's Risk Tolerance"]
+    end
+
+    subgraph FEATURES["Feature Calculation"]
+        F["EGARCH Volatility (Forecasted)"]
+        M["Cross-Asset Correlation (Derived)"]
+        SF["Downside Deviation (Realized) - Max Drawdown (Realized)"]
+    end
+
+    subgraph MODEL["RL Agent"]
+        P["Policy Network State → Risk Scores"]
+        R["Reward Signal (α · RankCorr) + (β · (1 − MSE)) from realized market returns at t+1"]
+    end
+
+    subgraph OUTPUT["Output"]
+        S["Risk Score per Asset [0,1]"]
+        T["Tier Bucketing (Conservative · Moderate · Aggressive) min 3 assets · expansion via θ"]
+    end
+
+    A --> F
+    B --> M
+    C --> SF
+    F --> P
+    M --> P
+    SF --> P
+    P --> S
+    S --> T
+    R -.->|feedback loop| P
+    S -.->|t+1 realized risk| R

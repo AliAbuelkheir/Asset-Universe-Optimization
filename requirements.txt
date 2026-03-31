@@ -1,0 +1,9 @@
+pandas
+numpy
+arch
+scikit-learn
+stable-baselines3
+gymnasium
+matplotlib
+scipy
+pytest
