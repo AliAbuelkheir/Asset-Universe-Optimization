@@ -1,4 +1,4 @@
-# Month-Level Batching and Reward
+# Month-Level Batching And Reward
 
 ## Core Rule
 
@@ -24,6 +24,11 @@ Current feature columns:
 - `downside_dev`
 - `max_drawdown`
 - `volume`
+- `atr_pct_20`
+- `beta_to_egx30`
+- `price_to_sma20`
+- `rsi_14`
+- `distance_to_3m_high`
 - `usd_vol`
 - `cpi_trajectory`
 
@@ -55,6 +60,25 @@ Reward formula:
 
 `0.7 * SpearmanRankCorr(predicted, realized) + 0.3 * (1 - MSE)`
 
+## Stored Realized Targets
+
+The month-`t` realized target columns are:
+
+- `realized_vol`
+- `realized_downside_dev`
+- `realized_max_drawdown`
+- `realized_risk`
+- `realized_rank`
+
+`realized_risk` is built from within-month normalized:
+
+- `realized_vol`
+- `realized_downside_dev`
+- `realized_max_drawdown`
+
+This keeps the target fully realized and avoids model-based filtering inside the
+target construction.
+
 ## Validity Rules
 
 - Compute reward only for assets active in that month.
@@ -62,7 +86,7 @@ Reward formula:
 - Skip months with fewer than 3 active assets.
 - Keep `AssetID` for alignment and sorting, but exclude it from model input.
 
-## Why This Fixes the RL Mismatch
+## Why This Fixes The RL Mismatch
 
 The reward is fundamentally month-level because:
 

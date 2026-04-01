@@ -2,8 +2,7 @@
 
 Last updated: 2026-03-31
 
-This file replaces the old workbook and markdown shortlist under
-`external_docs/`. It is the active team-facing paper tracker.
+This file is the active local paper tracker for the project.
 
 ## Active Defended Set
 
@@ -76,4 +75,5 @@ That remains the main defendable thesis gap.
 
 - keep the defended set stable while the data-engineering phase finishes
 - sync `references.bib` only after the defended set is final
-- use this file, not a workbook, as the local paper tracker going forward
+- use this file as the local paper tracker going forward
+

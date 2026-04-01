@@ -6,12 +6,70 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 
 from src import config
 from src.data_processing import build_model_dataset as builder
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def make_asset_frame(
+    asset_name: str,
+    asset_group: str,
+    base_close: float,
+    daily_step: float,
+    spread: float,
+    volume_base: float,
+    start: str = "2010-08-01",
+    end: str = "2010-12-31",
+) -> pd.DataFrame:
+    dates = pd.date_range(start, end, freq=builder.EGX_BUSINESS_DAY)
+    idx = np.arange(len(dates), dtype=float)
+    close = base_close + (daily_step * idx) + (0.15 * np.sin(idx / 4.0))
+    open_price = close - (daily_step / 2.0)
+    high = np.maximum(open_price, close) + spread
+    low = np.minimum(open_price, close) - spread
+    returns = pd.Series(close).pct_change()
+    volume = volume_base + (10.0 * idx)
+
+    return pd.DataFrame(
+        {
+            "Date": dates,
+            "Month": dates.to_period("M"),
+            "QuotedValue": close,
+            "OpenQuotedValue": open_price,
+            "HighQuotedValue": high,
+            "LowQuotedValue": low,
+            "PriceForReturn": close,
+            "OpenPriceForRange": open_price,
+            "HighPriceForRange": high,
+            "LowPriceForRange": low,
+            "Volume": volume,
+            "ChangePctRaw": returns,
+            "ReturnFromPrice": returns,
+            "IsObserved": 1,
+            "AssetName": asset_name,
+            "AssetGroup": asset_group,
+        }
+    )
+
+
+def make_egarch_month_stats(*asset_ids: str) -> dict[str, dict[pd.Period, dict[str, float | int]]]:
+    months = pd.period_range("2010-08", "2010-12", freq="M")
+    stats: dict[str, dict[pd.Period, dict[str, float | int]]] = {}
+    for idx, asset_id in enumerate(asset_ids, start=1):
+        asset_stats: dict[pd.Period, dict[str, float | int]] = {}
+        for month_idx, month in enumerate(months, start=1):
+            mean = float(idx * month_idx / 10.0)
+            asset_stats[month] = {
+                "sum": mean * 5.0,
+                "count": 5,
+                "mean": mean,
+            }
+        stats[asset_id] = asset_stats
+    return stats
 
 
 def test_parse_volume_handles_suffixes_and_missing_values() -> None:
@@ -27,32 +85,74 @@ def test_parse_volume_handles_suffixes_and_missing_values() -> None:
     assert math.isnan(parsed.iloc[6])
 
 
-def test_align_to_egx_calendar_forward_fills_price_only_with_limit() -> None:
+def test_load_market_csv_parses_ohlc_and_volume_fields(tmp_path: Path) -> None:
+    raw_path = tmp_path / "sample.csv"
+    raw_path.write_text(
+        '"Date","Price","Open","High","Low","Vol.","Change %"\n'
+        '"01/10/2023","10.5","10.0","11.0","9.5","1.5M","1.25%"\n',
+        encoding="utf-8",
+    )
+
+    frame = builder.load_market_csv(raw_path)
+
+    assert list(frame.columns) == [
+        "Date",
+        "QuotedValue",
+        "OpenQuotedValue",
+        "HighQuotedValue",
+        "LowQuotedValue",
+        "Volume",
+        "ChangePctRaw",
+    ]
+    assert frame.iloc[0]["QuotedValue"] == pytest.approx(10.5)
+    assert frame.iloc[0]["OpenQuotedValue"] == pytest.approx(10.0)
+    assert frame.iloc[0]["HighQuotedValue"] == pytest.approx(11.0)
+    assert frame.iloc[0]["LowQuotedValue"] == pytest.approx(9.5)
+    assert frame.iloc[0]["Volume"] == pytest.approx(1_500_000.0)
+    assert frame.iloc[0]["ChangePctRaw"] == pytest.approx(0.0125)
+
+
+def test_align_to_egx_calendar_forward_fills_only_close_fields_and_keeps_ohlc_nan() -> None:
     frame = pd.DataFrame(
         {
             "Date": pd.to_datetime(["2023-01-01", "2023-01-10"]),
             "QuotedValue": [100.0, 110.0],
+            "OpenQuotedValue": [99.0, 109.0],
+            "HighQuotedValue": [101.0, 111.0],
+            "LowQuotedValue": [98.0, 108.0],
             "PriceForReturn": [100.0, 110.0],
+            "OpenPriceForRange": [99.0, 109.0],
+            "HighPriceForRange": [101.0, 111.0],
+            "LowPriceForRange": [98.0, 108.0],
             "Volume": [1_000.0, 2_000.0],
             "ChangePctRaw": [0.01, 0.02],
         }
     )
 
-    aligned = builder.align_to_egx_calendar(frame)
-    aligned = aligned.set_index("Date")
-
+    aligned = builder.align_to_egx_calendar(frame).set_index("Date")
     filled_date = pd.Timestamp("2023-01-08")
     over_limit_date = pd.Timestamp("2023-01-09")
 
     assert aligned.loc[filled_date, "IsObserved"] == 0
     assert aligned.loc[filled_date, "PriceForReturn"] == pytest.approx(100.0)
     assert aligned.loc[filled_date, "ReturnFromPrice"] == pytest.approx(0.0)
+    assert math.isnan(aligned.loc[filled_date, "OpenQuotedValue"])
+    assert math.isnan(aligned.loc[filled_date, "HighPriceForRange"])
     assert math.isnan(aligned.loc[filled_date, "Volume"])
-    assert math.isnan(aligned.loc[filled_date, "ChangePctRaw"])
 
     assert aligned.loc[over_limit_date, "IsObserved"] == 0
     assert math.isnan(aligned.loc[over_limit_date, "PriceForReturn"])
     assert math.isnan(aligned.loc[over_limit_date, "ReturnFromPrice"])
+    assert math.isnan(aligned.loc[over_limit_date, "LowPriceForRange"])
+
+
+def test_annualized_volatility_matches_manual_formula() -> None:
+    returns = pd.Series([0.01, 0.02, -0.01, 0.03])
+    expected = returns.std(ddof=0) * math.sqrt(config.TRADING_DAYS_PER_YEAR)
+
+    actual = builder.annualized_volatility(returns)
+
+    assert actual == pytest.approx(expected)
 
 
 def test_compute_downside_deviation_matches_manual_formula() -> None:
@@ -77,6 +177,98 @@ def test_compute_max_drawdown_matches_manual_formula() -> None:
 def test_compute_trailing_volume_uses_sum_and_defaults_to_zero() -> None:
     assert builder.compute_trailing_volume(pd.Series([100.0, 200.0, np.nan])) == pytest.approx(300.0)
     assert builder.compute_trailing_volume(pd.Series([np.nan, np.nan])) == pytest.approx(0.0)
+
+
+def test_compute_price_to_sma_matches_manual_formula() -> None:
+    closes = pd.Series(np.arange(1.0, 26.0))
+    expected = (25.0 / np.mean(np.arange(6.0, 26.0))) - 1.0
+
+    actual = builder.compute_price_to_sma(closes, window=20)
+
+    assert actual == pytest.approx(expected)
+
+
+def test_compute_wilder_rsi_matches_manual_formula() -> None:
+    closes = pd.Series(
+        [
+            100.0,
+            101.0,
+            100.0,
+            102.0,
+            101.0,
+            103.0,
+            104.0,
+            103.0,
+            105.0,
+            106.0,
+            105.0,
+            107.0,
+            106.0,
+            108.0,
+            109.0,
+            108.0,
+        ]
+    )
+    deltas = closes.diff().dropna()
+    gains = deltas.clip(lower=0.0)
+    losses = -deltas.clip(upper=0.0)
+    initial_gain = float(gains.iloc[:14].mean())
+    initial_loss = float(losses.iloc[:14].mean())
+    final_gain = ((initial_gain * 13) + float(gains.iloc[14])) / 14.0
+    final_loss = ((initial_loss * 13) + float(losses.iloc[14])) / 14.0
+    expected = 100.0 - (100.0 / (1.0 + (final_gain / final_loss)))
+
+    actual = builder.compute_wilder_rsi(closes, periods=14)
+
+    assert actual == pytest.approx(expected)
+
+
+def test_compute_atr_pct_matches_manual_formula() -> None:
+    frame = pd.DataFrame(
+        {
+            "PriceForReturn": np.arange(100.0, 121.0),
+            "HighPriceForRange": np.arange(101.0, 122.0),
+            "LowPriceForRange": np.arange(99.0, 120.0),
+        }
+    )
+    prev_close = frame["PriceForReturn"].shift(1)
+    true_range = pd.concat(
+        [
+            frame["HighPriceForRange"] - frame["LowPriceForRange"],
+            (frame["HighPriceForRange"] - prev_close).abs(),
+            (frame["LowPriceForRange"] - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    expected = true_range.tail(20).mean() / frame["PriceForReturn"].iloc[-1]
+
+    actual = builder.compute_atr_pct(frame, period=20)
+
+    assert actual == pytest.approx(expected)
+
+
+def test_compute_beta_to_benchmark_matches_manual_formula() -> None:
+    asset = pd.DataFrame(
+        {
+            "Date": pd.date_range("2023-01-01", periods=4),
+            "ReturnFromPrice": [0.02, 0.01, 0.03, 0.04],
+        }
+    )
+    benchmark = pd.DataFrame(
+        {
+            "Date": pd.date_range("2023-01-01", periods=4),
+            "BenchmarkReturn": [0.01, 0.02, 0.02, 0.03],
+        }
+    )
+    asset_values = asset["ReturnFromPrice"].to_numpy()
+    benchmark_values = benchmark["BenchmarkReturn"].to_numpy()
+    expected = np.mean((asset_values - asset_values.mean()) * (benchmark_values - benchmark_values.mean())) / np.mean(
+        np.square(benchmark_values - benchmark_values.mean())
+    )
+
+    actual = builder.compute_beta_to_benchmark(asset, benchmark)
+
+    assert actual == pytest.approx(expected)
 
 
 def test_walk_forward_egarch_month_stats_ignore_future_months() -> None:
@@ -127,14 +319,14 @@ def test_load_cpi_series_removes_blank_header_and_trailing_notes(tmp_path: Path)
     assert list(cpi["HeadlineMoM"]) == pytest.approx([0.005, 0.01])
 
 
-def test_prepare_asset_series_converts_yield_quotes_before_returns(tmp_path: Path) -> None:
+def test_prepare_asset_series_converts_yield_quotes_before_returns_and_ranges(tmp_path: Path) -> None:
     raw_dir = tmp_path / "rawData"
     raw_dir.mkdir()
     csv_path = raw_dir / "MoneyMarket.csv"
     csv_path.write_text(
-        '"Date","Price","Vol.","Change %"\n'
-        '"01/10/2023","10.0","","0.00%"\n'
-        '"01/09/2023","20.0","","0.00%"\n',
+        '"Date","Price","Open","High","Low","Change %"\n'
+        '"01/10/2023","10.0","11.0","12.0","9.0","0.00%"\n'
+        '"01/09/2023","20.0","21.0","22.0","19.0","0.00%"\n',
         encoding="utf-8",
     )
 
@@ -148,18 +340,31 @@ def test_prepare_asset_series_converts_yield_quotes_before_returns(tmp_path: Pat
     )
 
     aligned, _ = builder.prepare_asset_series(raw_dir, spec)
-    observed = aligned.loc[aligned["IsObserved"] == 1, ["Date", "QuotedValue", "PriceForReturn", "ReturnFromPrice"]]
+    observed = aligned.loc[
+        aligned["IsObserved"] == 1,
+        ["Date", "QuotedValue", "PriceForReturn", "OpenPriceForRange", "HighPriceForRange", "LowPriceForRange", "ReturnFromPrice"],
+    ]
     observed = observed.set_index("Date").sort_index()
 
-    expected_prices = builder.convert_yield_to_price_proxy(pd.Series([20.0, 10.0]), config.MONEY_MARKET_MATURITY_DAYS)
-    expected_return = (expected_prices.iloc[1] / expected_prices.iloc[0]) - 1.0
+    close_prices = builder.convert_yield_to_price_proxy(pd.Series([20.0, 10.0]), config.MONEY_MARKET_MATURITY_DAYS)
+    open_prices = builder.convert_yield_to_price_proxy(pd.Series([21.0, 11.0]), config.MONEY_MARKET_MATURITY_DAYS)
+    high_prices = builder.convert_yield_to_price_proxy(pd.Series([22.0, 12.0]), config.MONEY_MARKET_MATURITY_DAYS)
+    low_prices = builder.convert_yield_to_price_proxy(pd.Series([19.0, 9.0]), config.MONEY_MARKET_MATURITY_DAYS)
+    expected_return = (close_prices.iloc[1] / close_prices.iloc[0]) - 1.0
 
-    assert observed.iloc[0]["PriceForReturn"] == pytest.approx(expected_prices.iloc[0])
-    assert observed.iloc[1]["PriceForReturn"] == pytest.approx(expected_prices.iloc[1])
+    assert observed.iloc[0]["PriceForReturn"] == pytest.approx(close_prices.iloc[0])
+    assert observed.iloc[1]["PriceForReturn"] == pytest.approx(close_prices.iloc[1])
+    assert observed.iloc[1]["OpenPriceForRange"] == pytest.approx(open_prices.iloc[1])
+    assert observed.iloc[1]["HighPriceForRange"] == pytest.approx(
+        max(close_prices.iloc[1], open_prices.iloc[1], high_prices.iloc[1], low_prices.iloc[1])
+    )
+    assert observed.iloc[1]["LowPriceForRange"] == pytest.approx(
+        min(close_prices.iloc[1], open_prices.iloc[1], high_prices.iloc[1], low_prices.iloc[1])
+    )
     assert observed.iloc[1]["ReturnFromPrice"] == pytest.approx(expected_return)
 
 
-def test_compute_monthly_panel_builds_expected_normalized_features() -> None:
+def test_compute_monthly_panel_builds_expected_schema_and_replaces_target_egarch() -> None:
     macro_features = {
         pd.Period("2010-11", freq="M"): {
             "usd_vol": 0.25,
@@ -167,79 +372,89 @@ def test_compute_monthly_panel_builds_expected_normalized_features() -> None:
         }
     }
 
-    def asset_frame(
-        asset_id: str,
-        asset_name: str,
-        feature_returns: list[float],
-        target_returns: list[float],
-        feature_volumes: list[float],
-        target_volumes: list[float],
-    ) -> pd.DataFrame:
-        months = pd.PeriodIndex(["2010-08", "2010-09", "2010-10", "2010-11", "2010-11"], freq="M")
-        return pd.DataFrame(
-            {
-                "Date": pd.to_datetime(["2010-08-01", "2010-09-01", "2010-10-01", "2010-11-01", "2010-11-02"]),
-                "Month": months,
-                "ReturnFromPrice": feature_returns + target_returns,
-                "Volume": feature_volumes + target_volumes,
-                "IsObserved": [1, 1, 1, 1, 1],
-                "AssetName": [asset_name] * 5,
-                "AssetGroup": ["Equity"] * 5,
-            }
-        )
-
     daily_assets = {
-        "A": asset_frame("A", "Asset A", [0.0, -0.01, 0.0], [0.0, -0.02], [100.0, 100.0, 100.0], [50.0, 50.0]),
-        "B": asset_frame("B", "Asset B", [0.0, -0.02, 0.0], [0.0, -0.03], [200.0, 200.0, 200.0], [50.0, 50.0]),
-        "C": asset_frame("C", "Asset C", [0.0, -0.03, 0.0], [0.0, -0.04], [300.0, 300.0, 300.0], [50.0, 50.0]),
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
     }
-    egarch_month_stats_by_asset = {
-        "A": {
-            pd.Period("2010-08", freq="M"): {"sum": 0.10, "count": 1, "mean": 0.10},
-            pd.Period("2010-09", freq="M"): {"sum": 0.10, "count": 1, "mean": 0.10},
-            pd.Period("2010-10", freq="M"): {"sum": 0.10, "count": 1, "mean": 0.10},
-            pd.Period("2010-11", freq="M"): {"sum": 0.20, "count": 1, "mean": 0.20},
-        },
-        "B": {
-            pd.Period("2010-08", freq="M"): {"sum": 0.20, "count": 1, "mean": 0.20},
-            pd.Period("2010-09", freq="M"): {"sum": 0.20, "count": 1, "mean": 0.20},
-            pd.Period("2010-10", freq="M"): {"sum": 0.20, "count": 1, "mean": 0.20},
-            pd.Period("2010-11", freq="M"): {"sum": 0.40, "count": 1, "mean": 0.40},
-        },
-        "C": {
-            pd.Period("2010-08", freq="M"): {"sum": 0.30, "count": 1, "mean": 0.30},
-            pd.Period("2010-09", freq="M"): {"sum": 0.30, "count": 1, "mean": 0.30},
-            pd.Period("2010-10", freq="M"): {"sum": 0.30, "count": 1, "mean": 0.30},
-            pd.Period("2010-11", freq="M"): {"sum": 0.60, "count": 1, "mean": 0.60},
-        },
-    }
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
 
-    panel = builder.compute_monthly_panel(daily_assets, macro_features, egarch_month_stats_by_asset)
+    panel = builder.compute_monthly_panel(daily_assets, macro_features, egarch_stats)
     panel = panel.sort_values("AssetID").reset_index(drop=True)
 
-    expected_levels = [0.0, 0.5, 1.0]
     assert list(panel["Date"].unique()) == ["2010-11"]
-    assert list(panel["egarch_vol"]) == pytest.approx(expected_levels)
-    assert list(panel["downside_dev"]) == pytest.approx(expected_levels)
-    assert list(panel["max_drawdown"]) == pytest.approx(expected_levels)
-    assert list(panel["volume"]) == pytest.approx(expected_levels)
-    assert list(panel["realized_egarch_vol"]) == pytest.approx(expected_levels)
-    assert list(panel["realized_downside_dev"]) == pytest.approx(expected_levels)
-    assert list(panel["realized_max_drawdown"]) == pytest.approx(expected_levels)
-    assert list(panel["realized_risk"]) == pytest.approx(expected_levels)
-    assert list(panel["realized_rank"]) == pytest.approx([1.0, 2.0, 3.0])
+    assert "realized_egarch_vol" not in panel.columns
+    for column in config.MODEL_FEATURE_COLUMNS:
+        assert column in panel.columns
+        assert panel[column].between(0.0, 1.0).all()
+    for column in config.TARGET_COLUMNS:
+        assert column in panel.columns
+    assert panel["realized_vol"].between(0.0, 1.0).all()
     assert panel["usd_vol"].nunique() == 1
     assert panel["cpi_trajectory"].nunique() == 1
 
 
-@pytest.fixture(scope="session")
-def built_outputs() -> tuple[pd.DataFrame, pd.DataFrame]:
+def test_compute_monthly_panel_does_not_leak_future_asset_or_benchmark_data() -> None:
+    macro_features = {
+        pd.Period("2010-11", freq="M"): {
+            "usd_vol": 0.25,
+            "cpi_trajectory": 0.05,
+        },
+        pd.Period("2010-12", freq="M"): {
+            "usd_vol": 0.30,
+            "cpi_trajectory": 0.06,
+        },
+    }
+
+    original_assets = {
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
+    }
+    modified_assets = {asset_id: frame.copy() for asset_id, frame in original_assets.items()}
+    december_mask_a = modified_assets["A"]["Month"] == pd.Period("2010-12", freq="M")
+    modified_assets["A"].loc[december_mask_a, "PriceForReturn"] *= 4.0
+    modified_assets["A"].loc[december_mask_a, "HighPriceForRange"] *= 4.5
+    modified_assets["A"].loc[december_mask_a, "LowPriceForRange"] *= 3.5
+    modified_assets["A"].loc[december_mask_a, "ReturnFromPrice"] = 0.40
+
+    december_mask_benchmark = modified_assets["EGX30"]["Month"] == pd.Period("2010-12", freq="M")
+    modified_assets["EGX30"].loc[december_mask_benchmark, "ReturnFromPrice"] = -0.25
+
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
+    original_panel = builder.compute_monthly_panel(original_assets, macro_features, egarch_stats)
+    modified_panel = builder.compute_monthly_panel(modified_assets, macro_features, egarch_stats)
+
+    columns_to_compare = config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+    original_nov = original_panel.loc[original_panel["Date"] == "2010-11", ["AssetID"] + columns_to_compare]
+    modified_nov = modified_panel.loc[modified_panel["Date"] == "2010-11", ["AssetID"] + columns_to_compare]
+    original_nov = original_nov.sort_values("AssetID").reset_index(drop=True)
+    modified_nov = modified_nov.sort_values("AssetID").reset_index(drop=True)
+
+    assert_frame_equal(original_nov, modified_nov)
+
+
+def ensure_current_outputs() -> None:
     daily_path = ROOT / config.READY_DATA_DIR / config.DAILY_MARKET_SERIES_NAME
     panel_path = ROOT / config.READY_DATA_DIR / config.MONTHLY_PANEL_NAME
-
     if not daily_path.exists() or not panel_path.exists():
         builder.main()
+        return
 
+    daily_columns = list(pd.read_csv(daily_path, nrows=0).columns)
+    panel_columns = list(pd.read_csv(panel_path, nrows=0).columns)
+    expected_panel_columns = config.PANEL_METADATA_COLUMNS + config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+    if daily_columns != config.DAILY_MARKET_COLUMNS or panel_columns != expected_panel_columns:
+        builder.main()
+
+
+@pytest.fixture(scope="session")
+def built_outputs() -> tuple[pd.DataFrame, pd.DataFrame]:
+    ensure_current_outputs()
+    daily_path = ROOT / config.READY_DATA_DIR / config.DAILY_MARKET_SERIES_NAME
+    panel_path = ROOT / config.READY_DATA_DIR / config.MONTHLY_PANEL_NAME
     daily = pd.read_csv(daily_path)
     panel = pd.read_csv(panel_path)
     return daily, panel
@@ -269,9 +484,10 @@ def test_monthly_panel_matches_recomputed_panel_from_daily_output(built_outputs:
     assert list(stored[["Date", "AssetID"]].itertuples(index=False, name=None)) == list(
         recomputed[["Date", "AssetID"]].itertuples(index=False, name=None)
     )
+    assert "realized_egarch_vol" not in stored.columns
 
-    for col in ["usd_vol", "cpi_trajectory"]:
-        assert np.allclose(stored[col], recomputed[col], atol=1e-12, rtol=1e-12)
+    for column in ["usd_vol", "cpi_trajectory"]:
+        assert np.allclose(stored[column], recomputed[column], atol=1e-12, rtol=1e-12)
 
     month_sizes = stored.groupby("Date")["AssetID"].transform("count").to_numpy()
     max_rank_step = 1.0 / (month_sizes - 1)
@@ -281,16 +497,21 @@ def test_monthly_panel_matches_recomputed_panel_from_daily_output(built_outputs:
         "downside_dev",
         "max_drawdown",
         "volume",
-        "realized_egarch_vol",
+        "atr_pct_20",
+        "beta_to_egx30",
+        "price_to_sma20",
+        "rsi_14",
+        "distance_to_3m_high",
+        "realized_vol",
         "realized_downside_dev",
         "realized_max_drawdown",
         "realized_risk",
     ]
-    for col in normalized_columns:
-        diffs = np.abs(stored[col].to_numpy() - recomputed[col].to_numpy())
+    for column in normalized_columns:
+        diffs = np.abs(stored[column].to_numpy() - recomputed[column].to_numpy())
         assert np.all(
             diffs <= (max_rank_step + 1e-12)
-        ), f"{col} drift exceeded one monthly rank step after CSV roundtrip"
+        ), f"{column} drift exceeded one monthly rank step after CSV roundtrip"
 
     rank_diffs = np.abs(stored["realized_rank"].to_numpy() - recomputed["realized_rank"].to_numpy())
     assert np.all(rank_diffs <= 2.0)

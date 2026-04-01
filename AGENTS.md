@@ -34,10 +34,11 @@ If wording conflicts across repository markdown files, `AGENTS.md` wins.
 
 ## Repository Communication Layout
 
-- `docs/` contains internal implementation plans
-- `team_docs/` contains team-facing status and architecture files
-- `thesis/` stays unchanged; only the rendered PDF is copied into `team_docs/`
-- `diagrams/` stays unchanged
+- `docs/` is the single documentation hub for implementation plans,
+  architecture notes, and team-facing reference material
+- `thesis/` stays unchanged and remains the home of the thesis source and
+  rendered PDF
+- `docs/diagrams/` stores diagram assets
 - `external_docs/` is no longer part of the active repository structure
 
 ## Asset Universe
@@ -72,8 +73,7 @@ Macro inputs:
 
 - Source format is investing.com-style CSV for market series.
 - Market CSVs are reverse chronological and use `MM/DD/YYYY`.
-- Keep `Date`, `Price`, `Vol.`, and `Change %`.
-- Drop `Open`, `High`, and `Low`.
+- Keep `Date`, `Price`, `Open`, `High`, `Low`, `Vol.`, and `Change %`.
 - Parse comma-formatted numerics into floats.
 - Parse `Vol.` into numeric volume using `K/M/B` suffixes.
 - Parse `Change %` into numeric `ChangePctRaw`, but do not treat it as the
@@ -112,6 +112,9 @@ Canonical model-ready monthly panel:
 No additional intermediate CSV family should be treated as the repository
 contract by default.
 
+Only `data/ready/` should hold canonical generated datasets. Do not keep
+duplicate copies of those outputs elsewhere under `data/`.
+
 ## Daily Market Series Contract
 
 `data/ready/daily_market_series.csv` is the cleaned reference file for daily
@@ -124,7 +127,13 @@ Required columns:
 - `AssetName`
 - `AssetGroup`
 - `QuotedValue`
+- `OpenQuotedValue`
+- `HighQuotedValue`
+- `LowQuotedValue`
 - `PriceForReturn`
+- `OpenPriceForRange`
+- `HighPriceForRange`
+- `LowPriceForRange`
 - `Volume`
 - `ChangePctRaw`
 - `ReturnFromPrice`
@@ -133,13 +142,20 @@ Required columns:
 Rules:
 
 - `QuotedValue` stores the vendor `Price` field after numeric parsing.
+- `OpenQuotedValue`, `HighQuotedValue`, and `LowQuotedValue` store parsed vendor
+  OHLC fields for QA and reproducibility.
 - `PriceForReturn` is the value actually used for return calculation.
-- For `MoneyMarket` and `Bonds`, `PriceForReturn` is a price proxy derived from
-  the quoted yield.
+- `OpenPriceForRange`, `HighPriceForRange`, and `LowPriceForRange` are kept in
+  the same price space as `PriceForReturn`.
+- For `MoneyMarket` and `Bonds`, `PriceForReturn` and the range-price fields are
+  price proxies derived from quoted yields.
 - `ChangePctRaw` is a QA/reference field only.
 - `ReturnFromPrice` is the authoritative return series.
 - EGX Sunday-Thursday calendar alignment is used.
-- Forward-fill is allowed only for small gaps, up to 5 trading days.
+- Forward-fill is allowed only for `QuotedValue` and `PriceForReturn`, up to 5
+  trading days.
+- OHLC audit fields, range-price fields, `Volume`, and `ChangePctRaw` must stay
+  missing on synthetic forward-filled rows.
 - Pre-listing history must not be imputed.
 - `Volume` is preserved and used to derive the monthly `volume` model feature.
 
@@ -162,12 +178,17 @@ Model feature columns:
 - `downside_dev`
 - `max_drawdown`
 - `volume`
+- `atr_pct_20`
+- `beta_to_egx30`
+- `price_to_sma20`
+- `rsi_14`
+- `distance_to_3m_high`
 - `usd_vol`
 - `cpi_trajectory`
 
 Target columns:
 
-- `realized_egarch_vol`
+- `realized_vol`
 - `realized_downside_dev`
 - `realized_max_drawdown`
 - `realized_risk`
@@ -189,18 +210,34 @@ Rules:
 - Features for month `t` use the trailing 3 full months ending at `t-1`.
 - Targets for month `t` use realized daily returns inside month `t`.
 - Daily returns are used for asset-level feature and target construction.
-- `egarch_vol` and `realized_egarch_vol` use strict month-level walk-forward
-  EGARCH summaries. For any month `m`, the EGARCH fit may only use data
-  available through the end of month `m`.
+- `egarch_vol` uses strict month-level walk-forward EGARCH summaries. For any
+  month `m`, the EGARCH fit may only use data available through the end of
+  month `m`.
 - `volume` is built from observed daily `Volume` over the same trailing feature
   window defined by `WINDOW_MONTHS` and defaults to `0` when no vendor volume
   exists in that window.
+- `atr_pct_20` is the trailing 20-observation average true range ending in
+  month `t-1`, divided by the last observed close in `t-1`.
+- `beta_to_egx30` is the covariance of aligned asset returns with aligned EGX30
+  returns over the trailing 3 full months ending at `t-1`, divided by EGX30
+  return variance over the same window.
+- `price_to_sma20` is the last observed close in `t-1` divided by the trailing
+  20 observed closes ending in `t-1`, minus 1.
+- `rsi_14` is the 14-period Wilder RSI evaluated at the last observed close in
+  `t-1`.
+- `distance_to_3m_high` is the last observed close in `t-1` divided by the max
+  observed `HighPriceForRange` over the trailing 3 full months ending at `t-1`,
+  minus 1.
 - Bonds and money market series are quoted as yields and must be converted to a
-  fixed-maturity price proxy before returns are computed.
+  fixed-maturity price proxy before returns and range-derived features are
+  computed.
 - Asset-level feature normalization is cross-sectional within month only.
 - Macro features stay repeated per month and are not cross-sectionally
   normalized.
-- Realized risk is built from within-month ranked realized components.
+- `realized_vol` is plain annualized volatility computed directly from month `t`
+  daily returns.
+- `realized_risk` is built from within-month ranked `realized_vol`,
+  `realized_downside_dev`, and `realized_max_drawdown`.
 - Pairwise cross-asset correlation features are removed from the active plan.
 
 ## Month-Level Batching And Reward
@@ -240,10 +277,11 @@ Do not introduce temporal leakage across these ranges.
 
 - `AGENTS.md` is the canonical repository specification
 - `README.md` is the short overview
+- `docs/README.md` is the documentation hub
 - `docs/data_engineering_plan.md` expands the internal data pipeline design
 - `docs/ml_framework_plan.md` expands the model design
 - `docs/month_level_batching_and_reward.md` expands month-level scoring logic
-- `team_docs/` is the team-facing communication hub
+- `docs/papers.md` is the paper tracker
 - `src/config.py` holds implementation constants but is not more authoritative
   than `AGENTS.md`
 
@@ -253,6 +291,7 @@ Do not introduce temporal leakage across these ranges.
   fixed-universe assumption.
 - Keep outputs chronological.
 - Keep `rawData/` canonical and deduplicated.
+- Keep generated canonical datasets under `data/ready/` only.
 - Avoid reintroducing older architecture ideas such as two-level orchestrators,
   fixed per-asset model slots, or rule-labeled supervised targets.
 - Avoid reintroducing TDD/test-suite workflow language into repository docs.

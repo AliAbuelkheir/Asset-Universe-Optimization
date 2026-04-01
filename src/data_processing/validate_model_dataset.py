@@ -60,30 +60,103 @@ def main() -> None:
         "Monthly panel contains missing model features.",
     )
     assert_true(
-        pd.api.types.is_numeric_dtype(panel["volume"]),
-        "volume should be numeric in the monthly panel.",
+        panel[config.TARGET_COLUMNS].notna().all().all(),
+        "Monthly panel contains missing target fields.",
     )
-    assert_true(
-        panel["realized_risk"].between(0.0, 1.0).all(),
-        "realized_risk must stay inside [0, 1].",
-    )
+
+    numeric_daily_columns = [
+        "QuotedValue",
+        "OpenQuotedValue",
+        "HighQuotedValue",
+        "LowQuotedValue",
+        "PriceForReturn",
+        "OpenPriceForRange",
+        "HighPriceForRange",
+        "LowPriceForRange",
+        "Volume",
+        "ChangePctRaw",
+        "ReturnFromPrice",
+        "IsObserved",
+    ]
+    for column in numeric_daily_columns:
+        assert_true(
+            pd.api.types.is_numeric_dtype(daily[column]),
+            f"{column} should be numeric in the daily market series.",
+        )
+
+    numeric_panel_columns = config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+    for column in numeric_panel_columns:
+        assert_true(
+            pd.api.types.is_numeric_dtype(panel[column]),
+            f"{column} should be numeric in the monthly panel.",
+        )
 
     monthly_counts = panel.groupby("Date")["AssetID"].nunique()
     assert_true(
         (monthly_counts >= config.MIN_ASSETS_PER_MONTH).all(),
         "A month with fewer than the minimum asset count made it into the final panel.",
     )
+
+    normalized_feature_columns = [
+        "egarch_vol",
+        "downside_dev",
+        "max_drawdown",
+        "volume",
+        "atr_pct_20",
+        "beta_to_egx30",
+        "price_to_sma20",
+        "rsi_14",
+        "distance_to_3m_high",
+        "realized_vol",
+        "realized_downside_dev",
+        "realized_max_drawdown",
+        "realized_risk",
+    ]
+    for column in normalized_feature_columns:
+        assert_true(
+            panel[column].between(0.0, 1.0).all(),
+            f"{column} must stay inside [0, 1].",
+        )
+
+    observed = daily.loc[daily["IsObserved"] == 1].copy()
+    synthetic = daily.loc[daily["IsObserved"] == 0].copy()
+    synthetic_ohlc_columns = [
+        "OpenQuotedValue",
+        "HighQuotedValue",
+        "LowQuotedValue",
+        "OpenPriceForRange",
+        "HighPriceForRange",
+        "LowPriceForRange",
+    ]
+    for column in synthetic_ohlc_columns:
+        assert_true(
+            synthetic[column].isna().all(),
+            f"{column} should stay NaN on synthetic forward-filled rows.",
+        )
+
+    observed_range = observed.dropna(subset=["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]).copy()
     assert_true(
-        pd.api.types.is_numeric_dtype(daily["Volume"]),
-        "Volume should be numeric in the daily market series.",
+        (observed_range["HighPriceForRange"] >= observed_range["PriceForReturn"]).all(),
+        "Observed rows have HighPriceForRange below PriceForReturn.",
     )
     assert_true(
-        pd.api.types.is_numeric_dtype(daily["ChangePctRaw"]),
-        "ChangePctRaw should be numeric in the daily market series.",
+        (observed_range["LowPriceForRange"] <= observed_range["PriceForReturn"]).all(),
+        "Observed rows have LowPriceForRange above PriceForReturn.",
+    )
+    open_available = observed_range["OpenPriceForRange"].notna()
+    assert_true(
+        (
+            observed_range.loc[open_available, "HighPriceForRange"]
+            >= observed_range.loc[open_available, "OpenPriceForRange"]
+        ).all(),
+        "Observed rows have HighPriceForRange below OpenPriceForRange.",
     )
     assert_true(
-        pd.api.types.is_numeric_dtype(daily["ReturnFromPrice"]),
-        "ReturnFromPrice should be numeric in the daily market series.",
+        (
+            observed_range.loc[open_available, "LowPriceForRange"]
+            <= observed_range.loc[open_available, "OpenPriceForRange"]
+        ).all(),
+        "Observed rows have LowPriceForRange above OpenPriceForRange.",
     )
 
     print("Daily rows:", f"{len(daily):,}")

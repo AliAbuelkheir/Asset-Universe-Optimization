@@ -29,7 +29,7 @@ DATE_FORMAT_MONTHLY = "%Y-%m"
 MONTH_LABEL_FORMAT = "%b %Y"
 EGX_WEEKMASK = "Sun Mon Tue Wed Thu"
 
-RAW_MARKET_COLUMNS_KEEP = ["Date", "Price", "Vol.", "Change %"]
+RAW_MARKET_COLUMNS_KEEP = ["Date", "Price", "Open", "High", "Low", "Vol.", "Change %"]
 VOL_SUFFIX_MULTIPLIERS = {
     "K": 1_000.0,
     "M": 1_000_000.0,
@@ -49,12 +49,17 @@ MODEL_FEATURE_COLUMNS = [
     "downside_dev",
     "max_drawdown",
     "volume",
+    "atr_pct_20",
+    "beta_to_egx30",
+    "price_to_sma20",
+    "rsi_14",
+    "distance_to_3m_high",
     "usd_vol",
     "cpi_trajectory",
 ]
 
 TARGET_COMPONENT_COLUMNS = [
-    "realized_egarch_vol",
+    "realized_vol",
     "realized_downside_dev",
     "realized_max_drawdown",
 ]
@@ -70,7 +75,13 @@ DAILY_MARKET_COLUMNS = [
     "AssetName",
     "AssetGroup",
     "QuotedValue",
+    "OpenQuotedValue",
+    "HighQuotedValue",
+    "LowQuotedValue",
     "PriceForReturn",
+    "OpenPriceForRange",
+    "HighPriceForRange",
+    "LowPriceForRange",
     "Volume",
     "ChangePctRaw",
     "ReturnFromPrice",
@@ -82,9 +93,14 @@ ALPHA = 0.7
 BETA = 0.3
 
 # === Realized Risk Component Weights ===
-W_EGARCH = 1 / 3
+W_REALIZED_VOL = 1 / 3
 W_DOWNSIDE_DEV = 1 / 3
 W_MAX_DRAWDOWN = 1 / 3
+
+# === Daily Technical Lookbacks ===
+SMA_PERIOD = 20
+RSI_PERIOD = 14
+ATR_PERIOD = 20
 
 # === Financial Conventions ===
 TRADING_DAYS_PER_YEAR = 252

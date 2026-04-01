@@ -203,13 +203,6 @@ def estimate_egarch_series(returns: pd.Series) -> pd.Series:
         return fallback
 
 
-def summarize_egarch_window(egarch_series: pd.Series) -> float:
-    clean = egarch_series.replace([np.inf, -np.inf], np.nan).dropna()
-    if clean.empty:
-        return float("nan")
-    return float(clean.mean())
-
-
 def compute_walk_forward_egarch_month_stats(frame: pd.DataFrame) -> dict[pd.Period, dict[str, float | int]]:
     work = frame[["Date", "Month", "ReturnFromPrice"]].dropna(subset=["ReturnFromPrice"]).copy()
     if work.empty:
@@ -311,9 +304,22 @@ def load_market_csv(path: Path) -> pd.DataFrame:
     frame["Date"] = pd.to_datetime(frame["Date"], format=config.DATE_FORMAT_RAW, errors="coerce")
     frame = frame.loc[frame["Date"].notna()].copy()
     frame["QuotedValue"] = parse_numeric(frame["Price"])
+    frame["OpenQuotedValue"] = parse_numeric(frame["Open"])
+    frame["HighQuotedValue"] = parse_numeric(frame["High"])
+    frame["LowQuotedValue"] = parse_numeric(frame["Low"])
     frame["Volume"] = parse_volume(frame["Vol."])
     frame["ChangePctRaw"] = parse_percent(frame["Change %"])
-    frame = frame[["Date", "QuotedValue", "Volume", "ChangePctRaw"]]
+    frame = frame[
+        [
+            "Date",
+            "QuotedValue",
+            "OpenQuotedValue",
+            "HighQuotedValue",
+            "LowQuotedValue",
+            "Volume",
+            "ChangePctRaw",
+        ]
+    ]
     frame = frame.dropna(subset=["QuotedValue"])
     frame = frame.drop_duplicates(subset=["Date"], keep="last").sort_values("Date").reset_index(drop=True)
     return frame
@@ -323,6 +329,31 @@ def convert_yield_to_price_proxy(quoted: pd.Series, maturity_days: int) -> pd.Se
     yield_decimal = quoted / 100.0
     maturity_years = maturity_days / 365.0
     return 100.0 / (1.0 + (yield_decimal * maturity_years))
+
+
+def convert_quote_series_to_price_space(
+    quoted: pd.Series,
+    series_kind: str,
+    maturity_days: int | None,
+) -> pd.Series:
+    converted = convert_yield_to_price_proxy(quoted, maturity_days or 0) if series_kind == "yield" else quoted.astype(float)
+    return converted.where(converted > 0)
+
+
+def add_price_space_fields(frame: pd.DataFrame, spec: AssetSpec) -> pd.DataFrame:
+    enriched = frame.copy()
+    close_price = convert_quote_series_to_price_space(enriched["QuotedValue"], spec.series_kind, spec.maturity_days)
+    open_price = convert_quote_series_to_price_space(enriched["OpenQuotedValue"], spec.series_kind, spec.maturity_days)
+    high_price = convert_quote_series_to_price_space(enriched["HighQuotedValue"], spec.series_kind, spec.maturity_days)
+    low_price = convert_quote_series_to_price_space(enriched["LowQuotedValue"], spec.series_kind, spec.maturity_days)
+
+    enriched["PriceForReturn"] = close_price
+    enriched["OpenPriceForRange"] = open_price
+
+    price_candidates = pd.concat([close_price, open_price, high_price, low_price], axis=1)
+    enriched["HighPriceForRange"] = price_candidates.max(axis=1, skipna=True)
+    enriched["LowPriceForRange"] = price_candidates.min(axis=1, skipna=True)
+    return enriched
 
 
 def align_to_egx_calendar(frame: pd.DataFrame) -> pd.DataFrame:
@@ -341,13 +372,97 @@ def align_to_egx_calendar(frame: pd.DataFrame) -> pd.DataFrame:
     return aligned.reset_index()
 
 
+def compute_price_to_sma(closes: pd.Series, window: int) -> float:
+    clean = closes.replace([np.inf, -np.inf], np.nan).dropna().astype(float)
+    if len(clean) < window:
+        return float("nan")
+    last_close = float(clean.iloc[-1])
+    sma = float(clean.tail(window).mean())
+    if sma <= 0:
+        return float("nan")
+    return float((last_close / sma) - 1.0)
+
+
+def compute_wilder_rsi(closes: pd.Series, periods: int) -> float:
+    clean = closes.replace([np.inf, -np.inf], np.nan).dropna().astype(float)
+    if len(clean) <= periods:
+        return float("nan")
+
+    deltas = clean.diff().dropna()
+    gains = deltas.clip(lower=0.0)
+    losses = -deltas.clip(upper=0.0)
+
+    avg_gain = float(gains.iloc[:periods].mean())
+    avg_loss = float(losses.iloc[:periods].mean())
+
+    for idx in range(periods, len(deltas)):
+        avg_gain = ((avg_gain * (periods - 1)) + float(gains.iloc[idx])) / periods
+        avg_loss = ((avg_loss * (periods - 1)) + float(losses.iloc[idx])) / periods
+
+    if avg_gain == 0.0 and avg_loss == 0.0:
+        return 50.0
+    if avg_loss == 0.0:
+        return 100.0
+    if avg_gain == 0.0:
+        return 0.0
+
+    relative_strength = avg_gain / avg_loss
+    return float(100.0 - (100.0 / (1.0 + relative_strength)))
+
+
+def compute_distance_to_high(last_close: float, high_prices: pd.Series) -> float:
+    clean_highs = high_prices.replace([np.inf, -np.inf], np.nan).dropna()
+    if clean_highs.empty or pd.isna(last_close):
+        return float("nan")
+    window_high = float(clean_highs.max())
+    if window_high <= 0:
+        return float("nan")
+    return float((last_close / window_high) - 1.0)
+
+
+def compute_atr_pct(observed_frame: pd.DataFrame, period: int) -> float:
+    clean = observed_frame[["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]].replace([np.inf, -np.inf], np.nan)
+    clean = clean.dropna(subset=["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]).copy()
+    if len(clean) < period:
+        return float("nan")
+
+    prev_close = clean["PriceForReturn"].shift(1)
+    true_range = pd.concat(
+        [
+            clean["HighPriceForRange"] - clean["LowPriceForRange"],
+            (clean["HighPriceForRange"] - prev_close).abs(),
+            (clean["LowPriceForRange"] - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1, skipna=True)
+
+    atr = float(true_range.tail(period).mean())
+    last_close = float(clean["PriceForReturn"].iloc[-1])
+    if last_close <= 0:
+        return float("nan")
+    return float(atr / last_close)
+
+
+def compute_beta_to_benchmark(asset_returns: pd.DataFrame, benchmark_returns: pd.DataFrame) -> float:
+    merged = asset_returns.merge(benchmark_returns, on="Date", how="inner")
+    clean = merged[["ReturnFromPrice", "BenchmarkReturn"]].replace([np.inf, -np.inf], np.nan).dropna()
+    if len(clean) < 2:
+        return float("nan")
+
+    asset_values = clean["ReturnFromPrice"].to_numpy(dtype=float)
+    benchmark_values = clean["BenchmarkReturn"].to_numpy(dtype=float)
+    benchmark_centered = benchmark_values - benchmark_values.mean()
+    benchmark_variance = float(np.mean(np.square(benchmark_centered)))
+    if benchmark_variance <= 0:
+        return float("nan")
+
+    covariance = float(np.mean((asset_values - asset_values.mean()) * benchmark_centered))
+    return float(covariance / benchmark_variance)
+
+
 def prepare_asset_series(raw_dir: Path, spec: AssetSpec) -> tuple[pd.DataFrame, dict[str, float | int | str]]:
     raw_frame = load_market_csv(raw_dir / spec.file_name)
-    if spec.series_kind == "yield":
-        raw_frame["PriceForReturn"] = convert_yield_to_price_proxy(raw_frame["QuotedValue"], spec.maturity_days or 0)
-    else:
-        raw_frame["PriceForReturn"] = raw_frame["QuotedValue"]
-    raw_frame.loc[raw_frame["PriceForReturn"] <= 0, ["QuotedValue", "PriceForReturn"]] = np.nan
+    raw_frame = add_price_space_fields(raw_frame, spec)
     raw_frame = raw_frame.dropna(subset=["PriceForReturn"]).reset_index(drop=True)
 
     aligned = align_to_egx_calendar(raw_frame)
@@ -356,12 +471,12 @@ def prepare_asset_series(raw_dir: Path, spec: AssetSpec) -> tuple[pd.DataFrame, 
     aligned["AssetGroup"] = spec.asset_group
 
     compare = aligned.dropna(subset=["ReturnFromPrice", "ChangePctRaw"]).copy()
-    diff = (compare["ReturnFromPrice"] - compare["ChangePctRaw"]).replace([np.inf, -np.inf], np.nan).dropna()
+    diff_abs = (compare["ReturnFromPrice"] - compare["ChangePctRaw"]).abs().replace([np.inf, -np.inf], np.nan).dropna()
     qa = {
         "AssetID": spec.asset_id,
-        "ComparedRows": int(diff.shape[0]),
-        "MismatchRows": int((diff > 5e-4).sum()),
-        "MaxAbsDiff": float(diff.max()) if not diff.empty else float("nan"),
+        "ComparedRows": int(diff_abs.shape[0]),
+        "MismatchRows": int((diff_abs > 5e-4).sum()),
+        "MaxAbsDiff": float(diff_abs.max()) if not diff_abs.empty else float("nan"),
     }
 
     aligned["Month"] = aligned["Date"].dt.to_period("M")
@@ -373,9 +488,9 @@ def prepare_usd_series(raw_dir: Path) -> tuple[pd.DataFrame, dict[str, float | i
     usd_2 = load_market_csv(raw_dir / "USD_2.csv")
     combined = pd.concat([usd_1, usd_2], ignore_index=True)
     combined = combined.drop_duplicates(subset=["Date"], keep="last").sort_values("Date").reset_index(drop=True)
-    combined["PriceForReturn"] = combined["QuotedValue"]
-    combined.loc[combined["PriceForReturn"] <= 0, ["QuotedValue", "PriceForReturn"]] = np.nan
+    combined = add_price_space_fields(combined, USD_SPEC)
     combined = combined.dropna(subset=["PriceForReturn"]).reset_index(drop=True)
+
     aligned = align_to_egx_calendar(combined)
     aligned["AssetID"] = USD_SPEC.asset_id
     aligned["AssetName"] = USD_SPEC.asset_name
@@ -383,12 +498,12 @@ def prepare_usd_series(raw_dir: Path) -> tuple[pd.DataFrame, dict[str, float | i
     aligned["Month"] = aligned["Date"].dt.to_period("M")
 
     compare = aligned.dropna(subset=["ReturnFromPrice", "ChangePctRaw"]).copy()
-    diff = (compare["ReturnFromPrice"] - compare["ChangePctRaw"]).replace([np.inf, -np.inf], np.nan).dropna()
+    diff_abs = (compare["ReturnFromPrice"] - compare["ChangePctRaw"]).abs().replace([np.inf, -np.inf], np.nan).dropna()
     qa = {
         "AssetID": USD_SPEC.asset_id,
-        "ComparedRows": int(diff.shape[0]),
-        "MismatchRows": int((diff > 5e-4).sum()),
-        "MaxAbsDiff": float(diff.max()) if not diff.empty else float("nan"),
+        "ComparedRows": int(diff_abs.shape[0]),
+        "MismatchRows": int((diff_abs > 5e-4).sum()),
+        "MaxAbsDiff": float(diff_abs.max()) if not diff_abs.empty else float("nan"),
     }
     return aligned, qa
 
@@ -434,8 +549,14 @@ def compute_monthly_panel(
     macro_features: dict[pd.Period, dict[str, float]],
     egarch_month_stats_by_asset: dict[str, dict[pd.Period, dict[str, float | int]]] | None = None,
 ) -> pd.DataFrame:
+    if "EGX30" not in daily_assets:
+        raise RuntimeError("EGX30 daily series is required to compute beta_to_egx30.")
+
     records: list[dict[str, object]] = []
     decision_months = sorted(macro_features)
+    benchmark = daily_assets["EGX30"][["Date", "Month", "ReturnFromPrice"]].rename(
+        columns={"ReturnFromPrice": "BenchmarkReturn"}
+    )
 
     for asset_id, frame in daily_assets.items():
         observed_months = set(frame.loc[frame["IsObserved"] == 1, "Month"].unique())
@@ -453,17 +574,34 @@ def compute_monthly_panel(
             if not all(required_month in observed_months for required_month in required_months):
                 continue
 
-            feature_returns = frame.loc[frame["Month"].isin(required_feature_months), "ReturnFromPrice"].dropna()
+            feature_window = frame.loc[frame["Month"].isin(required_feature_months)].copy()
+            observed_feature_window = feature_window.loc[feature_window["IsObserved"] == 1].copy()
+            benchmark_window = benchmark.loc[benchmark["Month"].isin(required_feature_months), ["Date", "BenchmarkReturn"]]
+            feature_returns = feature_window["ReturnFromPrice"].dropna()
             target_returns = frame.loc[frame["Month"] == month, "ReturnFromPrice"].dropna()
             feature_egarch = aggregate_month_egarch_stats(asset_month_egarch, required_feature_months)
-            target_egarch_stats = asset_month_egarch.get(month)
-            target_egarch = (
-                float(target_egarch_stats["mean"])
-                if target_egarch_stats and int(target_egarch_stats["count"]) > 0
-                else float("nan")
-            )
 
-            if feature_returns.empty or target_returns.empty or pd.isna(feature_egarch) or pd.isna(target_egarch):
+            observed_closes = observed_feature_window["PriceForReturn"].dropna()
+            atr_pct_20 = compute_atr_pct(observed_feature_window, config.ATR_PERIOD)
+            beta_to_egx30 = compute_beta_to_benchmark(
+                feature_window[["Date", "ReturnFromPrice"]],
+                benchmark_window,
+            )
+            price_to_sma20 = compute_price_to_sma(observed_closes, config.SMA_PERIOD)
+            rsi_14 = compute_wilder_rsi(observed_closes, config.RSI_PERIOD)
+            last_close = float(observed_closes.iloc[-1]) if not observed_closes.empty else float("nan")
+            distance_to_3m_high = compute_distance_to_high(last_close, observed_feature_window["HighPriceForRange"])
+
+            if (
+                feature_returns.empty
+                or target_returns.empty
+                or pd.isna(feature_egarch)
+                or pd.isna(atr_pct_20)
+                or pd.isna(beta_to_egx30)
+                or pd.isna(price_to_sma20)
+                or pd.isna(rsi_14)
+                or pd.isna(distance_to_3m_high)
+            ):
                 continue
 
             records.append(
@@ -475,12 +613,15 @@ def compute_monthly_panel(
                     "egarch_vol_raw": feature_egarch,
                     "downside_dev_raw": compute_downside_deviation(feature_returns),
                     "max_drawdown_raw": compute_max_drawdown(feature_returns),
-                    "volume_raw": compute_trailing_volume(
-                        frame.loc[frame["Month"].isin(required_feature_months), "Volume"]
-                    ),
+                    "volume_raw": compute_trailing_volume(feature_window["Volume"]),
+                    "atr_pct_20_raw": atr_pct_20,
+                    "beta_to_egx30_raw": beta_to_egx30,
+                    "price_to_sma20_raw": price_to_sma20,
+                    "rsi_14_raw": rsi_14,
+                    "distance_to_3m_high_raw": distance_to_3m_high,
                     "usd_vol": macro_features[month]["usd_vol"],
                     "cpi_trajectory": macro_features[month]["cpi_trajectory"],
-                    "realized_egarch_vol_raw": target_egarch,
+                    "realized_vol_raw": annualized_volatility(target_returns),
                     "realized_downside_dev_raw": compute_downside_deviation(target_returns),
                     "realized_max_drawdown_raw": compute_max_drawdown(target_returns),
                 }
@@ -499,11 +640,16 @@ def compute_monthly_panel(
         month_frame["downside_dev"] = rank_to_unit_interval(month_frame["downside_dev_raw"])
         month_frame["max_drawdown"] = rank_to_unit_interval(month_frame["max_drawdown_raw"])
         month_frame["volume"] = rank_to_unit_interval(month_frame["volume_raw"])
-        month_frame["realized_egarch_vol"] = rank_to_unit_interval(month_frame["realized_egarch_vol_raw"])
+        month_frame["atr_pct_20"] = rank_to_unit_interval(month_frame["atr_pct_20_raw"])
+        month_frame["beta_to_egx30"] = rank_to_unit_interval(month_frame["beta_to_egx30_raw"])
+        month_frame["price_to_sma20"] = rank_to_unit_interval(month_frame["price_to_sma20_raw"])
+        month_frame["rsi_14"] = rank_to_unit_interval(month_frame["rsi_14_raw"])
+        month_frame["distance_to_3m_high"] = rank_to_unit_interval(month_frame["distance_to_3m_high_raw"])
+        month_frame["realized_vol"] = rank_to_unit_interval(month_frame["realized_vol_raw"])
         month_frame["realized_downside_dev"] = rank_to_unit_interval(month_frame["realized_downside_dev_raw"])
         month_frame["realized_max_drawdown"] = rank_to_unit_interval(month_frame["realized_max_drawdown_raw"])
         month_frame["realized_risk"] = (
-            (config.W_EGARCH * month_frame["realized_egarch_vol"])
+            (config.W_REALIZED_VOL * month_frame["realized_vol"])
             + (config.W_DOWNSIDE_DEV * month_frame["realized_downside_dev"])
             + (config.W_MAX_DRAWDOWN * month_frame["realized_max_drawdown"])
         )

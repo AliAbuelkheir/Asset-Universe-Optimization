@@ -18,6 +18,11 @@ Canonical feature columns:
 - `downside_dev`
 - `max_drawdown`
 - `volume`
+- `atr_pct_20`
+- `beta_to_egx30`
+- `price_to_sma20`
+- `rsi_14`
+- `distance_to_3m_high`
 - `usd_vol`
 - `cpi_trajectory`
 
@@ -27,7 +32,7 @@ Columns retained for grouping/alignment but excluded from model input:
 - `AssetID`
 - `AssetName`
 - `AssetGroup`
-- `realized_egarch_vol`
+- `realized_vol`
 - `realized_downside_dev`
 - `realized_max_drawdown`
 - `realized_risk`
@@ -79,6 +84,19 @@ Evaluation outputs should focus on:
 - monthly MSE
 - aggregate reward over each split
 - exported month-level ranked predictions
+
+## Target Interpretation
+
+The stored realized target is a cross-sectional composite built within month
+from:
+
+- `realized_vol`
+- `realized_downside_dev`
+- `realized_max_drawdown`
+
+Each component is normalized within month across active assets before being
+combined into `realized_risk`. `realized_rank` is derived from that final
+composite.
 
 ## Acceptance Criteria
 
