@@ -436,6 +436,43 @@ def test_compute_monthly_panel_does_not_leak_future_asset_or_benchmark_data() ->
     assert_frame_equal(original_nov, modified_nov)
 
 
+def test_compute_monthly_panel_does_not_leak_future_macro_data() -> None:
+    base_macro = {
+        pd.Period("2010-11", freq="M"): {
+            "usd_vol": 0.25,
+            "cpi_trajectory": 0.05,
+        },
+        pd.Period("2010-12", freq="M"): {
+            "usd_vol": 0.30,
+            "cpi_trajectory": 0.06,
+        },
+    }
+    modified_macro = {
+        month: values.copy()
+        for month, values in base_macro.items()
+    }
+    modified_macro[pd.Period("2010-12", freq="M")] = {
+        "usd_vol": 0.95,
+        "cpi_trajectory": 0.90,
+    }
+
+    daily_assets = {
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
+    }
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
+
+    original_panel = builder.compute_monthly_panel(daily_assets, base_macro, egarch_stats)
+    modified_panel = builder.compute_monthly_panel(daily_assets, modified_macro, egarch_stats)
+
+    original_nov = original_panel.loc[original_panel["Date"] == "2010-11"].sort_values("AssetID").reset_index(drop=True)
+    modified_nov = modified_panel.loc[modified_panel["Date"] == "2010-11"].sort_values("AssetID").reset_index(drop=True)
+
+    assert_frame_equal(original_nov, modified_nov)
+
+
 def ensure_current_outputs() -> None:
     daily_path = ROOT / config.READY_DATA_DIR / config.DAILY_MARKET_SERIES_NAME
     panel_path = ROOT / config.READY_DATA_DIR / config.MONTHLY_PANEL_NAME

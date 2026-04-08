@@ -7,28 +7,29 @@ monthly-batched RL asset risk scorer over the Egyptian market.
 
 The active system is:
 
-- one shared scorer applied to every asset available in a month
+- one shared PPO scorer applied to every asset available in a month
 - one canonical long monthly panel with one row per `(Date, AssetID)`
 - one month-level reward computed after scoring the full active universe
-- monthly ranking quality as the primary evaluation target
+- monthly ranking quality against `realized_risk` as the primary evaluation
+  target
 
 Deferred from the active scope:
 
 - investor-tier asset selection logic
 - pairwise correlation features
-- test-driven development workflow
+- any non-RL trainer as an active repository path
 
 ## Current Direction
 
-The immediate priority is data engineering that makes the model ingestible as
-quickly as possible.
+The immediate priority is a fully working RL path on top of the canonical
+monthly panel.
 
 The canonical pipeline direction is now:
 
 1. clean and standardize the raw market files
 2. derive authoritative returns from cleaned prices
 3. build the final monthly asset panel directly
-4. train and evaluate from that one panel
+4. train and evaluate the PPO agent from that one panel
 
 If wording conflicts across repository markdown files, `AGENTS.md` wins.
 
@@ -39,7 +40,6 @@ If wording conflicts across repository markdown files, `AGENTS.md` wins.
 - `thesis/` stays unchanged and remains the home of the thesis source and
   rendered PDF
 - `docs/diagrams/` stores diagram assets
-- `external_docs/` is no longer part of the active repository structure
 
 ## Asset Universe
 
@@ -53,10 +53,8 @@ Base scored asset classes:
 
 Benchmark interpretation:
 
-- `EGX30` is the benchmark representation for Egyptian equity-market exposure,
-  including ETFs and mutual funds that track or proxy the equity market.
-- `Gold` is the benchmark representation for gold exposure in all practical
-  forms, including gold funds and other gold-linked products.
+- `EGX30` is the benchmark representation for Egyptian equity-market exposure.
+- `Gold` is the benchmark representation for gold exposure.
 
 Equity expansion:
 
@@ -92,7 +90,7 @@ Primary build script:
 
 1. `src/data_processing/build_model_dataset.py`
 
-Optional validation script:
+Fast validation script:
 
 2. `src/data_processing/validate_model_dataset.py`
 
@@ -240,14 +238,14 @@ Rules:
   `realized_downside_dev`, and `realized_max_drawdown`.
 - Pairwise cross-asset correlation features are removed from the active plan.
 
-## Month-Level Batching And Reward
+## Month-Level RL Contract
 
-One environment step equals one month.
+One PPO episode equals one month.
 
-At step `t`:
+At episode `t`:
 
 1. load all rows for month `t` from `monthly_asset_panel.csv`
-2. build the model tensor from feature columns only
+2. build the policy tensor from feature columns only
 3. apply one shared scorer across the active asset rows
 4. output one risk score per available asset
 5. sort predictions from low to high predicted risk
@@ -258,11 +256,14 @@ Reward:
 
 `0.7 * SpearmanRankCorr(predicted, realized) + 0.3 * (1 - MSE)`
 
-Reward rules:
+Rules:
 
+- training samples random months from the train split
+- validation and test evaluate months in chronological order
 - compute reward only across active assets in that month
 - skip months with fewer than 3 assets
 - keep identifiers only for grouping and alignment
+- padded rows must not contribute to log-probability, entropy, or reward
 
 ## Data Splits
 
@@ -273,14 +274,33 @@ Reward rules:
 
 Do not introduce temporal leakage across these ranges.
 
+## Testing And Leakage Policy
+
+Testing is used to make sure:
+
+1. the data engineering part is correct and calculations are performed
+   correctly
+2. no data leakage whatsoever is happening in the calculations
+
+Repository rules:
+
+- `validate_model_dataset.py` is the fast schema and contract check for the
+  canonical outputs
+- `tests/test_data_engineering_pipeline.py` is the stronger correctness and
+  leakage suite for parsing, feature construction, target construction, and
+  month-level walk-forward logic
+- `tests/test_training_pipeline.py` protects the PPO path, masking behavior,
+  split integrity, checkpoint selection, and evaluation artifacts
+
 ## Source Of Truth
 
 - `AGENTS.md` is the canonical repository specification
 - `README.md` is the short overview
 - `docs/README.md` is the documentation hub
-- `docs/data_engineering_plan.md` expands the internal data pipeline design
-- `docs/ml_framework_plan.md` expands the model design
-- `docs/month_level_batching_and_reward.md` expands month-level scoring logic
+- `docs/project_guide.md` expands the internal data pipeline design, PPO
+  contract, month-level reward logic, and leakage rules
+- `docs/experiment_tracker.md` is the main sheet for recorded runs and pending
+  experiments
 - `docs/papers.md` is the paper tracker
 - `src/config.py` holds implementation constants but is not more authoritative
   than `AGENTS.md`
@@ -292,6 +312,6 @@ Do not introduce temporal leakage across these ranges.
 - Keep outputs chronological.
 - Keep `rawData/` canonical and deduplicated.
 - Keep generated canonical datasets under `data/ready/` only.
-- Avoid reintroducing older architecture ideas such as two-level orchestrators,
-  fixed per-asset model slots, or rule-labeled supervised targets.
-- Avoid reintroducing TDD/test-suite workflow language into repository docs.
+- Do not reintroduce non-RL trainer paths as active repo paths.
+- Do not reintroduce direct asset identity into the policy input.
+- Do not weaken the leakage test expectations for convenience.

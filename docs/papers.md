@@ -76,4 +76,3 @@ That remains the main defendable thesis gap.
 - keep the defended set stable while the data-engineering phase finishes
 - sync `references.bib` only after the defended set is final
 - use this file as the local paper tracker going forward
-
