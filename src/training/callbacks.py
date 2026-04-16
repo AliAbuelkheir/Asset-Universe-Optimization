@@ -19,13 +19,17 @@ class ValidationEvaluationCallback(BaseCallback):
     def __init__(
         self,
         panel_path: str | Path | None,
+        daily_path: str | Path | None,
         output_dir: str | Path,
+        framework_id: str,
         eval_frequency: int,
         verbose: int = 0,
     ) -> None:
         super().__init__(verbose=verbose)
         self.panel_path = panel_path
+        self.daily_path = daily_path
         self.output_dir = Path(output_dir)
+        self.framework_id = framework_id
         self.eval_frequency = int(eval_frequency)
         self.history: list[dict[str, Any]] = []
         self.best_mean_reward = float("-inf")
@@ -39,6 +43,8 @@ class ValidationEvaluationCallback(BaseCallback):
         _, _, split_summary = evaluate_model_splits(
             model=self.model,
             panel_path=self.panel_path,
+            daily_path=self.daily_path,
+            framework_id=self.framework_id,
             split_names=("validation",),
         )
         summary = split_summary.iloc[0].to_dict()

@@ -1,18 +1,18 @@
 \begin{thebibliography}{10}
 
-\bibitem{fama1993common}
-E.~F. Fama and K.~R. French, ``Common risk factors in the returns on stocks and
-  bonds,'' {\em Journal of Financial Economics}, vol.~33, no.~1, pp.~3--56,
-  1993.
-
-\bibitem{vasquez2022ahptopsis}
-J.~A. Vasquez, J.~W. Escobar, and D.~F. Manotas, ``Ahp--topsis methodology for
-  stock portfolio investments,'' {\em Risks}, vol.~10, no.~1, p.~4, 2022.
+\bibitem{markowitz1952}
+H.~Markowitz, ``Portfolio selection,'' {\em The Journal of Finance}, vol.~7,
+  no.~1, pp.~77--91, 1952.
 
 \bibitem{wang2020portfolioformation}
 W.~Wang, W.~Li, N.~Zhang, and K.~Liu, ``Portfolio formation with preselection
   using deep learning from long-term financial data,'' {\em Expert Systems with
   Applications}, vol.~143, p.~113042, 2020.
+
+\bibitem{chaweewanchon2022}
+A.~Chaweewanchon and R.~Chaysiri, ``Markowitz mean-variance portfolio
+  optimization with predictive stock selection using machine learning,'' {\em
+  International Journal of Financial Studies}, vol.~10, no.~3, p.~64, 2022.
 
 \bibitem{kaczmarek2022building}
 T.~Kaczmarek and K.~Perez, ``Building portfolios based on machine learning
@@ -30,15 +30,15 @@ E.~F. E.~A. Mills and S.~K. Anyomi, ``A hybrid two-stage robustness approach to
   University - Computer and Information Sciences}, vol.~34, no.~9,
   pp.~7735--7750, 2022.
 
-\bibitem{qin2024followakoinvestor}
-C.~Qin, J.~Chang, W.~Tu, and C.~Yu, ``Followakoinvestor: Stock recommendation
-  by hearing voices from all kinds of investors with machine learning,'' {\em
-  Expert Systems with Applications}, vol.~249, p.~123522, 2024.
-
 \bibitem{musto2015personalized}
 C.~Musto, G.~Semeraro, P.~Lops, M.~de~Gemmis, and G.~Lekkas, ``Personalized
   finance advisory through case-based recommender systems and diversification
   strategies,'' {\em Decision Support Systems}, vol.~77, pp.~100--111, 2015.
+
+\bibitem{asemi2023demographics}
+A.~Asemi, A.~Asemi, and A.~Ko, ``Adaptive neuro-fuzzy inference system for
+  customizing investment type based on the potential investors' demographics
+  and feedback,'' {\em Journal of Big Data}, vol.~10, p.~87, 2023.
 
 \bibitem{asemi2024investmenttype}
 A.~Asemi, A.~Asemi, and A.~Ko, ``A model for investment type recommender system
@@ -50,14 +50,31 @@ A.~Asemi, A.~Asemi, and A.~Ko, ``A model for investment type recommender system
 J.~Wei and J.~Liu, ``Personalized fund recommendation with dynamic utility
   learning,'' {\em Financial Innovation}, vol.~11, p.~48, 2025.
 
-\bibitem{oehler2024chatgptrobo}
-A.~Oehler and M.~Horn, ``Does chatgpt provide better advice than
-  robo-advisors?,'' {\em Finance Research Letters}, vol.~60, p.~104898, 2024.
-
 \bibitem{schneider2025riskappetite}
 C.~J. Schneider and Y.~Yilmaz, ``Stock portfolio selection based on risk
   appetite: Evidence from chatgpt,'' {\em Finance Research Letters}, vol.~82,
   p.~107517, 2025.
+
+\bibitem{alsabah2021roboadvising}
+H.~Alsabah, A.~Capponi, O.~Ruiz~Lacedelli, and M.~Stern, ``Robo-advising:
+  Learning investors' risk preferences via portfolio choices,'' {\em Journal of
+  Financial Econometrics}, vol.~19, no.~2, pp.~369--392, 2021.
+
+\bibitem{jiang2017portfolioframework}
+Z.~Jiang, D.~Xu, and J.~Liang, ``A deep reinforcement learning framework for
+  the financial portfolio management problem,'' {\em arXiv preprint
+  arXiv:1706.10059}, 2017.
+
+\bibitem{liu2020finrl}
+X.-Y. Liu, H.~Yang, Q.~Chen, R.~Zhang, L.~Yang, B.~Xiao, and C.~D. Wang,
+  ``Finrl: A deep reinforcement learning library for automated stock trading in
+  quantitative finance,'' {\em arXiv preprint arXiv:2011.09607}, 2020.
+
+\bibitem{choudhary2025riskadjusted}
+H.~Choudhary, A.~Orra, K.~Sahoo, and M.~Thakur, ``Risk-adjusted deep
+  reinforcement learning for portfolio optimization: A multi-reward approach,''
+  {\em International Journal of Computational Intelligence Systems}, vol.~18,
+  p.~126, 2025.
 
 \bibitem{orra2025deep}
 A.~Orra, A.~Bhambu, H.~Choudhary, M.~Thakur, and S.~Natarajan, ``Deep

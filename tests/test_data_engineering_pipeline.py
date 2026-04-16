@@ -366,7 +366,7 @@ def test_prepare_asset_series_converts_yield_quotes_before_returns_and_ranges(tm
 
 def test_compute_monthly_panel_builds_expected_schema_and_replaces_target_egarch() -> None:
     macro_features = {
-        pd.Period("2010-11", freq="M"): {
+        pd.Period("2010-10", freq="M"): {
             "usd_vol": 0.25,
             "cpi_trajectory": 0.05,
         }
@@ -383,7 +383,7 @@ def test_compute_monthly_panel_builds_expected_schema_and_replaces_target_egarch
     panel = builder.compute_monthly_panel(daily_assets, macro_features, egarch_stats)
     panel = panel.sort_values("AssetID").reset_index(drop=True)
 
-    assert list(panel["Date"].unique()) == ["2010-11"]
+    assert list(panel["Date"].unique()) == ["2010-10"]
     assert "realized_egarch_vol" not in panel.columns
     for column in config.MODEL_FEATURE_COLUMNS:
         assert column in panel.columns
@@ -397,11 +397,11 @@ def test_compute_monthly_panel_builds_expected_schema_and_replaces_target_egarch
 
 def test_compute_monthly_panel_does_not_leak_future_asset_or_benchmark_data() -> None:
     macro_features = {
-        pd.Period("2010-11", freq="M"): {
+        pd.Period("2010-10", freq="M"): {
             "usd_vol": 0.25,
             "cpi_trajectory": 0.05,
         },
-        pd.Period("2010-12", freq="M"): {
+        pd.Period("2010-11", freq="M"): {
             "usd_vol": 0.30,
             "cpi_trajectory": 0.06,
         },
@@ -414,35 +414,35 @@ def test_compute_monthly_panel_does_not_leak_future_asset_or_benchmark_data() ->
         "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
     }
     modified_assets = {asset_id: frame.copy() for asset_id, frame in original_assets.items()}
-    december_mask_a = modified_assets["A"]["Month"] == pd.Period("2010-12", freq="M")
-    modified_assets["A"].loc[december_mask_a, "PriceForReturn"] *= 4.0
-    modified_assets["A"].loc[december_mask_a, "HighPriceForRange"] *= 4.5
-    modified_assets["A"].loc[december_mask_a, "LowPriceForRange"] *= 3.5
-    modified_assets["A"].loc[december_mask_a, "ReturnFromPrice"] = 0.40
+    november_mask_a = modified_assets["A"]["Month"] == pd.Period("2010-11", freq="M")
+    modified_assets["A"].loc[november_mask_a, "PriceForReturn"] *= 4.0
+    modified_assets["A"].loc[november_mask_a, "HighPriceForRange"] *= 4.5
+    modified_assets["A"].loc[november_mask_a, "LowPriceForRange"] *= 3.5
+    modified_assets["A"].loc[november_mask_a, "ReturnFromPrice"] = 0.40
 
-    december_mask_benchmark = modified_assets["EGX30"]["Month"] == pd.Period("2010-12", freq="M")
-    modified_assets["EGX30"].loc[december_mask_benchmark, "ReturnFromPrice"] = -0.25
+    november_mask_benchmark = modified_assets["EGX30"]["Month"] == pd.Period("2010-11", freq="M")
+    modified_assets["EGX30"].loc[november_mask_benchmark, "ReturnFromPrice"] = -0.25
 
     egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
     original_panel = builder.compute_monthly_panel(original_assets, macro_features, egarch_stats)
     modified_panel = builder.compute_monthly_panel(modified_assets, macro_features, egarch_stats)
 
     columns_to_compare = config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
-    original_nov = original_panel.loc[original_panel["Date"] == "2010-11", ["AssetID"] + columns_to_compare]
-    modified_nov = modified_panel.loc[modified_panel["Date"] == "2010-11", ["AssetID"] + columns_to_compare]
-    original_nov = original_nov.sort_values("AssetID").reset_index(drop=True)
-    modified_nov = modified_nov.sort_values("AssetID").reset_index(drop=True)
+    original_oct = original_panel.loc[original_panel["Date"] == "2010-10", ["AssetID"] + columns_to_compare]
+    modified_oct = modified_panel.loc[modified_panel["Date"] == "2010-10", ["AssetID"] + columns_to_compare]
+    original_oct = original_oct.sort_values("AssetID").reset_index(drop=True)
+    modified_oct = modified_oct.sort_values("AssetID").reset_index(drop=True)
 
-    assert_frame_equal(original_nov, modified_nov)
+    assert_frame_equal(original_oct, modified_oct)
 
 
 def test_compute_monthly_panel_does_not_leak_future_macro_data() -> None:
     base_macro = {
-        pd.Period("2010-11", freq="M"): {
+        pd.Period("2010-10", freq="M"): {
             "usd_vol": 0.25,
             "cpi_trajectory": 0.05,
         },
-        pd.Period("2010-12", freq="M"): {
+        pd.Period("2010-11", freq="M"): {
             "usd_vol": 0.30,
             "cpi_trajectory": 0.06,
         },
@@ -451,7 +451,7 @@ def test_compute_monthly_panel_does_not_leak_future_macro_data() -> None:
         month: values.copy()
         for month, values in base_macro.items()
     }
-    modified_macro[pd.Period("2010-12", freq="M")] = {
+    modified_macro[pd.Period("2010-11", freq="M")] = {
         "usd_vol": 0.95,
         "cpi_trajectory": 0.90,
     }
@@ -467,10 +467,10 @@ def test_compute_monthly_panel_does_not_leak_future_macro_data() -> None:
     original_panel = builder.compute_monthly_panel(daily_assets, base_macro, egarch_stats)
     modified_panel = builder.compute_monthly_panel(daily_assets, modified_macro, egarch_stats)
 
-    original_nov = original_panel.loc[original_panel["Date"] == "2010-11"].sort_values("AssetID").reset_index(drop=True)
-    modified_nov = modified_panel.loc[modified_panel["Date"] == "2010-11"].sort_values("AssetID").reset_index(drop=True)
+    original_oct = original_panel.loc[original_panel["Date"] == "2010-10"].sort_values("AssetID").reset_index(drop=True)
+    modified_oct = modified_panel.loc[modified_panel["Date"] == "2010-10"].sort_values("AssetID").reset_index(drop=True)
 
-    assert_frame_equal(original_nov, modified_nov)
+    assert_frame_equal(original_oct, modified_oct)
 
 
 def ensure_current_outputs() -> None:
@@ -483,7 +483,13 @@ def ensure_current_outputs() -> None:
     daily_columns = list(pd.read_csv(daily_path, nrows=0).columns)
     panel_columns = list(pd.read_csv(panel_path, nrows=0).columns)
     expected_panel_columns = config.PANEL_METADATA_COLUMNS + config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
-    if daily_columns != config.DAILY_MARKET_COLUMNS or panel_columns != expected_panel_columns:
+    panel_preview = pd.read_csv(panel_path, usecols=["Date"], nrows=5)
+    panel_start = str(panel_preview["Date"].min()) if not panel_preview.empty else ""
+    if (
+        daily_columns != config.DAILY_MARKET_COLUMNS
+        or panel_columns != expected_panel_columns
+        or panel_start != config.PANEL_STATE_START
+    ):
         builder.main()
 
 
@@ -552,3 +558,17 @@ def test_monthly_panel_matches_recomputed_panel_from_daily_output(built_outputs:
 
     rank_diffs = np.abs(stored["realized_rank"].to_numpy() - recomputed["realized_rank"].to_numpy())
     assert np.all(rank_diffs <= 2.0)
+
+
+def test_current_outputs_support_framework_comparison_from_common_start(built_outputs: tuple[pd.DataFrame, pd.DataFrame]) -> None:
+    _, panel = built_outputs
+
+    from src.training.panel_utils import build_framework_batches
+
+    one_month_batches = build_framework_batches(panel, framework_id="pit_1m_shared_mlp", split_name="train")
+    three_month_batches = build_framework_batches(panel, framework_id="pit_3m_flat_shared_mlp", split_name="train")
+
+    assert one_month_batches[0].date == config.TRAIN_START
+    assert three_month_batches[0].date == config.TRAIN_START
+    assert one_month_batches[0].state_months == ("2010-12",)
+    assert three_month_batches[0].state_months == ("2010-10", "2010-11", "2010-12")

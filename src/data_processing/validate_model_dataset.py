@@ -48,8 +48,8 @@ def main() -> None:
         "Monthly panel contains duplicate (Date, AssetID) rows.",
     )
     assert_true(
-        panel["Date"].min() == config.TRAIN_START,
-        f"Monthly panel should start at {config.TRAIN_START}.",
+        panel["Date"].min() == config.PANEL_STATE_START,
+        f"Monthly panel should start at {config.PANEL_STATE_START}.",
     )
     assert_true(
         panel["Date"].max() <= config.TEST_END,

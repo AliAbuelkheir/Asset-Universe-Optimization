@@ -2,14 +2,14 @@
 
 ## Purpose
 
-This is the main working sheet for model iteration.
+This is the active working sheet for the framework-first PPO study.
 
 Use it to:
 
-- record every PPO experiment that was actually run
-- compare validation and test performance across runs
-- track which checkpoint was selected
-- list the next experiments to run
+- keep one archived note of the legacy PPO sweep
+- track the active framework leaderboard
+- record the exact runs used to select the framework
+- lock the feature-phase starting point
 
 Machine-readable source:
 
@@ -19,109 +19,114 @@ Per-run artifacts:
 
 - `outputs/experiments/<SetupID>/`
 
-## Active Objective
+## Archived Legacy Reset Note
 
-- framework: PPO monthly ranking
-- policy: `MaskedActorCriticPolicy`
-- input view: `monthly_asset_panel`
-- target: `realized_risk`
-- reward:
-  `0.7 * SpearmanRankCorr(predicted, realized) + 0.3 * (1 - MSE)`
+The earlier PPO sweep was reset and removed from the active experiment phase.
 
-Fixed split ranges:
-
-- train: `2010-11` to `2022-12`
-- validation: `2023-01` to `2025-02`
-- test: `2025-03` to `2026-02`
-
-Checkpoint selection rule:
-
-- choose the checkpoint with the best validation mean reward
-- report final train/validation/test metrics from that checkpoint
-
-## Recorded Runs
-
-| SetupID | Date | Timesteps | LR | N Steps | Batch | Epochs | Ent Coef | Validation Reward | Test Reward | Validation Spearman | Test Spearman | Validation MSE | Test MSE | Reported Checkpoint | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| PPO-CANONICAL-20260408 | 2026-04-08 | 4096 | 0.0003 | 256 | 256 | 10 | 0.01 | 0.6778 | 0.7051 | 0.5700 | 0.6086 | 0.0706 | 0.0696 | `best_model.zip` | First persistent PPO run after the RL-only refactor. Validation peak occurred at 1024 timesteps. |
-| PPO-EVAL-512-20260408 | 2026-04-08 | 4096 | 0.0003 | 256 | 256 | 10 | 0.01 | 0.6851 | 0.7034 | 0.5809 | 0.6066 | 0.0718 | 0.0709 | `best_model.zip` | Same PPO setup as canonical, but validation checked every 512 timesteps. Best checkpoint was found at 512 timesteps. |
-| PPO-SEED-7-20260408 | 2026-04-08 | 4096 | 0.0003 | 256 | 256 | 10 | 0.01 | 0.6602 | 0.6883 | 0.5381 | 0.5772 | 0.0548 | 0.0525 | `best_model.zip` | Alternate seed run. Validation improved steadily through 4096 timesteps, but finished below the current best validation reward. |
-| PPO-SEED-13-20260408 | 2026-04-08 | 4096 | 0.0003 | 256 | 256 | 10 | 0.01 | 0.6692 | 0.6870 | 0.5577 | 0.5828 | 0.0708 | 0.0698 | `best_model.zip` | Second alternate seed run. Best validation checkpoint was again early at 1024 timesteps, confirming seed sensitivity. |
-| PPO-LR-1E4-20260408 | 2026-04-08 | 4096 | 0.0001 | 256 | 256 | 10 | 0.01 | 0.6906 | 0.7115 | 0.5884 | 0.6179 | 0.0709 | 0.0699 | `best_model.zip` | Lower learning-rate run. Best validation checkpoint moved later to 2048 timesteps and became the strongest result so far. |
-| PPO-ENT-000-20260408 | 2026-04-08 | 4096 | 0.0003 | 256 | 256 | 10 | 0.00 | 0.6775 | 0.7053 | 0.5695 | 0.6088 | 0.0706 | 0.0696 | `best_model.zip` | Entropy-free run. It behaved similarly to the canonical setup and did not improve validation reward. |
-| PPO-NSTEPS-512-20260408 | 2026-04-08 | 4096 | 0.0003 | 512 | 256 | 10 | 0.01 | 0.6671 | 0.7070 | 0.5504 | 0.6065 | 0.0607 | 0.0585 | `best_model.zip` | Longer-rollout run. It reduced MSE substantially, but ranking quality fell and validation reward stayed below the current best. |
-
-## Current Best Run
-
-Current best recorded setup:
+Legacy best result kept for context only:
 
 - `SetupID`: `PPO-LR-1E4-20260408`
-- artifact directory:
-  [outputs/experiments/PPO-LR-1E4-20260408](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/PPO-LR-1E4-20260408)
-- validation mean reward: `0.6906`
-- test mean reward: `0.7115`
-- validation mean Spearman: `0.5884`
-- test mean Spearman: `0.6179`
+- validation reward: `0.6906`
+- test reward: `0.7115`
+- validation Spearman: `0.5884`
+- test Spearman: `0.6179`
 
-Important files:
+This legacy result was produced under the old baked decision-month panel and is
+not directly comparable to the current framework-phase runs.
 
-- [setup_summary.json](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/PPO-LR-1E4-20260408/setup_summary.json)
-- [training_metrics.csv](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/PPO-LR-1E4-20260408/training_metrics.csv)
-- [split_summary.csv](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/PPO-LR-1E4-20260408/split_summary.csv)
-- [monthly_metrics.csv](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/PPO-LR-1E4-20260408/monthly_metrics.csv)
-- [ranked_predictions.csv](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/PPO-LR-1E4-20260408/ranked_predictions.csv)
+## Locked Framework-Phase PPO Config
 
-Training-curve note for this run:
+- `learning_rate = 1e-4`
+- `n_steps = 256`
+- `batch_size = 256`
+- `n_epochs = 10`
+- `gamma = 1.0`
+- `gae_lambda = 1.0`
+- `clip_range = 0.2`
+- `ent_coef = 0.01`
+- `vf_coef = 0.5`
+- `max_grad_norm = 0.5`
+- `eval_frequency = 512`
+- common train decision start: `2011-01`
 
-- validation mean reward at `1024` timesteps: `0.6836`
-- validation mean reward at `2048` timesteps: `0.6906`
-- validation mean reward at `3072` timesteps: `0.6846`
-- validation mean reward at `4096` timesteps: `0.6809`
+## Framework Leaderboard
 
-That means the saved `best_model.zip` is the 2048-timestep checkpoint, not the
-final model.
+Selection rule:
 
-## Latest Sweep Findings
+- primary metric: mean validation reward across fixed seeds
+- secondary tie-breaker: mean validation Spearman
+- third tie-breaker: lower validation reward standard deviation
+- promotion rule: beat the base by at least `0.01`, or stay within `0.005`
+  while improving validation Spearman
 
-- Lowering `learning_rate` from `3e-4` to `1e-4` produced the best validation and test reward so far.
-- Checking validation every `512` timesteps helped checkpoint selection, but did not beat the lower-learning-rate run by itself.
-- Seed variance is meaningful. Validation reward ranged from `0.6602` to `0.6851` across the canonical-style runs, so single-run conclusions are weak.
-- Setting `ent_coef=0.0` was effectively neutral relative to the canonical setup and did not improve validation reward.
-- Increasing `n_steps` to `512` improved MSE, but hurt Spearman enough that the combined reward fell.
+| FrameworkID | Seeds | Mean Validation Reward | Validation Reward Std | Mean Validation Spearman | Mean Test Reward | Mean Test Spearman | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pit_1m_shared_mlp` | `42, 7, 13` | `0.6772` | `0.0053` | `0.5689` | `0.7031` | `0.6056` | Selected winner |
+| `pit_1m_context` | `42` | `0.6498` | `n/a` | `0.5243` | `0.6835` | `0.5716` | Rejected: context alone hurt both reward and ranking quality |
+| `pit_1m_dailystrip_shared_cnn` | `42` | `0.6093` | `n/a` | `0.4747` | `0.5928` | `0.4508` | Rejected: prior-month daily strip plus CNN materially hurt reward and ranking quality |
+| `pit_3m_flat_context` | `42, 7, 13` | `0.6793` | `0.0033` | `0.5639` | `0.7045` | `0.5986` | Not promoted: reward stayed within the `0.005` tie band but validation Spearman was worse than the base |
+| `pit_3m_flat_shared_mlp` | `42` | `0.6735` | `n/a` | `0.5638` | `0.7104` | `0.6161` | Rejected after the first run |
 
-## Pending Experiments
+## Feature-Phase Starting Point
 
-### Priority 1: PPO Stabilization
+Locked framework winner:
 
-| Status | Experiment | Change | Why |
-| --- | --- | --- | --- |
-| pending | PPO-LR-1E4-EVAL-512 | Combine `learning_rate=1e-4` with `eval_frequency=512` | Check whether the current best setup peaks between 1024-step validation checks. |
-| pending | PPO-LR-1E4-SEED-7 | Repeat the current best setup with seed `7` | Measure whether the learning-rate improvement is robust across randomness. |
-| pending | PPO-LR-1E4-SEED-13 | Repeat the current best setup with seed `13` | Estimate variance for the current best setup instead of the older canonical one. |
-| pending | PPO-LR-1E4-LONGER-16384 | Increase total timesteps from 4096 to 16384 on the current best setup | Check whether the lower-learning-rate run continues improving with a larger budget. |
+- `FrameworkID`: `pit_1m_shared_mlp`
+- representative run: [FW-BASE-1M-S42](/C:/Ali/CS/Bachelor%20thesis/outputs/experiments/FW-BASE-1M-S42)
+- validation reward: `0.6823`
+- test reward: `0.7145`
+- validation Spearman: `0.5765`
+- test Spearman: `0.6222`
+- reported checkpoint: `best_model.zip`
 
-### Priority 2: Hyperparameter Sweeps
+This is the starting point for the next phase, which is feature optimization.
 
-| Status | Experiment | Change | Why |
-| --- | --- | --- | --- |
-| pending | PPO-ENT-002 | Set `ent_coef=0.02` | Test a slightly stronger exploration term. |
-| pending | PPO-LR-1E3 | Set `learning_rate=1e-3` | Test whether faster learning improves early validation peaks. |
-| pending | PPO-LR-1E4-NSTEPS-512 | Combine `learning_rate=1e-4` with `n_steps=512` | Check whether the best learning rate recovers ranking quality under longer rollouts. |
+Boundary notes for interpretation:
 
-### Priority 3: Model And Feature Improvements
+- the current canonical panel ends at `2026-01`, and the active test split is
+  now explicitly aligned to that boundary, so test evaluation covers `11`
+  months from `2025-03` through `2026-01`
+- missing panel months `2011-02` to `2011-04` are expected from source
+  coverage and the minimum active-asset rule; they are not currently treated as
+  implementation bugs
+- `ChangePctRaw` mismatches are QA-only and do not change the model path;
+  `ReturnFromPrice` remains the authoritative series
 
-| Status | Experiment | Change | Why |
-| --- | --- | --- | --- |
-| pending | PPO-WIDER-ACTOR | Increase row encoder or actor width | Test whether the current policy is capacity-limited. |
-| pending | PPO-FEAT-PRICE-LOW | Add one new scale-free price feature such as distance to 3m low | Improve ranking signal without violating the canonical data rules. |
-| pending | PPO-FEAT-MOM | Add benchmark-relative momentum style feature | Test whether trend information improves risk ordering. |
+## Recorded Framework Runs
+
+| SetupID | FrameworkID | Seed | Validation Reward | Test Reward | Validation Spearman | Test Spearman | Validation MSE | Test MSE | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FW-BASE-1M-S42` | `pit_1m_shared_mlp` | `42` | `0.6823` | `0.7145` | `0.5765` | `0.6222` | `0.0708` | `0.0701` | Best single run inside the winning framework |
+| `FW-BASE-1M-S7` | `pit_1m_shared_mlp` | `7` | `0.6718` | `0.6889` | `0.5610` | `0.5853` | `0.0699` | `0.0692` | Lower seed run confirms variance exists |
+| `FW-BASE-1M-S13` | `pit_1m_shared_mlp` | `13` | `0.6775` | `0.7057` | `0.5692` | `0.6092` | `0.0699` | `0.0691` | Mid-range seed run |
+| `FW-1M-CONTEXT-S42` | `pit_1m_context` | `42` | `0.6498` | `0.6835` | `0.5243` | `0.5716` | `0.0572` | `0.0553` | Isolated context ablation. Lower MSE, but substantially worse ranking and reward than the base |
+| `FW-1M-DAILYSTRIP-CNN-S42` | `pit_1m_dailystrip_shared_cnn` | `42` | `0.6093` | `0.5928` | `0.4747` | `0.4508` | `0.0765` | `0.0758` | Added an observed prior-month daily strip with a small shared CNN. This materially underperformed the base and was not promoted |
+| `FW-STACK3M-S42` | `pit_3m_flat_shared_mlp` | `42` | `0.6735` | `0.7104` | `0.5638` | `0.6161` | `0.0705` | `0.0698` | Flat 3-month stack underperformed the 1-month base |
+| `FW-STACK3M-CONTEXT-S42` | `pit_3m_flat_context` | `42` | `0.6824` | `0.7127` | `0.5696` | `0.6115` | `0.0544` | `0.0509` | Reward tied the base, but validation Spearman stayed lower |
+| `FW-STACK3M-CONTEXT-S7` | `pit_3m_flat_context` | `7` | `0.6758` | `0.7055` | `0.5583` | `0.5993` | `0.0502` | `0.0465` | Confirmed lower MSE but weaker ranking quality |
+| `FW-STACK3M-CONTEXT-S13` | `pit_3m_flat_context` | `13` | `0.6796` | `0.6951` | `0.5638` | `0.5849` | `0.0501` | `0.0477` | Stayed close on reward, still below the base on Spearman |
+
+## Pending Next Phase
+
+The framework phase is complete enough to move on.
+
+Next active phase:
+
+1. keep `pit_1m_shared_mlp` fixed
+2. design and test feature additions or feature replacements one at a time
+3. keep the PPO config locked while feature work is in progress
+4. return to broader PPO tuning only after the feature set is locked
+
+Final framework-side conclusion:
+
+- the added daily-strip CNN did not improve over the base and should not be
+  carried into the feature phase
 
 ## How To Update This Sheet
 
-After each real run:
+After each real feature-phase run:
 
-1. add one row to `outputs/experiments/setup_results.csv`
-2. copy the headline metrics into the `Recorded Runs` table
-3. update `Current Best Run` if validation mean reward improved
-4. move completed ideas from `Pending Experiments` into `Recorded Runs`
-5. add any new follow-up runs suggested by the results
+1. append the run to `outputs/experiments/setup_results.csv`
+2. add the run to the recorded runs table
+3. update the winner section only if the active framework or feature-phase base changes
+4. keep the legacy reset note unchanged

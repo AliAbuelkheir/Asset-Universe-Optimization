@@ -3,13 +3,19 @@
 ## Project Summary
 
 This repository is a bachelor thesis project for a variable-universe,
-monthly-batched RL asset risk scorer over the Egyptian market.
+month-level RL asset risk scorer over the Egyptian market.
 
-The active system is:
+The active repository phase is now:
 
-- one shared PPO scorer applied to every asset available in a month
-- one canonical long monthly panel with one row per `(Date, AssetID)`
-- one month-level reward computed after scoring the full active universe
+1. optimize the **framework**
+2. then optimize the **feature set**
+3. only after that optimize **PPO hyperparameters**
+
+The active RL system is:
+
+- one canonical long monthly state panel with one row per `(Date, AssetID)`
+- one PPO policy that scores every active asset available in a decision month
+- one month-level reward computed after the full active universe is scored
 - monthly ranking quality against `realized_risk` as the primary evaluation
   target
 
@@ -18,27 +24,28 @@ Deferred from the active scope:
 - investor-tier asset selection logic
 - pairwise correlation features
 - any non-RL trainer as an active repository path
+- recurrent PPO
+- transformer-first architectures
 
 ## Current Direction
 
-The immediate priority is a fully working RL path on top of the canonical
-monthly panel.
+The immediate priority is framework selection on top of the canonical monthly
+state panel.
 
-The canonical pipeline direction is now:
+The active order of work is:
 
-1. clean and standardize the raw market files
-2. derive authoritative returns from cleaned prices
-3. build the final monthly asset panel directly
-4. train and evaluate the PPO agent from that one panel
+1. keep the data engineering pipeline correct and leakage-free
+2. compare how monthly state rows are fed into PPO
+3. lock one framework
+4. then optimize features
+5. only then tune PPO hyperparameters more broadly
 
 If wording conflicts across repository markdown files, `AGENTS.md` wins.
 
 ## Repository Communication Layout
 
-- `docs/` is the single documentation hub for implementation plans,
-  architecture notes, and team-facing reference material
-- `thesis/` stays unchanged and remains the home of the thesis source and
-  rendered PDF
+- `docs/` is the single documentation hub
+- `thesis/` stays unchanged and remains the home of the thesis source and PDF
 - `docs/diagrams/` stores diagram assets
 
 ## Asset Universe
@@ -81,8 +88,7 @@ Macro inputs:
 - `USD_1.csv` and `USD_2.csv` must be concatenated and deduplicated.
 - CPI is monthly and requires special handling because it contains a leading
   blank row and trailing note rows.
-- `rawData/` should stay canonical and deduplicated. Do not reintroduce
-  duplicate stock folders, zip archives, or repeated exported variants.
+- `rawData/` should stay canonical and deduplicated.
 
 ## Data Engineering Entry Points
 
@@ -94,28 +100,21 @@ Fast validation script:
 
 2. `src/data_processing/validate_model_dataset.py`
 
-The earlier `clean.py`, `returns.py`, `features.py`, and `targets.py` split is
-no longer the active pipeline contract.
-
 ## Canonical Outputs
 
 Canonical cleaned daily reference:
 
 - `data/ready/daily_market_series.csv`
 
-Canonical model-ready monthly panel:
+Canonical model-ready monthly state panel:
 
 - `data/ready/monthly_asset_panel.csv`
 
-No additional intermediate CSV family should be treated as the repository
-contract by default.
-
-Only `data/ready/` should hold canonical generated datasets. Do not keep
-duplicate copies of those outputs elsewhere under `data/`.
+Only `data/ready/` should hold canonical generated datasets.
 
 ## Daily Market Series Contract
 
-`data/ready/daily_market_series.csv` is the cleaned reference file for daily
+`data/ready/daily_market_series.csv` is the cleaned daily reference file for
 market data.
 
 Required columns:
@@ -140,11 +139,7 @@ Required columns:
 Rules:
 
 - `QuotedValue` stores the vendor `Price` field after numeric parsing.
-- `OpenQuotedValue`, `HighQuotedValue`, and `LowQuotedValue` store parsed vendor
-  OHLC fields for QA and reproducibility.
 - `PriceForReturn` is the value actually used for return calculation.
-- `OpenPriceForRange`, `HighPriceForRange`, and `LowPriceForRange` are kept in
-  the same price space as `PriceForReturn`.
 - For `MoneyMarket` and `Bonds`, `PriceForReturn` and the range-price fields are
   price proxies derived from quoted yields.
 - `ChangePctRaw` is a QA/reference field only.
@@ -155,15 +150,14 @@ Rules:
 - OHLC audit fields, range-price fields, `Volume`, and `ChangePctRaw` must stay
   missing on synthetic forward-filled rows.
 - Pre-listing history must not be imputed.
-- `Volume` is preserved and used to derive the monthly `volume` model feature.
 
-## Monthly Panel Contract
+## Monthly State Panel Contract
 
 `data/ready/monthly_asset_panel.csv` is the only canonical model-facing file.
 
-One row represents one active `(Date, AssetID)` month.
+One row represents one active point-in-time `(Date, AssetID)` monthly state.
 
-Metadata columns kept for grouping and alignment:
+Metadata columns:
 
 - `Date`
 - `AssetID`
@@ -196,60 +190,110 @@ Rules:
 
 - The canonical storage shape is long, not wide.
 - Asset identity must never enter the model input tensor.
-- The runtime batch for month `t` is built by filtering rows where `Date == t`
-  and then dropping metadata and target columns.
+- Monthly state rows use data available through the end of that same month.
+- Targets in the same row are the realized targets inside that same month.
 - Do not create rows for pre-listing months.
-- Months with fewer than 3 active assets are skipped.
 - Macro features repeat across all active assets in the same month.
+- Months with fewer than 3 active assets are skipped from the final panel.
 
 ## Feature And Target Rules
 
 - Time resolution is monthly.
-- Features for month `t` use the trailing 3 full months ending at `t-1`.
-- Targets for month `t` use realized daily returns inside month `t`.
+- Monthly state features for month `m` use the trailing 3 full months ending at
+  `m`.
+- Targets for month `m` use realized daily returns inside month `m`.
 - Daily returns are used for asset-level feature and target construction.
-- `egarch_vol` uses strict month-level walk-forward EGARCH summaries. For any
-  month `m`, the EGARCH fit may only use data available through the end of
-  month `m`.
+- `egarch_vol` uses strict month-level walk-forward EGARCH summaries.
 - `volume` is built from observed daily `Volume` over the same trailing feature
-  window defined by `WINDOW_MONTHS` and defaults to `0` when no vendor volume
-  exists in that window.
+  window and defaults to `0` when no vendor volume exists in that window.
 - `atr_pct_20` is the trailing 20-observation average true range ending in
-  month `t-1`, divided by the last observed close in `t-1`.
-- `beta_to_egx30` is the covariance of aligned asset returns with aligned EGX30
-  returns over the trailing 3 full months ending at `t-1`, divided by EGX30
-  return variance over the same window.
-- `price_to_sma20` is the last observed close in `t-1` divided by the trailing
-  20 observed closes ending in `t-1`, minus 1.
-- `rsi_14` is the 14-period Wilder RSI evaluated at the last observed close in
-  `t-1`.
-- `distance_to_3m_high` is the last observed close in `t-1` divided by the max
-  observed `HighPriceForRange` over the trailing 3 full months ending at `t-1`,
-  minus 1.
+  month `m`, divided by the last observed close in month `m`.
+- `beta_to_egx30` is computed over the same trailing 3-month feature window.
+- `price_to_sma20`, `rsi_14`, and `distance_to_3m_high` are evaluated at the
+  last observed close in month `m`.
 - Bonds and money market series are quoted as yields and must be converted to a
-  fixed-maturity price proxy before returns and range-derived features are
+  fixed-maturity price proxy before return and range-derived features are
   computed.
 - Asset-level feature normalization is cross-sectional within month only.
 - Macro features stay repeated per month and are not cross-sectionally
   normalized.
-- `realized_vol` is plain annualized volatility computed directly from month `t`
-  daily returns.
 - `realized_risk` is built from within-month ranked `realized_vol`,
   `realized_downside_dev`, and `realized_max_drawdown`.
-- Pairwise cross-asset correlation features are removed from the active plan.
+
+## Framework Optimization Phase
+
+Decision month `t` is built from prior monthly state rows only.
+
+Active framework candidates:
+
+1. `pit_1m_shared_mlp`
+- input per asset: month `t-1`
+- actor context mode: `none`
+
+2. `pit_1m_context`
+- input per asset: month `t-1`
+- actor context mode: pooled month context
+- evaluated and rejected before the feature phase
+
+3. `pit_1m_dailystrip_shared_cnn`
+- input per asset: month `t-1` monthly row plus an observed prior-month daily
+  strip
+- daily strip channels: `close_rel`, `ReturnFromPrice`, `log1p(Volume)`,
+  `volume_observed`
+- daily strip length: `23` observed trading days max, zero-padded with a day
+  mask
+- actor context mode: `none`
+- evaluated and rejected before the feature phase
+
+4. `pit_3m_flat_shared_mlp`
+- input per asset: months `t-3`, `t-2`, `t-1` concatenated
+- actor context mode: `none`
+
+5. `pit_3m_flat_context`
+- input per asset: months `t-3`, `t-2`, `t-1` concatenated
+- actor context mode: pooled month context
+
+Conditional stretch candidate:
+
+6. `pit_3m_flat_attention`
+- do not activate unless a context model clearly beats the base
+
+Comparison rules:
+
+- require a full lookback for every active asset
+- compare frameworks on the same decision months
+- common train decision start is `2011-01`
+- use validation only to select the winning framework
+- the daily-strip candidate may read `data/ready/daily_market_series.csv`, but
+  only from observed rows in state month `t-1`; synthetic forward-filled rows
+  must not enter the strip encoder
+
+Locked PPO config for this phase:
+
+- `learning_rate = 1e-4`
+- `n_steps = 256`
+- `batch_size = 256`
+- `n_epochs = 10`
+- `gamma = 1.0`
+- `gae_lambda = 1.0`
+- `clip_range = 0.2`
+- `ent_coef = 0.01`
+- `vf_coef = 0.5`
+- `max_grad_norm = 0.5`
+- `eval_frequency = 512`
 
 ## Month-Level RL Contract
 
-One PPO episode equals one month.
+One PPO episode equals one decision month.
 
-At episode `t`:
+At decision month `t`:
 
-1. load all rows for month `t` from `monthly_asset_panel.csv`
-2. build the policy tensor from feature columns only
+1. choose the configured prior state rows needed by the framework
+2. build one policy tensor from feature columns only
 3. apply one shared scorer across the active asset rows
 4. output one risk score per available asset
 5. sort predictions from low to high predicted risk
-6. compare against month `t` realized targets
+6. compare against decision month `t` realized targets
 7. compute one reward for the whole month
 
 Reward:
@@ -258,19 +302,27 @@ Reward:
 
 Rules:
 
-- training samples random months from the train split
-- validation and test evaluate months in chronological order
+- training samples random decision months from the train split
+- validation and test evaluate decision months in chronological order
 - compute reward only across active assets in that month
-- skip months with fewer than 3 assets
-- keep identifiers only for grouping and alignment
-- padded rows must not contribute to log-probability, entropy, or reward
+- padded rows must not contribute to log-probability, entropy, PPO loss, or
+  reward
 
 ## Data Splits
 
-- Warm-up: Aug 2010 to Oct 2010
-- Training: Nov 2010 to Dec 2022
-- Validation: Jan 2023 to Feb 2025
-- Test: Mar 2025 to Feb 2026
+Daily history warm-up:
+
+- starts at `2010-08`
+
+Monthly state panel:
+
+- starts at `2010-10`
+
+Decision splits:
+
+- Training: `2011-01` to `2022-12`
+- Validation: `2023-01` to `2025-02`
+- Test: `2025-03` to `2026-01`
 
 Do not introduce temporal leakage across these ranges.
 
@@ -284,34 +336,33 @@ Testing is used to make sure:
 
 Repository rules:
 
-- `validate_model_dataset.py` is the fast schema and contract check for the
-  canonical outputs
+- `validate_model_dataset.py` is the fast schema and contract check
 - `tests/test_data_engineering_pipeline.py` is the stronger correctness and
   leakage suite for parsing, feature construction, target construction, and
-  month-level walk-forward logic
-- `tests/test_training_pipeline.py` protects the PPO path, masking behavior,
-  split integrity, checkpoint selection, and evaluation artifacts
+  monthly state timing
+- `tests/test_training_pipeline.py` protects the PPO path, framework batch
+  assembly, masking behavior, split integrity, checkpoint selection, and
+  artifact writing
 
 ## Source Of Truth
 
 - `AGENTS.md` is the canonical repository specification
 - `README.md` is the short overview
 - `docs/README.md` is the documentation hub
-- `docs/project_guide.md` expands the internal data pipeline design, PPO
-  contract, month-level reward logic, and leakage rules
-- `docs/experiment_tracker.md` is the main sheet for recorded runs and pending
-  experiments
+- `docs/project_guide.md` expands the data contract, framework phase, PPO
+  contract, and leakage rules
+- `docs/experiment_tracker.md` is the active run tracker and leaderboard
 - `docs/papers.md` is the paper tracker
 - `src/config.py` holds implementation constants but is not more authoritative
   than `AGENTS.md`
 
 ## Working Guidance
 
-- Prefer the documented variable-universe monthly-panel design over any earlier
-  fixed-universe assumption.
-- Keep outputs chronological.
-- Keep `rawData/` canonical and deduplicated.
+- Prefer the documented point-in-time monthly-state design over the old baked
+  decision-month panel.
 - Keep generated canonical datasets under `data/ready/` only.
-- Do not reintroduce non-RL trainer paths as active repo paths.
+- Do not reintroduce non-RL trainer paths.
 - Do not reintroduce direct asset identity into the policy input.
 - Do not weaken the leakage test expectations for convenience.
+- Keep the active docs compact and update the experiment tracker whenever a real
+  framework run is completed.

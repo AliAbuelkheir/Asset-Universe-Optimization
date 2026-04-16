@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  1 APR 2026 01:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  13 APR 2026 00:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -397,7 +397,7 @@ Package epstopdf Info: Source file: <GUC-logo-ss.eps>
 erted-to.pdf GUC-logo-ss.eps>
 (epstopdf)             \includegraphics on input line 37.
 Package epstopdf Info: Output file is already uptodate.
-<GUC-logo-ss-eps-converted-to.pdf, id=115, 271.0125pt x 259.97125pt>
+<GUC-logo-ss-eps-converted-to.pdf, id=123, 271.0125pt x 259.97125pt>
 File: GUC-logo-ss-eps-converted-to.pdf Graphic file (type pdf)
 <use GUC-logo-ss-eps-converted-to.pdf>
 Package pdftex.def Info: GUC-logo-ss-eps-converted-to.pdf  used on input line 3
@@ -461,12 +461,12 @@ Chapter 2.
 
 
 
-] [4]) [5]
+] [4] [5]) [6]
 \openout2 = `methodology.aux'.
 
  (methodology.tex
 Chapter 3.
-) [6
+) [7
 
 
 
@@ -476,7 +476,7 @@ Chapter 3.
 
  (results.tex
 Chapter 4.
-) [7
+) [8
 
 
 
@@ -486,7 +486,7 @@ Chapter 4.
 
  (conclusion.tex
 Chapter 5.
-) [8
+) [9
 
 
 
@@ -494,27 +494,27 @@ Chapter 5.
 ]
 \openout2 = `appendix.aux'.
 
- (appendix.tex [9
+ (appendix.tex [10
 
 
 
 
 ]
 Appendix A.
-[10
+[11
 
 ] (bachelor.lof)
 \tf@lof=\write5
 \openout5 = `bachelor.lof'.
 
-) [11
+) [12
 
 
-] (bachelor.bbl [12
+] (bachelor.bbl [13
 
 
 
-]) [13] (bachelor.aux
+]) [14] (bachelor.aux
 (GUC_TitlePage.aux) (acknowledgments.aux) (abstract.aux) (introduction.aux)
 (literature_review.aux) (methodology.aux) (results.aux) (conclusion.aux)
 (appendix.aux))
@@ -523,24 +523,24 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `bachelor.out' has not changed.
-(rerunfilecheck)             Checksum: A4868707062CC4D439CD10DA61F70E3D;3773.
+(rerunfilecheck)             Checksum: 2B5BA74C4DCBA0814B10F54B2F1AEF7D;4544.
  ) 
 Here is how much of TeX's memory you used:
- 11648 strings out of 467871
- 192014 string characters out of 5418376
- 603821 words of memory out of 5000000
- 40261 multiletter control sequences out of 15000+600000
+ 11659 strings out of 467871
+ 192208 string characters out of 5418376
+ 603950 words of memory out of 5000000
+ 40266 multiletter control sequences out of 15000+600000
  633280 words of font info for 58 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,5n,79p,1443b,612s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,6n,79p,1011b,610s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
 cmbx12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
 fonts/cm/cmr12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/pu
 blic/amsfonts/cm/cmsl12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts
 /type1/public/amsfonts/cm/cmti12.pfb>
-Output written on bachelor.pdf (19 pages, 131741 bytes).
+Output written on bachelor.pdf (20 pages, 138562 bytes).
 PDF statistics:
- 307 PDF objects out of 1000 (max. 8388607)
- 64 named destinations out of 1000 (max. 500000)
- 230 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 323 PDF objects out of 1000 (max. 8388607)
+ 70 named destinations out of 1000 (max. 500000)
+ 246 words of extra memory for PDF output out of 10000 (max. 10000000)
 

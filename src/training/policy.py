@@ -1,8 +1,8 @@
-"""Custom masked PPO policy for month-level asset risk scoring."""
+"""Custom masked PPO policies for the framework-first monthly ranking study."""
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch as th
@@ -81,22 +81,50 @@ class MaskedDiagGaussianDistribution(DiagGaussianDistribution):
         return actions, self.log_prob(actions)
 
 
+def _build_hidden_stack(input_dim: int, hidden_dims: Sequence[int]) -> tuple[nn.Sequential, int, list[nn.Linear]]:
+    layers: list[nn.Module] = []
+    linears: list[nn.Linear] = []
+    current_dim = input_dim
+    for hidden_dim in hidden_dims:
+        linear = nn.Linear(current_dim, hidden_dim)
+        linears.append(linear)
+        layers.extend([linear, nn.ReLU()])
+        current_dim = hidden_dim
+    return nn.Sequential(*layers), current_dim, linears
+
+
 class MaskedActorCriticPolicy(ActorCriticPolicy):
-    """Shared row-wise scorer with mask-aware critic pooling for PPO."""
+    """Shared row scorer with optional pooled context conditioning."""
 
     def __init__(
         self,
         observation_space: spaces.Space,
         action_space: spaces.Box,
         lr_schedule: Schedule,
+        row_encoder_dims: Sequence[int] = (64, 64),
+        actor_hidden_dims: Sequence[int] = (32,),
+        actor_context_mode: str = "none",
         log_std_init: float = -2.0,
         **kwargs: Any,
     ) -> None:
         self.max_assets = int(action_space.shape[0])
         if not isinstance(observation_space, spaces.Dict):
             raise ValueError("MaskedActorCriticPolicy requires a Dict observation space.")
+        if actor_context_mode == "attention":
+            raise NotImplementedError("The attention framework is intentionally disabled in the active phase.")
         feature_space = observation_space.spaces["features"]
         self.feature_count = int(feature_space.shape[-1])
+        self.uses_daily_strip = "daily_strip" in observation_space.spaces
+        if self.uses_daily_strip:
+            daily_space = observation_space.spaces["daily_strip"]
+            self.daily_strip_length = int(daily_space.shape[1])
+            self.daily_strip_channels = int(daily_space.shape[2])
+        else:
+            self.daily_strip_length = 0
+            self.daily_strip_channels = 0
+        self.row_encoder_dims = tuple(row_encoder_dims)
+        self.actor_hidden_dims = tuple(actor_hidden_dims)
+        self.actor_context_mode = actor_context_mode
         super().__init__(
             observation_space=observation_space,
             action_space=action_space,
@@ -116,37 +144,53 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             nn.init.orthogonal_(module.weight, gain=gain)
             nn.init.zeros_(module.bias)
 
+    @staticmethod
+    def _init_conv(module: nn.Module, gain: float) -> None:
+        if isinstance(module, nn.Conv1d):
+            nn.init.orthogonal_(module.weight, gain=gain)
+            nn.init.zeros_(module.bias)
+
     def _build(self, lr_schedule: Schedule) -> None:
         self.action_dist = MaskedDiagGaussianDistribution(self.max_assets)
-        self.row_encoder = nn.Sequential(
-            nn.Linear(self.feature_count, 64),
-            nn.ReLU(),
-            nn.Linear(64, 64),
-            nn.ReLU(),
-        )
-        self.actor_head = nn.Sequential(
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid(),
-        )
-        self.value_net = nn.Sequential(
-            nn.Linear(129, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1),
-        )
+
+        self.row_encoder, self.row_dim, row_linears = _build_hidden_stack(self.feature_count, self.row_encoder_dims)
+        self.daily_conv_layers: nn.Sequential | None = None
+        self.daily_embedding_dim = 0
+        if self.uses_daily_strip:
+            self.daily_conv_layers = nn.Sequential(
+                nn.Conv1d(self.daily_strip_channels, 16, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv1d(16, 32, kernel_size=3, padding=1),
+                nn.ReLU(),
+            )
+            self.daily_embedding_dim = 32
+
+        self.combined_row_dim = self.row_dim + self.daily_embedding_dim
+        summary_dim = (self.combined_row_dim * 2) + 1
+        actor_input_dim = self.combined_row_dim if self.actor_context_mode == "none" else self.combined_row_dim + summary_dim
+        self.actor_hidden, actor_hidden_dim, actor_hidden_linears = _build_hidden_stack(actor_input_dim, self.actor_hidden_dims)
+        self.actor_output = nn.Linear(actor_hidden_dim, 1)
+        self.actor_activation = nn.Sigmoid()
+
+        self.value_hidden, value_hidden_dim, value_hidden_linears = _build_hidden_stack(summary_dim, (64,))
+        self.value_output = nn.Linear(value_hidden_dim, 1)
         self.log_std = nn.Parameter(th.full((1,), self.log_std_init, dtype=th.float32))
 
         if self.ortho_init:
-            self.row_encoder.apply(lambda module: self._init_linear(module, np.sqrt(2.0)))
-            self.actor_head[0].apply(lambda module: self._init_linear(module, np.sqrt(2.0)))
-            self.actor_head[2].apply(lambda module: self._init_linear(module, 0.01))
-            self.value_net[0].apply(lambda module: self._init_linear(module, np.sqrt(2.0)))
-            self.value_net[2].apply(lambda module: self._init_linear(module, 1.0))
+            for linear in row_linears + actor_hidden_linears + value_hidden_linears:
+                self._init_linear(linear, np.sqrt(2.0))
+            if self.daily_conv_layers is not None:
+                for module in self.daily_conv_layers:
+                    self._init_conv(module, np.sqrt(2.0))
+            self._init_linear(self.actor_output, 0.01)
+            self._init_linear(self.value_output, 1.0)
 
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)  # type: ignore[call-arg]
 
-    def _preprocess_inputs(self, obs: PyTorchObs) -> tuple[th.Tensor, th.Tensor]:
+    def _preprocess_inputs(
+        self,
+        obs: PyTorchObs,
+    ) -> tuple[th.Tensor, th.Tensor, th.Tensor | None, th.Tensor | None]:
         processed = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
         if not isinstance(processed, dict):
             raise ValueError("Expected a dict observation after preprocessing.")
@@ -156,18 +200,44 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             features = features.unsqueeze(0)
         if mask.ndim == 1:
             mask = mask.unsqueeze(0)
-        return features, mask
+        daily_strip = processed.get("daily_strip")
+        daily_mask = processed.get("daily_mask")
+        if daily_strip is not None:
+            daily_strip = daily_strip.float()
+            if daily_strip.ndim == 3:
+                daily_strip = daily_strip.unsqueeze(0)
+        if daily_mask is not None:
+            daily_mask = daily_mask.float()
+            if daily_mask.ndim == 2:
+                daily_mask = daily_mask.unsqueeze(0)
+        return features, mask, daily_strip, daily_mask
 
     def _encode_rows(self, obs: PyTorchObs) -> tuple[th.Tensor, th.Tensor]:
-        features, mask = self._preprocess_inputs(obs)
-        row_embeddings = self.row_encoder(features)
+        features, mask, daily_strip, daily_mask = self._preprocess_inputs(obs)
+        monthly_embeddings = self.row_encoder(features)
+        if self.uses_daily_strip:
+            if daily_strip is None or daily_mask is None or self.daily_conv_layers is None:
+                raise ValueError("Daily-strip framework requires daily_strip and daily_mask observations.")
+            batch_size, asset_count, day_count, channel_count = daily_strip.shape
+            if day_count != self.daily_strip_length or channel_count != self.daily_strip_channels:
+                raise ValueError("Observed daily strip tensor shape does not match the configured daily-strip encoder.")
+
+            flat_strip = daily_strip.reshape(batch_size * asset_count, day_count, channel_count).permute(0, 2, 1)
+            encoded = self.daily_conv_layers(flat_strip)
+            flat_day_mask = daily_mask.reshape(batch_size * asset_count, day_count).unsqueeze(1)
+            masked_encoded = encoded * flat_day_mask
+            active_days = flat_day_mask.sum(dim=2).clamp(min=1.0)
+            pooled_daily = masked_encoded.sum(dim=2) / active_days
+            has_active_days = (flat_day_mask.sum(dim=2) > 0.0).expand_as(pooled_daily)
+            pooled_daily = th.where(has_active_days, pooled_daily, th.zeros_like(pooled_daily))
+            daily_embeddings = pooled_daily.view(batch_size, asset_count, self.daily_embedding_dim)
+            row_embeddings = th.cat([monthly_embeddings, daily_embeddings], dim=2)
+        else:
+            row_embeddings = monthly_embeddings
+        row_embeddings = row_embeddings * mask.unsqueeze(-1)
         return row_embeddings, mask
 
-    def _actor_means(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
-        means = self.actor_head(row_embeddings).squeeze(-1)
-        return means * mask
-
-    def _critic_values(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
+    def _pooled_summary(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
         expanded_mask = mask.unsqueeze(-1)
         masked_embeddings = row_embeddings * expanded_mask
         active_counts = mask.sum(dim=1, keepdim=True).clamp(min=1.0)
@@ -180,8 +250,24 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         max_pool = th.where(has_active, max_pool, th.zeros_like(max_pool))
 
         normalized_count = active_counts / float(self.max_assets)
-        critic_input = th.cat([mean_pool, max_pool, normalized_count], dim=1)
-        return self.value_net(critic_input)
+        return th.cat([mean_pool, max_pool, normalized_count], dim=1)
+
+    def _actor_means(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
+        if self.actor_context_mode == "pooled":
+            summary = self._pooled_summary(row_embeddings, mask)
+            expanded_summary = summary.unsqueeze(1).expand(-1, row_embeddings.shape[1], -1)
+            actor_inputs = th.cat([row_embeddings, expanded_summary], dim=2)
+        else:
+            actor_inputs = row_embeddings
+
+        hidden = self.actor_hidden(actor_inputs)
+        means = self.actor_activation(self.actor_output(hidden)).squeeze(-1)
+        return means * mask
+
+    def _critic_values(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
+        summary = self._pooled_summary(row_embeddings, mask)
+        hidden = self.value_hidden(summary)
+        return self.value_output(hidden)
 
     def _distribution_from_obs(self, obs: PyTorchObs) -> tuple[MaskedDiagGaussianDistribution, th.Tensor]:
         row_embeddings, mask = self._encode_rows(obs)

@@ -523,15 +523,15 @@ def compute_macro_features(usd_daily: pd.DataFrame, cpi_monthly: pd.DataFrame) -
     cpi_lookup = cpi_monthly.set_index("Month")["HeadlineMoM"]
     macro_features: dict[pd.Period, dict[str, float]] = {}
 
-    start = pd.Period(config.TRAIN_START, freq="M")
+    start = pd.Period(config.PANEL_STATE_START, freq="M")
     end = min(
         usd_daily["Month"].max(),
-        cpi_monthly["Month"].max() + 1,
+        cpi_monthly["Month"].max(),
         pd.Period(config.TEST_END, freq="M"),
     )
 
     for month in pd.period_range(start=start, end=end, freq="M"):
-        feature_months = [month - offset for offset in range(config.WINDOW_MONTHS, 0, -1)]
+        feature_months = [month - offset for offset in range(config.WINDOW_MONTHS - 1, -1, -1)]
         usd_window = usd_daily.loc[usd_daily["Month"].isin(feature_months), "ReturnFromPrice"].dropna()
         cpi_window = cpi_lookup.reindex(feature_months)
         if usd_window.empty or cpi_window.isna().any():
@@ -553,7 +553,7 @@ def compute_monthly_panel(
         raise RuntimeError("EGX30 daily series is required to compute beta_to_egx30.")
 
     records: list[dict[str, object]] = []
-    decision_months = sorted(macro_features)
+    state_months = sorted(macro_features)
     benchmark = daily_assets["EGX30"][["Date", "Month", "ReturnFromPrice"]].rename(
         columns={"ReturnFromPrice": "BenchmarkReturn"}
     )
@@ -568,10 +568,9 @@ def compute_monthly_panel(
             else compute_walk_forward_egarch_month_stats(frame)
         )
 
-        for month in decision_months:
-            required_feature_months = [month - offset for offset in range(config.WINDOW_MONTHS, 0, -1)]
-            required_months = required_feature_months + [month]
-            if not all(required_month in observed_months for required_month in required_months):
+        for month in state_months:
+            required_feature_months = [month - offset for offset in range(config.WINDOW_MONTHS - 1, -1, -1)]
+            if not all(required_month in observed_months for required_month in required_feature_months):
                 continue
 
             feature_window = frame.loc[frame["Month"].isin(required_feature_months)].copy()

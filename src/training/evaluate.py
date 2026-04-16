@@ -24,9 +24,17 @@ from src.training.policy import MaskedActorCriticPolicy
 def evaluate_model_split(
     model: PPO,
     panel_path: str | Path | None,
+    daily_path: str | Path | None,
+    framework_id: str,
     split_name: str,
 ) -> pd.DataFrame:
-    env = AssetRiskEnv(panel_path=panel_path, split_name=split_name, sampling_mode="ordered")
+    env = AssetRiskEnv(
+        panel_path=panel_path,
+        daily_path=daily_path,
+        split_name=split_name,
+        framework_id=framework_id,
+        sampling_mode="ordered",
+    )
     prediction_rows: list[dict[str, Any]] = []
     observation, _ = env.reset(options={"restart_sequence": True})
     for batch_index in range(env.batch_count):
@@ -60,9 +68,20 @@ def evaluate_model_split(
 def evaluate_model_splits(
     model: PPO,
     panel_path: str | Path | None,
+    daily_path: str | Path | None,
+    framework_id: str,
     split_names: Iterable[str],
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    prediction_frames = [evaluate_model_split(model=model, panel_path=panel_path, split_name=split_name) for split_name in split_names]
+    prediction_frames = [
+        evaluate_model_split(
+            model=model,
+            panel_path=panel_path,
+            daily_path=daily_path,
+            framework_id=framework_id,
+            split_name=split_name,
+        )
+        for split_name in split_names
+    ]
     predictions = pd.concat(prediction_frames, ignore_index=True)
     predictions = add_prediction_ranks(predictions, score_column=PREDICTION_COLUMN)
     monthly_metrics, split_summary = evaluate_prediction_frame(predictions, score_column=PREDICTION_COLUMN)
@@ -109,6 +128,7 @@ def _build_cli_parser() -> argparse.ArgumentParser:
         choices=["all", "train", "validation", "test"],
         help="Which split to score.",
     )
+    parser.add_argument("--framework-id", required=True, help="Framework identifier used by the checkpoint.")
     parser.add_argument("--output-dir", required=True, help="Directory where evaluation artifacts should be written.")
     return parser
 
@@ -122,11 +142,14 @@ def main() -> None:
     predictions, monthly_metrics, split_summary = evaluate_model_splits(
         model=model,
         panel_path=args.panel_path,
+        daily_path=None,
+        framework_id=args.framework_id,
         split_names=split_names,
     )
     setup_metadata = {
         "checkpoint_path": str(Path(args.checkpoint_path).resolve()),
         "panel_path": str(Path(args.panel_path).resolve()),
+        "framework_id": args.framework_id,
         "split_name": args.split_name,
     }
     write_evaluation_artifacts(
