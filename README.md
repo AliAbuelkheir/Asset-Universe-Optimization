@@ -98,7 +98,8 @@ Current realized targets:
 - [docs/README.md](/C:/Ali/CS/Bachelor%20thesis/docs/README.md) is the documentation index
 - [docs/project_guide.md](/C:/Ali/CS/Bachelor%20thesis/docs/project_guide.md)
   describes the active PPO architecture, data contract, and leakage rules
-- [docs/experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/experiment_tracker.md)
-  tracks recorded PPO runs, results, and pending experiments
+- [docs/framework_experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_experiment_tracker.md)
+  tracks recorded framework-selection PPO runs, results, and the locked
+  framework winner
 
 If wording conflicts across markdown files, `AGENTS.md` is the source of truth.

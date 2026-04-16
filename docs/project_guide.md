@@ -151,6 +151,9 @@ Locked PPO config for the framework phase:
 Policy behavior:
 
 - one shared scorer is applied across all active asset rows
+- PPO now uses a bounded masked sigmoid-squashed Gaussian, so sampled risk
+  scores are already valid `[0, 1]` actions before the environment backstop
+  clip
 - padded rows are masked out of action sampling, log-probability, entropy, and
   PPO loss
 - the critic remains pooled and mask-aware
@@ -175,29 +178,24 @@ Month-level reward:
 
 ## Current Framework Outcome
 
-The initial framework study has been implemented and executed.
-
-What has been tested:
-
-- `FW-BASE-1M-*` for `pit_1m_shared_mlp`
-- `FW-1M-CONTEXT-S42` for `pit_1m_context`
-- `FW-1M-DAILYSTRIP-CNN-S42` for `pit_1m_dailystrip_shared_cnn`
-- `FW-STACK3M-S42` for `pit_3m_flat_shared_mlp`
-- `FW-STACK3M-CONTEXT-*` for `pit_3m_flat_context`
+The framework study has now been rerun under the active bounded-action PPO
+semantics. The only registered framework that has not been run is the disabled
+stretch candidate `pit_3m_flat_attention`.
 
 Current selection:
 
-- the 1-month base framework remains the winner for now
-- the 1-month context ablation underperformed clearly and was rejected
-- the 1-month daily-strip CNN underperformed materially and was rejected after
-  the first run:
-  validation reward `0.6093`, validation Spearman `0.4747`, test reward
-  `0.5928`, test Spearman `0.4508`
-- the 3-month context model stayed within the reward tie band but did not
-  improve validation Spearman, so it was **not promoted**
-- the attention stretch candidate remains disabled
+- the bounded-action fix changed the framework conclusion
+- `pit_3m_flat_context` is now the framework winner
+- it beat the rerun `pit_1m_shared_mlp` base by `0.0129` on mean validation
+  reward and by `0.0141` on mean validation Spearman
+- `pit_1m_context` still did not beat the bounded base on validation
+- `pit_1m_dailystrip_shared_cnn` still underperformed materially and remains
+  rejected
+- `pit_3m_flat_shared_mlp` still did not beat the bounded base and remains
+  rejected
+- `pit_3m_flat_attention` remains disabled and intentionally untested
 
-See [experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/experiment_tracker.md) for the exact results.
+See [framework_experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_experiment_tracker.md) for the exact results.
 
 ## Validation And Testing
 

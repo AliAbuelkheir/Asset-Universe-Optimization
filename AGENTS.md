@@ -351,7 +351,8 @@ Repository rules:
 - `docs/README.md` is the documentation hub
 - `docs/project_guide.md` expands the data contract, framework phase, PPO
   contract, and leakage rules
-- `docs/experiment_tracker.md` is the active run tracker and leaderboard
+- `docs/framework_experiment_tracker.md` is the framework-phase run tracker and
+  leaderboard
 - `docs/papers.md` is the paper tracker
 - `src/config.py` holds implementation constants but is not more authoritative
   than `AGENTS.md`
@@ -364,5 +365,6 @@ Repository rules:
 - Do not reintroduce non-RL trainer paths.
 - Do not reintroduce direct asset identity into the policy input.
 - Do not weaken the leakage test expectations for convenience.
-- Keep the active docs compact and update the experiment tracker whenever a real
-  framework run is completed.
+- Keep the active docs compact and update the relevant phase tracker whenever a
+  real run is completed; framework runs belong in
+  `docs/framework_experiment_tracker.md`.

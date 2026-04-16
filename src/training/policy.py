@@ -8,6 +8,7 @@ import numpy as np
 import torch as th
 from gymnasium import spaces
 from torch import nn
+from torch.nn import functional as F
 from torch.distributions import Normal
 
 from stable_baselines3.common.distributions import DiagGaussianDistribution
@@ -17,19 +18,21 @@ from stable_baselines3.common.torch_layers import CombinedExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs, Schedule
 
 
-class MaskedDiagGaussianDistribution(DiagGaussianDistribution):
-    """Diagonal Gaussian distribution that ignores padded action dimensions."""
+class MaskedSigmoidGaussianDistribution(DiagGaussianDistribution):
+    """Diagonal Gaussian distribution squashed to [0, 1] and masked on padded rows."""
 
-    def __init__(self, action_dim: int):
+    def __init__(self, action_dim: int, epsilon: float = 1e-6):
         super().__init__(action_dim)
         self.current_mask: Optional[th.Tensor] = None
+        self.epsilon = float(epsilon)
+        self.gaussian_actions: Optional[th.Tensor] = None
 
     def proba_distribution(  # type: ignore[override]
         self,
         mean_actions: th.Tensor,
         log_std: th.Tensor,
         action_mask: Optional[th.Tensor] = None,
-    ) -> "MaskedDiagGaussianDistribution":
+    ) -> "MaskedSigmoidGaussianDistribution":
         if action_mask is None:
             action_mask = th.ones_like(mean_actions)
         self.current_mask = action_mask.float()
@@ -37,29 +40,35 @@ class MaskedDiagGaussianDistribution(DiagGaussianDistribution):
         self.distribution = Normal(mean_actions, action_std)
         return self
 
-    def log_prob(self, actions: th.Tensor) -> th.Tensor:
-        log_prob = self.distribution.log_prob(actions)
+    def _active_mask(self, reference: th.Tensor) -> th.Tensor:
         if self.current_mask is not None:
-            log_prob = log_prob * self.current_mask
-        return log_prob.sum(dim=1)
+            return self.current_mask.to(reference.dtype)
+        return th.ones_like(reference, dtype=reference.dtype)
 
     def entropy(self) -> Optional[th.Tensor]:
-        entropy = self.distribution.entropy()
-        if self.current_mask is not None:
-            entropy = entropy * self.current_mask
-        return entropy.sum(dim=1)
+        return None
 
     def sample(self) -> th.Tensor:
-        actions = self.distribution.rsample()
-        if self.current_mask is not None:
-            actions = actions * self.current_mask
-        return actions
+        self.gaussian_actions = self.distribution.rsample()
+        squashed_actions = th.sigmoid(self.gaussian_actions).clamp(self.epsilon, 1.0 - self.epsilon)
+        return squashed_actions * self._active_mask(squashed_actions)
 
     def mode(self) -> th.Tensor:
-        actions = self.distribution.mean
-        if self.current_mask is not None:
-            actions = actions * self.current_mask
-        return actions
+        self.gaussian_actions = self.distribution.mean
+        squashed_actions = th.sigmoid(self.gaussian_actions).clamp(self.epsilon, 1.0 - self.epsilon)
+        return squashed_actions * self._active_mask(squashed_actions)
+
+    def log_prob(self, actions: th.Tensor, gaussian_actions: Optional[th.Tensor] = None) -> th.Tensor:
+        mask = self._active_mask(actions)
+        if gaussian_actions is None:
+            # Masked rows are neutralized before the inverse-sigmoid to avoid infinities from padded zeros.
+            safe_actions = th.where(mask > 0.0, actions.clamp(self.epsilon, 1.0 - self.epsilon), th.full_like(actions, 0.5))
+            gaussian_actions = th.logit(safe_actions, eps=self.epsilon)
+
+        log_prob = self.distribution.log_prob(gaussian_actions)
+        squash_correction = F.softplus(-gaussian_actions) + F.softplus(gaussian_actions)
+        log_prob = (log_prob + squash_correction) * mask
+        return log_prob.sum(dim=1)
 
     def actions_from_params(
         self,
@@ -78,7 +87,7 @@ class MaskedDiagGaussianDistribution(DiagGaussianDistribution):
         action_mask: Optional[th.Tensor] = None,
     ) -> tuple[th.Tensor, th.Tensor]:
         actions = self.actions_from_params(mean_actions, log_std, action_mask=action_mask)
-        return actions, self.log_prob(actions)
+        return actions, self.log_prob(actions, self.gaussian_actions)
 
 
 def _build_hidden_stack(input_dim: int, hidden_dims: Sequence[int]) -> tuple[nn.Sequential, int, list[nn.Linear]]:
@@ -151,7 +160,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             nn.init.zeros_(module.bias)
 
     def _build(self, lr_schedule: Schedule) -> None:
-        self.action_dist = MaskedDiagGaussianDistribution(self.max_assets)
+        self.action_dist = MaskedSigmoidGaussianDistribution(self.max_assets)
 
         self.row_encoder, self.row_dim, row_linears = _build_hidden_stack(self.feature_count, self.row_encoder_dims)
         self.daily_conv_layers: nn.Sequential | None = None
@@ -170,7 +179,6 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         actor_input_dim = self.combined_row_dim if self.actor_context_mode == "none" else self.combined_row_dim + summary_dim
         self.actor_hidden, actor_hidden_dim, actor_hidden_linears = _build_hidden_stack(actor_input_dim, self.actor_hidden_dims)
         self.actor_output = nn.Linear(actor_hidden_dim, 1)
-        self.actor_activation = nn.Sigmoid()
 
         self.value_hidden, value_hidden_dim, value_hidden_linears = _build_hidden_stack(summary_dim, (64,))
         self.value_output = nn.Linear(value_hidden_dim, 1)
@@ -261,7 +269,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
             actor_inputs = row_embeddings
 
         hidden = self.actor_hidden(actor_inputs)
-        means = self.actor_activation(self.actor_output(hidden)).squeeze(-1)
+        means = self.actor_output(hidden).squeeze(-1)
         return means * mask
 
     def _critic_values(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
@@ -269,7 +277,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         hidden = self.value_hidden(summary)
         return self.value_output(hidden)
 
-    def _distribution_from_obs(self, obs: PyTorchObs) -> tuple[MaskedDiagGaussianDistribution, th.Tensor]:
+    def _distribution_from_obs(self, obs: PyTorchObs) -> tuple[MaskedSigmoidGaussianDistribution, th.Tensor]:
         row_embeddings, mask = self._encode_rows(obs)
         mean_actions = self._actor_means(row_embeddings, mask)
         distribution = self.action_dist.proba_distribution(mean_actions, self.log_std, action_mask=mask)
@@ -289,7 +297,7 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         entropy = distribution.entropy()
         return values, log_prob, entropy
 
-    def get_distribution(self, obs: PyTorchObs) -> MaskedDiagGaussianDistribution:
+    def get_distribution(self, obs: PyTorchObs) -> MaskedSigmoidGaussianDistribution:
         distribution, _ = self._distribution_from_obs(obs)
         return distribution
 

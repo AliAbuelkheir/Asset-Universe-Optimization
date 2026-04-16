@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch as th
 from stable_baselines3 import PPO
 
 from src import config
@@ -340,7 +341,41 @@ def test_masked_policy_is_row_order_invariant_and_ignores_padded_rows(tmp_path: 
 
     assert np.allclose(values_a.detach().cpu().numpy(), values_b.detach().cpu().numpy())
     assert np.allclose(log_prob_a.detach().cpu().numpy(), log_prob_b.detach().cpu().numpy())
-    assert np.allclose(entropy_a.detach().cpu().numpy(), entropy_b.detach().cpu().numpy())
+    assert entropy_a is None
+    assert entropy_b is None
+
+
+def test_masked_policy_samples_and_predicts_within_action_bounds(tmp_path: Path) -> None:
+    panel_path = tmp_path / "panel.csv"
+    make_panel().to_csv(panel_path, index=False)
+
+    env = AssetRiskEnv(panel_path=panel_path, split_name="train", framework_id="pit_1m_shared_mlp")
+    model = make_policy_model(env)
+    observation, _ = env.reset(seed=42)
+
+    actions, _ = model.predict(observation, deterministic=False)
+    deterministic_actions, _ = model.predict(observation, deterministic=True)
+
+    assert np.all(actions >= 0.0)
+    assert np.all(actions <= 1.0)
+    assert np.all(deterministic_actions >= 0.0)
+    assert np.all(deterministic_actions <= 1.0)
+
+
+def test_masked_policy_log_prob_is_finite_near_action_boundaries(tmp_path: Path) -> None:
+    panel_path = tmp_path / "panel.csv"
+    make_panel().to_csv(panel_path, index=False)
+
+    env = AssetRiskEnv(panel_path=panel_path, split_name="train", framework_id="pit_1m_shared_mlp")
+    model = make_policy_model(env)
+    observation, _ = env.reset(seed=42)
+    obs_tensor, _ = model.policy.obs_to_tensor(observation)
+    near_boundary_actions = th.tensor([[1e-6, 0.25, 0.999999, 0.0]], dtype=th.float32)
+
+    _, log_prob, entropy = model.policy.evaluate_actions(obs_tensor, near_boundary_actions)
+
+    assert th.isfinite(log_prob).all()
+    assert entropy is None
 
 
 def test_daily_strip_policy_predict_and_evaluate_actions(tmp_path: Path) -> None:
@@ -370,8 +405,7 @@ def test_daily_strip_policy_predict_and_evaluate_actions(tmp_path: Path) -> None
 
     assert values.shape == (1, 1)
     assert log_prob.shape == (1,)
-    assert entropy is not None
-    assert entropy.shape == (1,)
+    assert entropy is None
 
 
 def test_learn_only_uses_train_split(tmp_path: Path) -> None:
@@ -399,6 +433,8 @@ def test_learn_only_uses_train_split(tmp_path: Path) -> None:
 
     assert env.reset_splits
     assert set(env.reset_splits) == {"train"}
+    assert np.all(model.rollout_buffer.actions >= 0.0)
+    assert np.all(model.rollout_buffer.actions <= 1.0)
 
 
 def test_evaluate_model_splits_and_write_artifacts(tmp_path: Path) -> None:
@@ -458,12 +494,16 @@ def test_train_setup_writes_framework_phase_artifacts_and_metadata(tmp_path: Pat
     setup_results = pd.read_csv(output_root / train.SUMMARY_FILE_NAME)
     assert set(setup_results["StudyPhase"]) == {config.FRAMEWORK_PHASE_NAME}
     assert set(setup_results["FrameworkID"]) == {"pit_1m_shared_mlp"}
+    assert set(setup_results["ActionDistribution"]) == {config.ACTION_DISTRIBUTION_NAME}
+    assert set(setup_results["PolicySemanticsVersion"]) == {config.POLICY_SEMANTICS_VERSION}
     assert float(setup_results.iloc[0]["LearningRate"]) == config.FRAMEWORK_PPO_LEARNING_RATE
     assert int(setup_results.iloc[0]["EvalFrequency"]) == config.FRAMEWORK_PPO_EVAL_FREQUENCY
     assert setup_results.iloc[0]["ReportedCheckpoint"].endswith("best_model.zip")
 
     metadata = pd.read_json(artifact_dir / "setup_metadata.json", typ="series")
     assert metadata["study_phase"] == config.FRAMEWORK_PHASE_NAME
+    assert metadata["action_distribution"] == config.ACTION_DISTRIBUTION_NAME
+    assert metadata["policy_semantics_version"] == config.POLICY_SEMANTICS_VERSION
     assert metadata["framework_id"] == "pit_1m_shared_mlp"
     assert metadata["common_decision_start"] == config.TRAIN_START
     assert metadata["panel_state_start"] == config.PANEL_STATE_START
@@ -501,3 +541,5 @@ def test_train_setup_supports_daily_strip_framework(tmp_path: Path) -> None:
     assert bool(row["UsesDailyStrip"])
     assert int(row["DailyStripChannels"]) == config.DAILY_STRIP_CHANNELS
     assert int(row["DailyStripLength"]) == config.MAX_MONTHLY_OBS
+    assert row["ActionDistribution"] == config.ACTION_DISTRIBUTION_NAME
+    assert row["PolicySemanticsVersion"] == config.POLICY_SEMANTICS_VERSION

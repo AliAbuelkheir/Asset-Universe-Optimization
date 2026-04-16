@@ -7,9 +7,9 @@ This directory now uses a smaller, more comprehensive structure.
 - [project_guide.md](/C:/Ali/CS/Bachelor%20thesis/docs/project_guide.md)
   is the main technical reference for the data contract, PPO setup, reward,
   split logic, and leakage rules
-- [experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/experiment_tracker.md)
-  is the main working sheet for recorded runs, results, and pending
-  experiments
+- [framework_experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_experiment_tracker.md)
+  is the framework-phase working sheet for recorded runs, results, and the
+  locked framework winner
 - [papers.md](/C:/Ali/CS/Bachelor%20thesis/docs/papers.md)
   is the literature tracker
 
@@ -22,7 +22,8 @@ This directory now uses a smaller, more comprehensive structure.
 ## How To Use This Folder
 
 - Read `project_guide.md` when you need the canonical implementation contract.
-- Read and update `experiment_tracker.md` whenever you run a new PPO setup.
+- Read and update `framework_experiment_tracker.md` whenever you run a new
+  framework-selection PPO setup.
 - Keep `papers.md` focused on the defended literature set.
 
 If wording conflicts across repository markdown files, `AGENTS.md` remains the

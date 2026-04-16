@@ -83,6 +83,8 @@ def _to_summary_row(
         "TimestampUTC": _timestamp_utc(),
         "StudyPhase": config.FRAMEWORK_PHASE_NAME,
         "Trainer": "ppo_monthly_ranking",
+        "ActionDistribution": config.ACTION_DISTRIBUTION_NAME,
+        "PolicySemanticsVersion": config.POLICY_SEMANTICS_VERSION,
         "FrameworkID": framework.framework_id,
         "PolicyClass": "MaskedActorCriticPolicy",
         "InputView": framework.observation_mode,
@@ -214,6 +216,8 @@ def train_setup(
         "setup": asdict(setup),
         "study_phase": config.FRAMEWORK_PHASE_NAME,
         "trainer": "ppo_monthly_ranking",
+        "action_distribution": config.ACTION_DISTRIBUTION_NAME,
+        "policy_semantics_version": config.POLICY_SEMANTICS_VERSION,
         "framework_id": framework.framework_id,
         "framework_spec": {
             "observation_mode": framework.observation_mode,

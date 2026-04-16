@@ -96,6 +96,8 @@ BETA = 0.3
 
 # === Framework-Phase PPO Config ===
 FRAMEWORK_PHASE_NAME = "framework_selection"
+ACTION_DISTRIBUTION_NAME = "masked_sigmoid_gaussian"
+POLICY_SEMANTICS_VERSION = "bounded_v2"
 FRAMEWORK_PPO_LEARNING_RATE = 1e-4
 FRAMEWORK_PPO_N_STEPS = 256
 FRAMEWORK_PPO_BATCH_SIZE = 256
