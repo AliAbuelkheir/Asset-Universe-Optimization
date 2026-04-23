@@ -1,7 +1,9 @@
-"""Validate the canonical daily market series and monthly asset panel."""
+"""Validate the canonical or feature-profile daily and monthly datasets."""
 
 from __future__ import annotations
 
+import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -19,13 +21,28 @@ def assert_true(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def main() -> None:
-    ready_dir = ROOT / config.READY_DATA_DIR
-    daily_path = ready_dir / config.DAILY_MARKET_SERIES_NAME
-    panel_path = ready_dir / config.MONTHLY_PANEL_NAME
+def validate_output_dir(
+    input_dir: str | Path | None = None,
+    expect_feature_profile_id: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    resolved_dir = Path(input_dir) if input_dir is not None else ROOT / config.READY_DATA_DIR
+    daily_path = resolved_dir / config.DAILY_MARKET_SERIES_NAME
+    panel_path = resolved_dir / config.MONTHLY_PANEL_NAME
 
     assert_true(daily_path.exists(), f"Missing daily market series: {daily_path}")
     assert_true(panel_path.exists(), f"Missing monthly panel: {panel_path}")
+
+    if expect_feature_profile_id is not None:
+        metadata_path = resolved_dir / "feature_profile_metadata.json"
+        assert_true(metadata_path.exists(), f"Missing feature profile metadata: {metadata_path}")
+        with metadata_path.open("r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+        actual_profile_id = str(metadata.get("feature_profile_id", ""))
+        assert_true(
+            actual_profile_id == expect_feature_profile_id,
+            "Feature profile metadata does not match the expected profile id. "
+            f"Expected {expect_feature_profile_id} but found {actual_profile_id or '<missing>'}.",
+        )
 
     daily = pd.read_csv(daily_path)
     panel = pd.read_csv(panel_path)
@@ -164,7 +181,32 @@ def main() -> None:
     print("Panel month range:", panel["Date"].min(), "to", panel["Date"].max())
     print("Minimum monthly asset count:", int(monthly_counts.min()))
     print("Maximum monthly asset count:", int(monthly_counts.max()))
+    return daily, panel
+
+
+def _build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Validate a canonical or feature-profile dataset directory.")
+    parser.add_argument(
+        "--input-dir",
+        default=str(ROOT / config.READY_DATA_DIR),
+        help="Directory that contains daily_market_series.csv and monthly_asset_panel.csv.",
+    )
+    parser.add_argument(
+        "--expect-feature-profile-id",
+        default=None,
+        help="Optional feature_profile_id that must match feature_profile_metadata.json in the input directory.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    parser = _build_cli_parser()
+    args = parser.parse_args(argv)
+    return validate_output_dir(
+        input_dir=args.input_dir,
+        expect_feature_profile_id=args.expect_feature_profile_id,
+    )
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

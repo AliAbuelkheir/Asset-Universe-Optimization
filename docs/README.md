@@ -1,15 +1,25 @@
 # Docs
 
-This directory now uses a smaller, more comprehensive structure.
+This directory uses three primary phase documents plus two supporting
+reference docs.
 
 ## Main Documents
 
+- [framework_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_phase.md)
+  records framework methodology, tested frameworks, and the locked framework
+  conclusion
+- [feature_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/feature_phase.md)
+  records feature-phase methodology, the feature experiment matrix, and
+  feature decisions
+- [ppo_tuning_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/ppo_tuning_phase.md)
+  records PPO tuning methodology, planned parameter sweeps, and tuning
+  decisions
+
+## Supporting Reference Docs
+
 - [project_guide.md](/C:/Ali/CS/Bachelor%20thesis/docs/project_guide.md)
-  is the main technical reference for the data contract, PPO setup, reward,
-  split logic, and leakage rules
-- [framework_experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_experiment_tracker.md)
-  is the framework-phase working sheet for recorded runs, results, and the
-  locked framework winner
+  is the compact technical guide for the data contract, PPO setup, and feature
+  profile support
 - [papers.md](/C:/Ali/CS/Bachelor%20thesis/docs/papers.md)
   is the literature tracker
 
@@ -21,9 +31,10 @@ This directory now uses a smaller, more comprehensive structure.
 
 ## How To Use This Folder
 
-- Read `project_guide.md` when you need the canonical implementation contract.
-- Read and update `framework_experiment_tracker.md` whenever you run a new
-  framework-selection PPO setup.
+- Read and update `framework_phase.md` during framework work.
+- Read and update `feature_phase.md` during feature work.
+- Read and update `ppo_tuning_phase.md` during PPO tuning work.
+- Read `project_guide.md` when you want the consolidated technical overview.
 - Keep `papers.md` focused on the defended literature set.
 
 If wording conflicts across repository markdown files, `AGENTS.md` remains the

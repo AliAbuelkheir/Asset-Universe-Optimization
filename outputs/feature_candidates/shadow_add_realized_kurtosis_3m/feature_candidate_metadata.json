@@ -1,0 +1,9 @@
+{
+  "candidate_id": "realized_kurtosis_3m",
+  "candidate_set_id": "shadow_add_realized_kurtosis_3m",
+  "candidate_type": "additive",
+  "description": "Add trailing 3-month realized return kurtosis.",
+  "feature_column": "realized_kurtosis_3m",
+  "input_feature_set_id": "shadow_add_realized_kurtosis_3m",
+  "is_macro": false
+}

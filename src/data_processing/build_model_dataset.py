@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import sys
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from arch import arch_model
 from pandas.tseries.offsets import CustomBusinessDay
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +17,27 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src import config
+from src.data_processing.calculations import (
+    aggregate_month_egarch_stats,
+    annualized_volatility,
+    compute_atr_pct,
+    compute_beta_to_benchmark,
+    compute_compounded_return,
+    compute_distance_to_high,
+    compute_downside_beta_to_benchmark,
+    compute_downside_deviation,
+    compute_ewm_downside_deviation,
+    compute_log_mean_volume,
+    compute_max_drawdown,
+    compute_price_to_ema,
+    compute_price_to_sma,
+    compute_trailing_volume,
+    compute_walk_forward_egarch_month_stats,
+    compute_wilder_rsi,
+    rank_to_unit_interval,
+    trailing_months,
+)
+from src.feature_profiles import FeatureProfile, get_feature_profile
 
 
 @dataclass(frozen=True)
@@ -162,139 +183,6 @@ def parse_volume(series: pd.Series) -> pd.Series:
     return base * multiplier
 
 
-def annualized_volatility(returns: pd.Series) -> float:
-    clean = returns.replace([np.inf, -np.inf], np.nan).dropna()
-    if clean.empty:
-        return float("nan")
-    return float(clean.std(ddof=0) * np.sqrt(config.TRADING_DAYS_PER_YEAR))
-
-
-def estimate_egarch_series(returns: pd.Series) -> pd.Series:
-    clean = returns.replace([np.inf, -np.inf], np.nan).dropna().astype(float).round(config.EGARCH_RETURN_DECIMALS)
-    if clean.empty:
-        return pd.Series(np.nan, index=returns.index)
-    if clean.nunique() <= 1 or len(clean) < 20:
-        fallback = pd.Series(np.nan, index=returns.index)
-        fallback.loc[clean.index] = annualized_volatility(clean)
-        return fallback
-
-    scaled = clean * 100.0
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            model = arch_model(
-                scaled,
-                mean="Zero",
-                vol="EGARCH",
-                p=1,
-                o=0,
-                q=1,
-                dist="normal",
-                rescale=False,
-            )
-            result = model.fit(disp="off", show_warning=False, update_freq=0)
-        conditional_vol = pd.Series(result.conditional_volatility, index=clean.index) / 100.0
-        egarch_series = pd.Series(np.nan, index=returns.index)
-        egarch_series.loc[clean.index] = conditional_vol * np.sqrt(config.TRADING_DAYS_PER_YEAR)
-        return egarch_series
-    except Exception:
-        fallback = pd.Series(np.nan, index=returns.index)
-        fallback.loc[clean.index] = annualized_volatility(clean)
-        return fallback
-
-
-def compute_walk_forward_egarch_month_stats(frame: pd.DataFrame) -> dict[pd.Period, dict[str, float | int]]:
-    work = frame[["Date", "Month", "ReturnFromPrice"]].dropna(subset=["ReturnFromPrice"]).copy()
-    if work.empty:
-        return {}
-
-    work = work.sort_values("Date").reset_index(drop=True)
-    month_stats: dict[pd.Period, dict[str, float | int]] = {}
-
-    for month in sorted(work["Month"].unique()):
-        cutoff_returns = work.loc[work["Month"] <= month, "ReturnFromPrice"]
-        egarch_series = estimate_egarch_series(cutoff_returns)
-        month_index = work.index[work["Month"] == month]
-        month_values = egarch_series.loc[month_index].replace([np.inf, -np.inf], np.nan).dropna()
-        if month_values.empty:
-            month_stats[month] = {
-                "sum": float("nan"),
-                "count": 0,
-                "mean": float("nan"),
-            }
-            continue
-
-        month_stats[month] = {
-            "sum": float(month_values.sum()),
-            "count": int(month_values.shape[0]),
-            "mean": float(month_values.mean()),
-        }
-
-    return month_stats
-
-
-def aggregate_month_egarch_stats(
-    month_stats: dict[pd.Period, dict[str, float | int]],
-    months: list[pd.Period],
-) -> float:
-    total_sum = 0.0
-    total_count = 0
-    for month in months:
-        stats = month_stats.get(month)
-        if not stats:
-            continue
-        count = int(stats["count"])
-        if count <= 0:
-            continue
-        total_sum += float(stats["sum"])
-        total_count += count
-
-    if total_count == 0:
-        return float("nan")
-    return float(total_sum / total_count)
-
-
-def compute_downside_deviation(returns: pd.Series) -> float:
-    clean = returns.replace([np.inf, -np.inf], np.nan).dropna()
-    if clean.empty:
-        return float("nan")
-    downside = np.minimum(clean.to_numpy(), 0.0)
-    return float(np.sqrt(np.mean(np.square(downside))) * np.sqrt(config.TRADING_DAYS_PER_YEAR))
-
-
-def compute_max_drawdown(returns: pd.Series) -> float:
-    clean = returns.replace([np.inf, -np.inf], np.nan).dropna()
-    if clean.empty:
-        return float("nan")
-    growth = (1.0 + clean.clip(lower=-0.999999)).cumprod()
-    peak = growth.cummax()
-    drawdown = (growth / peak) - 1.0
-    return float(abs(drawdown.min()))
-
-
-def compute_trailing_volume(volume: pd.Series) -> float:
-    clean = volume.replace([np.inf, -np.inf], np.nan).dropna()
-    if clean.empty:
-        return 0.0
-    return float(clean.sum())
-
-
-def rank_to_unit_interval(series: pd.Series) -> pd.Series:
-    valid = series.dropna()
-    if valid.empty:
-        return pd.Series(np.nan, index=series.index)
-    if len(valid) == 1:
-        result = pd.Series(np.nan, index=series.index)
-        result.loc[valid.index] = 0.5
-        return result
-
-    ranks = valid.rank(method="average")
-    scaled = (ranks - 1.0) / (len(valid) - 1.0)
-    result = pd.Series(np.nan, index=series.index)
-    result.loc[valid.index] = scaled
-    return result
-
-
 def load_market_csv(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path, usecols=lambda column: column in config.RAW_MARKET_COLUMNS_KEEP)
     for column in config.RAW_MARKET_COLUMNS_KEEP:
@@ -372,94 +260,6 @@ def align_to_egx_calendar(frame: pd.DataFrame) -> pd.DataFrame:
     return aligned.reset_index()
 
 
-def compute_price_to_sma(closes: pd.Series, window: int) -> float:
-    clean = closes.replace([np.inf, -np.inf], np.nan).dropna().astype(float)
-    if len(clean) < window:
-        return float("nan")
-    last_close = float(clean.iloc[-1])
-    sma = float(clean.tail(window).mean())
-    if sma <= 0:
-        return float("nan")
-    return float((last_close / sma) - 1.0)
-
-
-def compute_wilder_rsi(closes: pd.Series, periods: int) -> float:
-    clean = closes.replace([np.inf, -np.inf], np.nan).dropna().astype(float)
-    if len(clean) <= periods:
-        return float("nan")
-
-    deltas = clean.diff().dropna()
-    gains = deltas.clip(lower=0.0)
-    losses = -deltas.clip(upper=0.0)
-
-    avg_gain = float(gains.iloc[:periods].mean())
-    avg_loss = float(losses.iloc[:periods].mean())
-
-    for idx in range(periods, len(deltas)):
-        avg_gain = ((avg_gain * (periods - 1)) + float(gains.iloc[idx])) / periods
-        avg_loss = ((avg_loss * (periods - 1)) + float(losses.iloc[idx])) / periods
-
-    if avg_gain == 0.0 and avg_loss == 0.0:
-        return 50.0
-    if avg_loss == 0.0:
-        return 100.0
-    if avg_gain == 0.0:
-        return 0.0
-
-    relative_strength = avg_gain / avg_loss
-    return float(100.0 - (100.0 / (1.0 + relative_strength)))
-
-
-def compute_distance_to_high(last_close: float, high_prices: pd.Series) -> float:
-    clean_highs = high_prices.replace([np.inf, -np.inf], np.nan).dropna()
-    if clean_highs.empty or pd.isna(last_close):
-        return float("nan")
-    window_high = float(clean_highs.max())
-    if window_high <= 0:
-        return float("nan")
-    return float((last_close / window_high) - 1.0)
-
-
-def compute_atr_pct(observed_frame: pd.DataFrame, period: int) -> float:
-    clean = observed_frame[["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]].replace([np.inf, -np.inf], np.nan)
-    clean = clean.dropna(subset=["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]).copy()
-    if len(clean) < period:
-        return float("nan")
-
-    prev_close = clean["PriceForReturn"].shift(1)
-    true_range = pd.concat(
-        [
-            clean["HighPriceForRange"] - clean["LowPriceForRange"],
-            (clean["HighPriceForRange"] - prev_close).abs(),
-            (clean["LowPriceForRange"] - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1, skipna=True)
-
-    atr = float(true_range.tail(period).mean())
-    last_close = float(clean["PriceForReturn"].iloc[-1])
-    if last_close <= 0:
-        return float("nan")
-    return float(atr / last_close)
-
-
-def compute_beta_to_benchmark(asset_returns: pd.DataFrame, benchmark_returns: pd.DataFrame) -> float:
-    merged = asset_returns.merge(benchmark_returns, on="Date", how="inner")
-    clean = merged[["ReturnFromPrice", "BenchmarkReturn"]].replace([np.inf, -np.inf], np.nan).dropna()
-    if len(clean) < 2:
-        return float("nan")
-
-    asset_values = clean["ReturnFromPrice"].to_numpy(dtype=float)
-    benchmark_values = clean["BenchmarkReturn"].to_numpy(dtype=float)
-    benchmark_centered = benchmark_values - benchmark_values.mean()
-    benchmark_variance = float(np.mean(np.square(benchmark_centered)))
-    if benchmark_variance <= 0:
-        return float("nan")
-
-    covariance = float(np.mean((asset_values - asset_values.mean()) * benchmark_centered))
-    return float(covariance / benchmark_variance)
-
-
 def prepare_asset_series(raw_dir: Path, spec: AssetSpec) -> tuple[pd.DataFrame, dict[str, float | int | str]]:
     raw_frame = load_market_csv(raw_dir / spec.file_name)
     raw_frame = add_price_space_fields(raw_frame, spec)
@@ -519,7 +319,12 @@ def load_cpi_series(raw_dir: Path) -> pd.DataFrame:
     return cpi
 
 
-def compute_macro_features(usd_daily: pd.DataFrame, cpi_monthly: pd.DataFrame) -> dict[pd.Period, dict[str, float]]:
+def compute_macro_features(
+    usd_daily: pd.DataFrame,
+    cpi_monthly: pd.DataFrame,
+    feature_profile: FeatureProfile | None = None,
+) -> dict[pd.Period, dict[str, float]]:
+    profile = feature_profile or get_feature_profile(config.DEFAULT_FEATURE_PROFILE_ID)
     cpi_lookup = cpi_monthly.set_index("Month")["HeadlineMoM"]
     macro_features: dict[pd.Period, dict[str, float]] = {}
 
@@ -531,15 +336,32 @@ def compute_macro_features(usd_daily: pd.DataFrame, cpi_monthly: pd.DataFrame) -
     )
 
     for month in pd.period_range(start=start, end=end, freq="M"):
-        feature_months = [month - offset for offset in range(config.WINDOW_MONTHS - 1, -1, -1)]
-        usd_window = usd_daily.loc[usd_daily["Month"].isin(feature_months), "ReturnFromPrice"].dropna()
-        cpi_window = cpi_lookup.reindex(feature_months)
-        if usd_window.empty or cpi_window.isna().any():
+        usd_feature_months = trailing_months(month, profile.usd_window_months)
+        cpi_feature_months = trailing_months(month, profile.cpi_window_months)
+        usd_window = usd_daily.loc[usd_daily["Month"].isin(usd_feature_months), "ReturnFromPrice"].dropna()
+        cpi_window = cpi_lookup.reindex(cpi_feature_months)
+        if usd_window.empty:
             continue
+        if profile.cpi_mode == "last_mom":
+            last_cpi = cpi_lookup.get(month)
+            if pd.isna(last_cpi):
+                continue
+            cpi_value = float(last_cpi)
+        elif cpi_window.isna().any():
+            continue
+        else:
+            cpi_value = float(np.prod(1.0 + cpi_window.to_numpy()) - 1.0)
+
+        if profile.usd_mode == "volatility":
+            usd_value = annualized_volatility(usd_window)
+        elif profile.usd_mode == "return_trajectory":
+            usd_value = compute_compounded_return(usd_window)
+        else:
+            raise ValueError(f"Unsupported usd_mode: {profile.usd_mode}")
 
         macro_features[month] = {
-            "usd_vol": annualized_volatility(usd_window),
-            "cpi_trajectory": float(np.prod(1.0 + cpi_window.to_numpy()) - 1.0),
+            "usd_vol": usd_value,
+            "cpi_trajectory": cpi_value,
         }
     return macro_features
 
@@ -547,11 +369,17 @@ def compute_macro_features(usd_daily: pd.DataFrame, cpi_monthly: pd.DataFrame) -
 def compute_monthly_panel(
     daily_assets: dict[str, pd.DataFrame],
     macro_features: dict[pd.Period, dict[str, float]],
+    feature_profile: FeatureProfile | None = None,
     egarch_month_stats_by_asset: dict[str, dict[pd.Period, dict[str, float | int]]] | None = None,
 ) -> pd.DataFrame:
     if "EGX30" not in daily_assets:
         raise RuntimeError("EGX30 daily series is required to compute beta_to_egx30.")
 
+    if egarch_month_stats_by_asset is None and feature_profile is not None and not isinstance(feature_profile, FeatureProfile):
+        egarch_month_stats_by_asset = feature_profile
+        feature_profile = None
+
+    profile = feature_profile or get_feature_profile(config.DEFAULT_FEATURE_PROFILE_ID)
     records: list[dict[str, object]] = []
     state_months = sorted(macro_features)
     benchmark = daily_assets["EGX30"][["Date", "Month", "ReturnFromPrice"]].rename(
@@ -569,38 +397,93 @@ def compute_monthly_panel(
         )
 
         for month in state_months:
-            required_feature_months = [month - offset for offset in range(config.WINDOW_MONTHS - 1, -1, -1)]
+            required_feature_months = trailing_months(month, config.WINDOW_MONTHS)
             if not all(required_month in observed_months for required_month in required_feature_months):
                 continue
 
-            feature_window = frame.loc[frame["Month"].isin(required_feature_months)].copy()
-            observed_feature_window = feature_window.loc[feature_window["IsObserved"] == 1].copy()
-            benchmark_window = benchmark.loc[benchmark["Month"].isin(required_feature_months), ["Date", "BenchmarkReturn"]]
-            feature_returns = feature_window["ReturnFromPrice"].dropna()
+            full_feature_window = frame.loc[frame["Month"].isin(required_feature_months)].copy()
+            feature_returns = full_feature_window["ReturnFromPrice"].dropna()
             target_returns = frame.loc[frame["Month"] == month, "ReturnFromPrice"].dropna()
-            feature_egarch = aggregate_month_egarch_stats(asset_month_egarch, required_feature_months)
+            if target_returns.empty:
+                continue
+
+            downside_months = trailing_months(month, profile.downside_window_months)
+            max_drawdown_months = trailing_months(month, profile.max_drawdown_window_months)
+            volume_months = trailing_months(month, profile.volume_window_months)
+            beta_months = trailing_months(month, profile.beta_window_months)
+            distance_months = trailing_months(month, profile.distance_high_window_months)
+
+            observed_feature_window = full_feature_window.loc[full_feature_window["IsObserved"] == 1].copy()
+            downside_window = frame.loc[frame["Month"].isin(downside_months), "ReturnFromPrice"].dropna()
+            max_drawdown_window = frame.loc[frame["Month"].isin(max_drawdown_months), "ReturnFromPrice"].dropna()
+            volume_window = frame.loc[frame["Month"].isin(volume_months), "Volume"]
+            beta_asset_window = frame.loc[frame["Month"].isin(beta_months), ["Date", "ReturnFromPrice"]]
+            beta_benchmark_window = benchmark.loc[benchmark["Month"].isin(beta_months), ["Date", "BenchmarkReturn"]]
+            distance_window = observed_feature_window.loc[observed_feature_window["Month"].isin(distance_months)].copy()
+
+            if profile.egarch_mode == "aggregate_mean_3m":
+                feature_egarch = aggregate_month_egarch_stats(asset_month_egarch, required_feature_months)
+            elif profile.egarch_mode == "last_value_3m":
+                feature_egarch = float(asset_month_egarch.get(month, {}).get("last", float("nan")))
+            elif profile.egarch_mode == "realized_vol_proxy":
+                feature_egarch = annualized_volatility(feature_returns)
+            else:
+                raise ValueError(f"Unsupported egarch_mode: {profile.egarch_mode}")
+
+            if profile.downside_mode == "standard":
+                downside_dev = compute_downside_deviation(downside_window)
+            elif profile.downside_mode == "ewm":
+                downside_dev = compute_ewm_downside_deviation(downside_window, alpha=profile.downside_ewm_alpha)
+            else:
+                raise ValueError(f"Unsupported downside_mode: {profile.downside_mode}")
+
+            max_drawdown = compute_max_drawdown(max_drawdown_window)
+
+            if profile.volume_mode == "sum":
+                volume_value = compute_trailing_volume(volume_window)
+            elif profile.volume_mode == "mean_log":
+                volume_value = compute_log_mean_volume(volume_window)
+            else:
+                raise ValueError(f"Unsupported volume_mode: {profile.volume_mode}")
 
             observed_closes = observed_feature_window["PriceForReturn"].dropna()
-            atr_pct_20 = compute_atr_pct(observed_feature_window, config.ATR_PERIOD)
-            beta_to_egx30 = compute_beta_to_benchmark(
-                feature_window[["Date", "ReturnFromPrice"]],
-                benchmark_window,
-            )
-            price_to_sma20 = compute_price_to_sma(observed_closes, config.SMA_PERIOD)
-            rsi_14 = compute_wilder_rsi(observed_closes, config.RSI_PERIOD)
-            last_close = float(observed_closes.iloc[-1]) if not observed_closes.empty else float("nan")
-            distance_to_3m_high = compute_distance_to_high(last_close, observed_feature_window["HighPriceForRange"])
+            atr_pct = compute_atr_pct(observed_feature_window, profile.atr_period)
 
-            if (
-                feature_returns.empty
-                or target_returns.empty
-                or pd.isna(feature_egarch)
-                or pd.isna(atr_pct_20)
-                or pd.isna(beta_to_egx30)
-                or pd.isna(price_to_sma20)
-                or pd.isna(rsi_14)
-                or pd.isna(distance_to_3m_high)
-            ):
+            if profile.beta_mode == "standard":
+                beta_to_egx30 = compute_beta_to_benchmark(beta_asset_window, beta_benchmark_window)
+            elif profile.beta_mode == "downside":
+                beta_to_egx30 = compute_downside_beta_to_benchmark(beta_asset_window, beta_benchmark_window)
+            else:
+                raise ValueError(f"Unsupported beta_mode: {profile.beta_mode}")
+
+            if profile.ma_mode == "sma":
+                price_to_ma = compute_price_to_sma(observed_closes, profile.ma_period)
+            elif profile.ma_mode == "ema":
+                price_to_ma = compute_price_to_ema(observed_closes, profile.ma_period)
+            else:
+                raise ValueError(f"Unsupported ma_mode: {profile.ma_mode}")
+
+            rsi_value = compute_wilder_rsi(observed_closes, profile.rsi_period)
+            last_close = float(observed_closes.iloc[-1]) if not observed_closes.empty else float("nan")
+            distance_to_high = compute_distance_to_high(last_close, distance_window["HighPriceForRange"])
+
+            feature_values = {
+                "egarch_vol": feature_egarch,
+                "downside_dev": downside_dev,
+                "max_drawdown": max_drawdown,
+                "volume": volume_value,
+                "atr_pct_20": atr_pct,
+                "beta_to_egx30": beta_to_egx30,
+                "price_to_sma20": price_to_ma,
+                "rsi_14": rsi_value,
+                "distance_to_3m_high": distance_to_high,
+                "usd_vol": macro_features[month]["usd_vol"],
+                "cpi_trajectory": macro_features[month]["cpi_trajectory"],
+            }
+
+            if feature_returns.empty:
+                continue
+            if any(pd.isna(feature_values[feature_name]) for feature_name in profile.active_features):
                 continue
 
             records.append(
@@ -610,14 +493,14 @@ def compute_monthly_panel(
                     "AssetName": asset_name,
                     "AssetGroup": asset_group,
                     "egarch_vol_raw": feature_egarch,
-                    "downside_dev_raw": compute_downside_deviation(feature_returns),
-                    "max_drawdown_raw": compute_max_drawdown(feature_returns),
-                    "volume_raw": compute_trailing_volume(feature_window["Volume"]),
-                    "atr_pct_20_raw": atr_pct_20,
+                    "downside_dev_raw": downside_dev,
+                    "max_drawdown_raw": max_drawdown,
+                    "volume_raw": volume_value,
+                    "atr_pct_20_raw": atr_pct,
                     "beta_to_egx30_raw": beta_to_egx30,
-                    "price_to_sma20_raw": price_to_sma20,
-                    "rsi_14_raw": rsi_14,
-                    "distance_to_3m_high_raw": distance_to_3m_high,
+                    "price_to_sma20_raw": price_to_ma,
+                    "rsi_14_raw": rsi_value,
+                    "distance_to_3m_high_raw": distance_to_high,
                     "usd_vol": macro_features[month]["usd_vol"],
                     "cpi_trajectory": macro_features[month]["cpi_trajectory"],
                     "realized_vol_raw": annualized_volatility(target_returns),
@@ -635,15 +518,26 @@ def compute_monthly_panel(
         if len(group) < config.MIN_ASSETS_PER_MONTH:
             continue
         month_frame = group.copy()
-        month_frame["egarch_vol"] = rank_to_unit_interval(month_frame["egarch_vol_raw"])
-        month_frame["downside_dev"] = rank_to_unit_interval(month_frame["downside_dev_raw"])
-        month_frame["max_drawdown"] = rank_to_unit_interval(month_frame["max_drawdown_raw"])
-        month_frame["volume"] = rank_to_unit_interval(month_frame["volume_raw"])
-        month_frame["atr_pct_20"] = rank_to_unit_interval(month_frame["atr_pct_20_raw"])
-        month_frame["beta_to_egx30"] = rank_to_unit_interval(month_frame["beta_to_egx30_raw"])
-        month_frame["price_to_sma20"] = rank_to_unit_interval(month_frame["price_to_sma20_raw"])
-        month_frame["rsi_14"] = rank_to_unit_interval(month_frame["rsi_14_raw"])
-        month_frame["distance_to_3m_high"] = rank_to_unit_interval(month_frame["distance_to_3m_high_raw"])
+        normalized_feature_map = {
+            "egarch_vol": "egarch_vol_raw",
+            "downside_dev": "downside_dev_raw",
+            "max_drawdown": "max_drawdown_raw",
+            "volume": "volume_raw",
+            "atr_pct_20": "atr_pct_20_raw",
+            "beta_to_egx30": "beta_to_egx30_raw",
+            "price_to_sma20": "price_to_sma20_raw",
+            "rsi_14": "rsi_14_raw",
+            "distance_to_3m_high": "distance_to_3m_high_raw",
+        }
+        for feature_name, raw_column in normalized_feature_map.items():
+            if feature_name in profile.active_features:
+                month_frame[feature_name] = rank_to_unit_interval(month_frame[raw_column])
+            else:
+                month_frame[feature_name] = float(profile.neutral_fill_value)
+        if "usd_vol" not in profile.active_features:
+            month_frame["usd_vol"] = float(profile.neutral_fill_value)
+        if "cpi_trajectory" not in profile.active_features:
+            month_frame["cpi_trajectory"] = float(profile.neutral_fill_value)
         month_frame["realized_vol"] = rank_to_unit_interval(month_frame["realized_vol_raw"])
         month_frame["realized_downside_dev"] = rank_to_unit_interval(month_frame["realized_downside_dev_raw"])
         month_frame["realized_max_drawdown"] = rank_to_unit_interval(month_frame["realized_max_drawdown_raw"])
@@ -687,10 +581,19 @@ def print_qa_summary(qa_rows: list[dict[str, float | int | str]]) -> None:
     print(qa.head(10).to_string(index=False))
 
 
-def main() -> None:
+def resolve_output_dir(feature_profile_id: str, output_dir: str | Path | None = None) -> Path:
+    if output_dir is not None:
+        return Path(output_dir)
+    if feature_profile_id == config.DEFAULT_FEATURE_PROFILE_ID:
+        return ROOT / config.READY_DATA_DIR
+    return ROOT / config.FEATURE_PROFILE_OUTPUT_DIR / feature_profile_id
+
+
+def build_outputs(feature_profile_id: str = config.DEFAULT_FEATURE_PROFILE_ID, output_dir: str | Path | None = None) -> tuple[Path, Path]:
     raw_dir = ROOT / config.RAW_DATA_DIR
-    ready_dir = ROOT / config.READY_DATA_DIR
-    ready_dir.mkdir(parents=True, exist_ok=True)
+    profile = get_feature_profile(feature_profile_id)
+    resolved_output_dir = resolve_output_dir(feature_profile_id, output_dir)
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
     stock_specs = build_stock_specs(raw_dir)
     scoring_specs = SCORING_ASSETS + stock_specs
@@ -710,17 +613,37 @@ def main() -> None:
     qa_rows.append(usd_qa)
 
     cpi_monthly = load_cpi_series(raw_dir)
-    macro_features = compute_macro_features(usd_daily, cpi_monthly)
-    monthly_panel = compute_monthly_panel(daily_frames, macro_features)
+    macro_features = compute_macro_features(usd_daily, cpi_monthly, feature_profile=profile)
+    monthly_panel = compute_monthly_panel(daily_frames, macro_features, feature_profile=profile)
     daily_market_series = format_daily_market_series(export_frames)
 
-    daily_output = ready_dir / config.DAILY_MARKET_SERIES_NAME
-    panel_output = ready_dir / config.MONTHLY_PANEL_NAME
+    daily_output = resolved_output_dir / config.DAILY_MARKET_SERIES_NAME
+    panel_output = resolved_output_dir / config.MONTHLY_PANEL_NAME
     daily_market_series.to_csv(daily_output, index=False)
     monthly_panel.to_csv(panel_output, index=False)
+    with (resolved_output_dir / "feature_profile_metadata.json").open("w", encoding="utf-8") as handle:
+        json.dump(
+            {
+                "feature_profile_id": profile.feature_profile_id,
+                "description": profile.description,
+                "parameters": profile.parameter_values(),
+            },
+            handle,
+            indent=2,
+            sort_keys=True,
+        )
 
-    print(f"Wrote {daily_output.relative_to(ROOT)} with {len(daily_market_series):,} rows")
-    print(f"Wrote {panel_output.relative_to(ROOT)} with {len(monthly_panel):,} rows")
+    try:
+        daily_label: Path | str = daily_output.relative_to(ROOT)
+    except ValueError:
+        daily_label = str(daily_output)
+    try:
+        panel_label: Path | str = panel_output.relative_to(ROOT)
+    except ValueError:
+        panel_label = str(panel_output)
+    print(f"Wrote {daily_label} with {len(daily_market_series):,} rows")
+    print(f"Wrote {panel_label} with {len(monthly_panel):,} rows")
+    print(f"Feature profile: {profile.feature_profile_id}")
     print(
         "Panel month range:",
         monthly_panel["Date"].min(),
@@ -728,7 +651,29 @@ def main() -> None:
         monthly_panel["Date"].max(),
     )
     print_qa_summary(qa_rows)
+    return daily_output, panel_output
+
+
+def _build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Build the canonical or feature-profile monthly asset panel.")
+    parser.add_argument(
+        "--feature-profile-id",
+        default=config.DEFAULT_FEATURE_PROFILE_ID,
+        help="Feature profile to build. Base profile writes to data/ready by default; non-base profiles write to outputs/feature_profiles/<id>/ unless --output-dir is set.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Optional output directory for the generated daily market series and monthly panel.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> tuple[Path, Path]:
+    parser = _build_cli_parser()
+    args = parser.parse_args(argv or [])
+    return build_outputs(feature_profile_id=args.feature_profile_id, output_dir=args.output_dir)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

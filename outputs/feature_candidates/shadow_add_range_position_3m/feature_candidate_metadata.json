@@ -1,0 +1,9 @@
+{
+  "candidate_id": "range_position_3m",
+  "candidate_set_id": "shadow_add_range_position_3m",
+  "candidate_type": "additive",
+  "description": "Add trailing 3-month range position.",
+  "feature_column": "range_position_3m",
+  "input_feature_set_id": "shadow_add_range_position_3m",
+  "is_macro": false
+}

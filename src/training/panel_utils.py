@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src import config
+from src.training.experiment_profiles import get_comparison_protocol, get_objective_profile, protocol_split_windows
 from src.training.frameworks import FrameworkSpec, get_framework_spec
 
 
@@ -41,13 +42,6 @@ class DecisionBatch:
         return len(self.asset_ids)
 
 
-SPLIT_WINDOWS = (
-    SplitWindow("train", config.TRAIN_START, config.TRAIN_END),
-    SplitWindow("validation", config.VAL_START, config.VAL_END),
-    SplitWindow("test", config.TEST_START, config.TEST_END),
-)
-
-
 def get_default_panel_path() -> Path:
     return ROOT / config.READY_DATA_DIR / config.MONTHLY_PANEL_NAME
 
@@ -56,24 +50,41 @@ def get_default_daily_path() -> Path:
     return ROOT / config.READY_DATA_DIR / config.DAILY_MARKET_SERIES_NAME
 
 
-def expected_panel_columns() -> list[str]:
-    return config.PANEL_METADATA_COLUMNS + config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+def expected_panel_columns(feature_columns: list[str] | tuple[str, ...] | None = None) -> list[str]:
+    resolved_features = list(config.MODEL_FEATURE_COLUMNS if feature_columns is None else feature_columns)
+    return config.PANEL_METADATA_COLUMNS + resolved_features + config.TARGET_COLUMNS
 
 
 def expected_daily_columns() -> list[str]:
     return config.DAILY_MARKET_COLUMNS
 
 
-def load_canonical_monthly_panel(panel_path: str | Path | None = None) -> pd.DataFrame:
+def load_monthly_panel(
+    panel_path: str | Path | None = None,
+    feature_columns: list[str] | tuple[str, ...] | None = None,
+    allow_extra_columns: bool = False,
+) -> pd.DataFrame:
     resolved_path = Path(panel_path) if panel_path is not None else get_default_panel_path()
     panel = pd.read_csv(resolved_path)
-    expected = expected_panel_columns()
-    if list(panel.columns) != expected:
+    expected = expected_panel_columns(feature_columns=feature_columns)
+    actual_columns = list(panel.columns)
+    if allow_extra_columns:
+        missing = [column for column in expected if column not in actual_columns]
+        if missing:
+            raise ValueError(
+                "Monthly panel columns do not match the requested contract. "
+                f"Missing required columns: {missing}. Found {actual_columns}."
+            )
+    elif actual_columns != expected:
         raise ValueError(
             "Monthly panel columns do not match the canonical contract. "
-            f"Expected {expected} but found {list(panel.columns)}."
-    )
+            f"Expected {expected} but found {actual_columns}."
+        )
     return panel.sort_values(["Date", "AssetID"]).reset_index(drop=True)
+
+
+def load_canonical_monthly_panel(panel_path: str | Path | None = None) -> pd.DataFrame:
+    return load_monthly_panel(panel_path=panel_path, feature_columns=config.MODEL_FEATURE_COLUMNS, allow_extra_columns=False)
 
 
 def load_canonical_daily_market_series(daily_path: str | Path | None = None) -> pd.DataFrame:
@@ -88,29 +99,42 @@ def load_canonical_daily_market_series(daily_path: str | Path | None = None) -> 
     return daily.sort_values(["Date", "AssetID"]).reset_index(drop=True)
 
 
-def decision_split_name_for_month(month_label: str) -> str:
-    for window in SPLIT_WINDOWS:
+def decision_split_name_for_month(
+    month_label: str,
+    comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+) -> str:
+    for window in protocol_split_windows(comparison_protocol_id):
         if window.start <= month_label <= window.end:
             return window.name
     raise ValueError(f"Decision month {month_label} does not belong to any configured split.")
 
 
-def split_name_for_month(month_label: str) -> str:
-    return decision_split_name_for_month(month_label)
+def split_name_for_month(
+    month_label: str,
+    comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+) -> str:
+    return decision_split_name_for_month(month_label, comparison_protocol_id=comparison_protocol_id)
 
 
-def decision_months_for_split(split_name: str) -> tuple[str, ...]:
-    for window in SPLIT_WINDOWS:
+def decision_months_for_split(
+    split_name: str,
+    comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+) -> tuple[str, ...]:
+    for window in protocol_split_windows(comparison_protocol_id):
         if window.name == split_name:
             periods = pd.period_range(start=window.start, end=window.end, freq="M")
             return tuple(period.strftime(config.DATE_FORMAT_MONTHLY) for period in periods)
     raise ValueError(f"Unknown split requested: {split_name}")
 
 
-def stacked_feature_column_names(framework: FrameworkSpec) -> list[str]:
+def stacked_feature_column_names(
+    framework: FrameworkSpec,
+    feature_columns: list[str] | tuple[str, ...] | None = None,
+) -> list[str]:
+    resolved_feature_columns = list(config.MODEL_FEATURE_COLUMNS if feature_columns is None else feature_columns)
     columns: list[str] = []
     for lag in range(framework.lookback_months, 0, -1):
-        columns.extend(f"{feature}__lag{lag}" for feature in config.MODEL_FEATURE_COLUMNS)
+        columns.extend(f"{feature}__lag{lag}" for feature in resolved_feature_columns)
     return columns
 
 
@@ -173,15 +197,20 @@ def build_framework_batches(
     framework_id: str,
     split_name: str,
     daily_market_series: pd.DataFrame | None = None,
+    comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+    feature_columns: list[str] | tuple[str, ...] | None = None,
+    objective_profile_id: str = config.DEFAULT_OBJECTIVE_PROFILE_ID,
 ) -> list[DecisionBatch]:
     framework = get_framework_spec(framework_id)
+    resolved_feature_columns = list(config.MODEL_FEATURE_COLUMNS if feature_columns is None else feature_columns)
+    objective_profile = get_objective_profile(objective_profile_id)
     batches: list[DecisionBatch] = []
     daily_lookup: dict[tuple[str, str], tuple[np.ndarray, np.ndarray]] | None = None
     if framework.uses_daily_strip:
         daily_source = daily_market_series if daily_market_series is not None else load_canonical_daily_market_series()
         daily_lookup = build_daily_strip_lookup(daily_source, strip_length=framework.daily_strip_length)
 
-    for decision_month in decision_months_for_split(split_name):
+    for decision_month in decision_months_for_split(split_name, comparison_protocol_id=comparison_protocol_id):
         decision_frame = panel.loc[
             panel["Date"] == decision_month,
             config.PANEL_METADATA_COLUMNS + config.TARGET_COLUMNS,
@@ -195,7 +224,7 @@ def build_framework_batches(
             lag = framework.lookback_months - offset
             state_frame = panel.loc[
                 panel["Date"] == state_month,
-                ["AssetID"] + config.MODEL_FEATURE_COLUMNS,
+                ["AssetID"] + resolved_feature_columns,
             ].copy()
             if state_frame.empty:
                 merged = merged.iloc[0:0].copy()
@@ -204,7 +233,7 @@ def build_framework_batches(
             renamed = state_frame.rename(
                 columns={
                     feature: f"{feature}__lag{lag}"
-                    for feature in config.MODEL_FEATURE_COLUMNS
+                    for feature in resolved_feature_columns
                 }
             )
             merged = merged.merge(renamed, on="AssetID", how="inner")
@@ -238,7 +267,8 @@ def build_framework_batches(
             daily_strip_array = np.stack(strips).astype(np.float32)
             daily_mask_array = np.stack(masks).astype(np.float32)
 
-        stacked_columns = stacked_feature_column_names(framework)
+        stacked_columns = stacked_feature_column_names(framework, feature_columns=resolved_feature_columns)
+        realized_risk = objective_profile.compute_realized_risk(merged)
         batches.append(
             DecisionBatch(
                 date=decision_month,
@@ -251,7 +281,7 @@ def build_framework_batches(
                 features=merged[stacked_columns].to_numpy(dtype=np.float32),
                 daily_strip=daily_strip_array,
                 daily_mask=daily_mask_array,
-                targets=merged["realized_risk"].to_numpy(dtype=np.float32),
+                targets=realized_risk.to_numpy(dtype=np.float32),
             )
         )
 

@@ -1,0 +1,9 @@
+{
+  "candidate_id": "sortino_3m",
+  "candidate_set_id": "shadow_add_sortino_3m",
+  "candidate_type": "additive",
+  "description": "Add trailing 3-month Sortino ratio with a zero hurdle.",
+  "feature_column": "sortino_3m",
+  "input_feature_set_id": "shadow_add_sortino_3m",
+  "is_macro": false
+}

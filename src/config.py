@@ -23,6 +23,12 @@ MAX_FORWARD_FILL_DAYS = 5
 EGARCH_RETURN_DECIMALS = 12
 MAX_MONTHLY_OBS = 23
 DAILY_STRIP_CHANNELS = 4
+DAILY_STRIP_CHANNEL_NAMES = [
+    "close_rel",
+    "ReturnFromPrice",
+    "log1p(Volume)",
+    "volume_observed",
+]
 
 # === Parsing And Calendar ===
 DATE_FORMAT_RAW = "%m/%d/%Y"
@@ -96,8 +102,15 @@ BETA = 0.3
 
 # === Framework-Phase PPO Config ===
 FRAMEWORK_PHASE_NAME = "framework_selection"
+FEATURE_PHASE_NAME = "feature_comparison"
 ACTION_DISTRIBUTION_NAME = "masked_sigmoid_gaussian"
 POLICY_SEMANTICS_VERSION = "bounded_v2"
+DEFAULT_COMPARISON_PROTOCOL_ID = "repaired_inner12_outer26_v1"
+LEGACY_COMPARISON_PROTOCOL_ID = "legacy_train_validation_test_v1"
+DEFAULT_OBJECTIVE_PROFILE_ID = "risk_v1_equal_333"
+DEFAULT_REWARD_PROFILE_ID = "reward_v1_rank70_mse30"
+DEFAULT_TRAINING_METHOD_ID = "random_iid"
+DEFAULT_INPUT_FEATURE_SET_ID = "canonical_11"
 FRAMEWORK_PPO_LEARNING_RATE = 1e-4
 FRAMEWORK_PPO_N_STEPS = 256
 FRAMEWORK_PPO_BATCH_SIZE = 256
@@ -109,6 +122,11 @@ FRAMEWORK_PPO_ENT_COEF = 0.01
 FRAMEWORK_PPO_VF_COEF = 0.5
 FRAMEWORK_PPO_MAX_GRAD_NORM = 0.5
 FRAMEWORK_PPO_EVAL_FREQUENCY = 512
+DEFAULT_FEATURE_PROFILE_ID = "full_current_v1"
+FEATURE_PROFILE_OUTPUT_DIR = "outputs/feature_profiles"
+FEATURE_CANDIDATE_OUTPUT_DIR = "outputs/feature_candidates"
+FEATURE_PHASE_BASE_FRAMEWORK_ID = "pit_3m_flat_context"
+FEATURE_PHASE_TOTAL_TIMESTEPS = 8192
 
 # === Realized Risk Component Weights ===
 W_REALIZED_VOL = 1 / 3

@@ -1,0 +1,9 @@
+{
+  "candidate_id": "drawdown_duration_3m",
+  "candidate_set_id": "shadow_add_drawdown_duration_3m",
+  "candidate_type": "additive",
+  "description": "Add trailing 3-month drawdown duration.",
+  "feature_column": "drawdown_duration_3m",
+  "input_feature_set_id": "shadow_add_drawdown_duration_3m",
+  "is_macro": false
+}

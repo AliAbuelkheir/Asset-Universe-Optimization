@@ -1,0 +1,11 @@
+{
+  "candidate_id": "beta_to_egx30_1m",
+  "candidate_set_id": "beta_to_egx30_1m",
+  "candidate_type": "replacement",
+  "description": "Replace `beta_to_egx30` with the most recent 1-month beta.",
+  "feature_column": "beta_to_egx30",
+  "input_feature_set_id": "canonical_11",
+  "is_macro": false,
+  "replacement_feature": "beta_to_egx30",
+  "source_profile_id": "beta_to_egx30_1m"
+}

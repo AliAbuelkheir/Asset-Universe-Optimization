@@ -8,98 +8,12 @@ import numpy as np
 import torch as th
 from gymnasium import spaces
 from torch import nn
-from torch.nn import functional as F
-from torch.distributions import Normal
 
-from stable_baselines3.common.distributions import DiagGaussianDistribution
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.preprocessing import preprocess_obs
 from stable_baselines3.common.torch_layers import CombinedExtractor
 from stable_baselines3.common.type_aliases import PyTorchObs, Schedule
-
-
-class MaskedSigmoidGaussianDistribution(DiagGaussianDistribution):
-    """Diagonal Gaussian distribution squashed to [0, 1] and masked on padded rows."""
-
-    def __init__(self, action_dim: int, epsilon: float = 1e-6):
-        super().__init__(action_dim)
-        self.current_mask: Optional[th.Tensor] = None
-        self.epsilon = float(epsilon)
-        self.gaussian_actions: Optional[th.Tensor] = None
-
-    def proba_distribution(  # type: ignore[override]
-        self,
-        mean_actions: th.Tensor,
-        log_std: th.Tensor,
-        action_mask: Optional[th.Tensor] = None,
-    ) -> "MaskedSigmoidGaussianDistribution":
-        if action_mask is None:
-            action_mask = th.ones_like(mean_actions)
-        self.current_mask = action_mask.float()
-        action_std = th.ones_like(mean_actions) * log_std.exp()
-        self.distribution = Normal(mean_actions, action_std)
-        return self
-
-    def _active_mask(self, reference: th.Tensor) -> th.Tensor:
-        if self.current_mask is not None:
-            return self.current_mask.to(reference.dtype)
-        return th.ones_like(reference, dtype=reference.dtype)
-
-    def entropy(self) -> Optional[th.Tensor]:
-        return None
-
-    def sample(self) -> th.Tensor:
-        self.gaussian_actions = self.distribution.rsample()
-        squashed_actions = th.sigmoid(self.gaussian_actions).clamp(self.epsilon, 1.0 - self.epsilon)
-        return squashed_actions * self._active_mask(squashed_actions)
-
-    def mode(self) -> th.Tensor:
-        self.gaussian_actions = self.distribution.mean
-        squashed_actions = th.sigmoid(self.gaussian_actions).clamp(self.epsilon, 1.0 - self.epsilon)
-        return squashed_actions * self._active_mask(squashed_actions)
-
-    def log_prob(self, actions: th.Tensor, gaussian_actions: Optional[th.Tensor] = None) -> th.Tensor:
-        mask = self._active_mask(actions)
-        if gaussian_actions is None:
-            # Masked rows are neutralized before the inverse-sigmoid to avoid infinities from padded zeros.
-            safe_actions = th.where(mask > 0.0, actions.clamp(self.epsilon, 1.0 - self.epsilon), th.full_like(actions, 0.5))
-            gaussian_actions = th.logit(safe_actions, eps=self.epsilon)
-
-        log_prob = self.distribution.log_prob(gaussian_actions)
-        squash_correction = F.softplus(-gaussian_actions) + F.softplus(gaussian_actions)
-        log_prob = (log_prob + squash_correction) * mask
-        return log_prob.sum(dim=1)
-
-    def actions_from_params(
-        self,
-        mean_actions: th.Tensor,
-        log_std: th.Tensor,
-        deterministic: bool = False,
-        action_mask: Optional[th.Tensor] = None,
-    ) -> th.Tensor:
-        self.proba_distribution(mean_actions, log_std, action_mask=action_mask)
-        return self.get_actions(deterministic=deterministic)
-
-    def log_prob_from_params(
-        self,
-        mean_actions: th.Tensor,
-        log_std: th.Tensor,
-        action_mask: Optional[th.Tensor] = None,
-    ) -> tuple[th.Tensor, th.Tensor]:
-        actions = self.actions_from_params(mean_actions, log_std, action_mask=action_mask)
-        return actions, self.log_prob(actions, self.gaussian_actions)
-
-
-def _build_hidden_stack(input_dim: int, hidden_dims: Sequence[int]) -> tuple[nn.Sequential, int, list[nn.Linear]]:
-    layers: list[nn.Module] = []
-    linears: list[nn.Linear] = []
-    current_dim = input_dim
-    for hidden_dim in hidden_dims:
-        linear = nn.Linear(current_dim, hidden_dim)
-        linears.append(linear)
-        layers.extend([linear, nn.ReLU()])
-        current_dim = hidden_dim
-    return nn.Sequential(*layers), current_dim, linears
+from src.training.policy_components import MaskedSigmoidGaussianDistribution, build_hidden_stack
 
 
 class MaskedActorCriticPolicy(ActorCriticPolicy):
@@ -113,6 +27,8 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         row_encoder_dims: Sequence[int] = (64, 64),
         actor_hidden_dims: Sequence[int] = (32,),
         actor_context_mode: str = "none",
+        daily_fusion_mode: str = "none",
+        daily_path_scope: str = "none",
         log_std_init: float = -2.0,
         **kwargs: Any,
     ) -> None:
@@ -134,6 +50,12 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         self.row_encoder_dims = tuple(row_encoder_dims)
         self.actor_hidden_dims = tuple(actor_hidden_dims)
         self.actor_context_mode = actor_context_mode
+        self.daily_fusion_mode = daily_fusion_mode if self.uses_daily_strip else "none"
+        if self.uses_daily_strip:
+            # Older checkpoints did not persist a path scope. Those daily variants were all shared.
+            self.daily_path_scope = "shared" if daily_path_scope == "none" else daily_path_scope
+        else:
+            self.daily_path_scope = "none"
         super().__init__(
             observation_space=observation_space,
             action_space=action_space,
@@ -162,25 +84,49 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
     def _build(self, lr_schedule: Schedule) -> None:
         self.action_dist = MaskedSigmoidGaussianDistribution(self.max_assets)
 
-        self.row_encoder, self.row_dim, row_linears = _build_hidden_stack(self.feature_count, self.row_encoder_dims)
+        row_input_dim = self.feature_count
         self.daily_conv_layers: nn.Sequential | None = None
         self.daily_embedding_dim = 0
+        self.actor_only_daily_flat_dim = 0
         if self.uses_daily_strip:
-            self.daily_conv_layers = nn.Sequential(
-                nn.Conv1d(self.daily_strip_channels, 16, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.Conv1d(16, 32, kernel_size=3, padding=1),
-                nn.ReLU(),
-            )
-            self.daily_embedding_dim = 32
+            if self.daily_path_scope not in {"shared", "actor_only"}:
+                raise ValueError(f"Unsupported daily_path_scope: {self.daily_path_scope}")
+            flat_daily_dim = (self.daily_strip_length * self.daily_strip_channels) + self.daily_strip_length
+            if self.daily_fusion_mode == "flat_concat":
+                if self.daily_path_scope == "shared":
+                    row_input_dim += flat_daily_dim
+                else:
+                    self.actor_only_daily_flat_dim = flat_daily_dim
+            elif self.daily_fusion_mode == "cnn_pool":
+                self.daily_conv_layers = nn.Sequential(
+                    nn.Conv1d(self.daily_strip_channels, 16, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.Conv1d(16, 32, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                )
+                self.daily_embedding_dim = 32
+            else:
+                raise ValueError(f"Unsupported daily_fusion_mode: {self.daily_fusion_mode}")
 
-        self.combined_row_dim = self.row_dim + self.daily_embedding_dim
-        summary_dim = (self.combined_row_dim * 2) + 1
-        actor_input_dim = self.combined_row_dim if self.actor_context_mode == "none" else self.combined_row_dim + summary_dim
-        self.actor_hidden, actor_hidden_dim, actor_hidden_linears = _build_hidden_stack(actor_input_dim, self.actor_hidden_dims)
+        self.row_encoder, self.row_dim, row_linears = build_hidden_stack(row_input_dim, self.row_encoder_dims)
+
+        self.critic_row_dim = self.row_dim
+        if self.uses_daily_strip and self.daily_path_scope == "shared" and self.daily_fusion_mode == "cnn_pool":
+            self.critic_row_dim += self.daily_embedding_dim
+
+        self.actor_row_dim = self.critic_row_dim
+        if self.uses_daily_strip and self.daily_path_scope == "actor_only":
+            if self.daily_fusion_mode == "cnn_pool":
+                self.actor_row_dim = self.row_dim + self.daily_embedding_dim
+            else:
+                self.actor_row_dim = self.row_dim + self.actor_only_daily_flat_dim
+
+        summary_dim = (self.critic_row_dim * 2) + 1
+        actor_input_dim = self.actor_row_dim if self.actor_context_mode == "none" else self.actor_row_dim + summary_dim
+        self.actor_hidden, actor_hidden_dim, actor_hidden_linears = build_hidden_stack(actor_input_dim, self.actor_hidden_dims)
         self.actor_output = nn.Linear(actor_hidden_dim, 1)
 
-        self.value_hidden, value_hidden_dim, value_hidden_linears = _build_hidden_stack(summary_dim, (64,))
+        self.value_hidden, value_hidden_dim, value_hidden_linears = build_hidden_stack(summary_dim, (64,))
         self.value_output = nn.Linear(value_hidden_dim, 1)
         self.log_std = nn.Parameter(th.full((1,), self.log_std_init, dtype=th.float32))
 
@@ -220,30 +166,63 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
                 daily_mask = daily_mask.unsqueeze(0)
         return features, mask, daily_strip, daily_mask
 
-    def _encode_rows(self, obs: PyTorchObs) -> tuple[th.Tensor, th.Tensor]:
+    def _flat_daily_inputs(self, masked_daily_strip: th.Tensor, daily_mask: th.Tensor) -> th.Tensor:
+        batch_size, asset_count, day_count, channel_count = masked_daily_strip.shape
+        flat_daily = masked_daily_strip.reshape(batch_size, asset_count, day_count * channel_count)
+        return th.cat([flat_daily, daily_mask], dim=2)
+
+    def _pooled_daily_embeddings(self, masked_daily_strip: th.Tensor, daily_mask: th.Tensor) -> th.Tensor:
+        if self.daily_conv_layers is None:
+            raise ValueError("CNN daily fusion requires initialized convolution layers.")
+        batch_size, asset_count, day_count, channel_count = masked_daily_strip.shape
+        flat_strip = masked_daily_strip.reshape(batch_size * asset_count, day_count, channel_count).permute(0, 2, 1)
+        encoded = self.daily_conv_layers(flat_strip)
+        flat_day_mask = daily_mask.reshape(batch_size * asset_count, day_count).unsqueeze(1)
+        masked_encoded = encoded * flat_day_mask
+        active_days = flat_day_mask.sum(dim=2).clamp(min=1.0)
+        pooled_daily = masked_encoded.sum(dim=2) / active_days
+        has_active_days = (flat_day_mask.sum(dim=2) > 0.0).expand_as(pooled_daily)
+        pooled_daily = th.where(has_active_days, pooled_daily, th.zeros_like(pooled_daily))
+        return pooled_daily.view(batch_size, asset_count, self.daily_embedding_dim)
+
+    def _encode_rows(self, obs: PyTorchObs) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
         features, mask, daily_strip, daily_mask = self._preprocess_inputs(obs)
-        monthly_embeddings = self.row_encoder(features)
         if self.uses_daily_strip:
-            if daily_strip is None or daily_mask is None or self.daily_conv_layers is None:
+            if daily_strip is None or daily_mask is None:
                 raise ValueError("Daily-strip framework requires daily_strip and daily_mask observations.")
             batch_size, asset_count, day_count, channel_count = daily_strip.shape
             if day_count != self.daily_strip_length or channel_count != self.daily_strip_channels:
                 raise ValueError("Observed daily strip tensor shape does not match the configured daily-strip encoder.")
+            masked_daily_strip = daily_strip * daily_mask.unsqueeze(-1)
 
-            flat_strip = daily_strip.reshape(batch_size * asset_count, day_count, channel_count).permute(0, 2, 1)
-            encoded = self.daily_conv_layers(flat_strip)
-            flat_day_mask = daily_mask.reshape(batch_size * asset_count, day_count).unsqueeze(1)
-            masked_encoded = encoded * flat_day_mask
-            active_days = flat_day_mask.sum(dim=2).clamp(min=1.0)
-            pooled_daily = masked_encoded.sum(dim=2) / active_days
-            has_active_days = (flat_day_mask.sum(dim=2) > 0.0).expand_as(pooled_daily)
-            pooled_daily = th.where(has_active_days, pooled_daily, th.zeros_like(pooled_daily))
-            daily_embeddings = pooled_daily.view(batch_size, asset_count, self.daily_embedding_dim)
-            row_embeddings = th.cat([monthly_embeddings, daily_embeddings], dim=2)
+            if self.daily_fusion_mode == "flat_concat":
+                flat_daily_inputs = self._flat_daily_inputs(masked_daily_strip, daily_mask)
+                if self.daily_path_scope == "shared":
+                    row_inputs = th.cat([features, flat_daily_inputs], dim=2)
+                    row_embeddings = self.row_encoder(row_inputs)
+                    actor_row_embeddings = row_embeddings
+                    critic_row_embeddings = row_embeddings
+                else:
+                    monthly_embeddings = self.row_encoder(features)
+                    actor_row_embeddings = th.cat([monthly_embeddings, flat_daily_inputs], dim=2)
+                    critic_row_embeddings = monthly_embeddings
+            else:
+                monthly_embeddings = self.row_encoder(features)
+                daily_embeddings = self._pooled_daily_embeddings(masked_daily_strip, daily_mask)
+                if self.daily_path_scope == "shared":
+                    row_embeddings = th.cat([monthly_embeddings, daily_embeddings], dim=2)
+                    actor_row_embeddings = row_embeddings
+                    critic_row_embeddings = row_embeddings
+                else:
+                    actor_row_embeddings = th.cat([monthly_embeddings, daily_embeddings], dim=2)
+                    critic_row_embeddings = monthly_embeddings
         else:
-            row_embeddings = monthly_embeddings
-        row_embeddings = row_embeddings * mask.unsqueeze(-1)
-        return row_embeddings, mask
+            monthly_embeddings = self.row_encoder(features)
+            actor_row_embeddings = monthly_embeddings
+            critic_row_embeddings = monthly_embeddings
+        actor_row_embeddings = actor_row_embeddings * mask.unsqueeze(-1)
+        critic_row_embeddings = critic_row_embeddings * mask.unsqueeze(-1)
+        return actor_row_embeddings, critic_row_embeddings, mask
 
     def _pooled_summary(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
         expanded_mask = mask.unsqueeze(-1)
@@ -260,28 +239,27 @@ class MaskedActorCriticPolicy(ActorCriticPolicy):
         normalized_count = active_counts / float(self.max_assets)
         return th.cat([mean_pool, max_pool, normalized_count], dim=1)
 
-    def _actor_means(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
+    def _actor_means(self, actor_row_embeddings: th.Tensor, mask: th.Tensor, summary: th.Tensor) -> th.Tensor:
         if self.actor_context_mode == "pooled":
-            summary = self._pooled_summary(row_embeddings, mask)
-            expanded_summary = summary.unsqueeze(1).expand(-1, row_embeddings.shape[1], -1)
-            actor_inputs = th.cat([row_embeddings, expanded_summary], dim=2)
+            expanded_summary = summary.unsqueeze(1).expand(-1, actor_row_embeddings.shape[1], -1)
+            actor_inputs = th.cat([actor_row_embeddings, expanded_summary], dim=2)
         else:
-            actor_inputs = row_embeddings
+            actor_inputs = actor_row_embeddings
 
         hidden = self.actor_hidden(actor_inputs)
         means = self.actor_output(hidden).squeeze(-1)
         return means * mask
 
-    def _critic_values(self, row_embeddings: th.Tensor, mask: th.Tensor) -> th.Tensor:
-        summary = self._pooled_summary(row_embeddings, mask)
+    def _critic_values(self, summary: th.Tensor) -> th.Tensor:
         hidden = self.value_hidden(summary)
         return self.value_output(hidden)
 
     def _distribution_from_obs(self, obs: PyTorchObs) -> tuple[MaskedSigmoidGaussianDistribution, th.Tensor]:
-        row_embeddings, mask = self._encode_rows(obs)
-        mean_actions = self._actor_means(row_embeddings, mask)
+        actor_row_embeddings, critic_row_embeddings, mask = self._encode_rows(obs)
+        summary = self._pooled_summary(critic_row_embeddings, mask)
+        mean_actions = self._actor_means(actor_row_embeddings, mask, summary)
         distribution = self.action_dist.proba_distribution(mean_actions, self.log_std, action_mask=mask)
-        values = self._critic_values(row_embeddings, mask)
+        values = self._critic_values(summary)
         return distribution, values
 
     def forward(self, obs: PyTorchObs, deterministic: bool = False) -> tuple[th.Tensor, th.Tensor, th.Tensor]:

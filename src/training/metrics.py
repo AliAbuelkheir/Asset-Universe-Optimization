@@ -11,6 +11,12 @@ from scipy.stats import spearmanr
 
 from src import config
 from src.training.panel_utils import split_name_for_month
+from src.training.experiment_profiles import (
+    ObjectiveProfile,
+    RewardProfile,
+    get_objective_profile,
+    get_reward_profile,
+)
 
 
 PREDICTION_COLUMN = "PredictedRisk"
@@ -26,7 +32,12 @@ class MonthMetrics:
     reward: float
 
 
-def compute_month_metrics(predicted: np.ndarray, realized: np.ndarray, date: str) -> MonthMetrics:
+def compute_month_metrics(
+    predicted: np.ndarray,
+    realized: np.ndarray,
+    date: str,
+    reward_profile: str | RewardProfile = "reward_v1_rank70_mse30",
+) -> MonthMetrics:
     predicted_values = np.asarray(predicted, dtype=float)
     realized_values = np.asarray(realized, dtype=float)
     if predicted_values.shape != realized_values.shape:
@@ -36,11 +47,13 @@ def compute_month_metrics(predicted: np.ndarray, realized: np.ndarray, date: str
     if predicted_values.size < config.MIN_ASSETS_PER_MONTH:
         raise ValueError("Month-level metrics require at least the minimum number of active assets.")
 
+    profile = reward_profile if isinstance(reward_profile, RewardProfile) else get_reward_profile(reward_profile)
+
     spearman = float(spearmanr(predicted_values, realized_values).statistic)
     if np.isnan(spearman):
         spearman = 0.0
     mse = float(np.mean(np.square(predicted_values - realized_values)))
-    reward = float((config.ALPHA * spearman) + (config.BETA * (1.0 - mse)))
+    reward = float((profile.spearman_weight * spearman) + (profile.mse_weight * (1.0 - mse)))
     return MonthMetrics(
         date=date,
         split=split_name_for_month(date),
@@ -70,6 +83,7 @@ def evaluate_prediction_frame(
     predictions: pd.DataFrame,
     score_column: str = PREDICTION_COLUMN,
     target_column: str = "realized_risk",
+    reward_profile: str | RewardProfile = "reward_v1_rank70_mse30",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     required_columns = {"Date", "AssetID", score_column, target_column}
     missing = required_columns.difference(predictions.columns)
@@ -82,8 +96,12 @@ def evaluate_prediction_frame(
             predicted=month_frame[score_column].to_numpy(dtype=float),
             realized=month_frame[target_column].to_numpy(dtype=float),
             date=str(date),
+            reward_profile=reward_profile,
         )
-        monthly_rows.append(asdict(metrics))
+        row = asdict(metrics)
+        if "Split" in month_frame.columns and month_frame["Split"].notna().any():
+            row["split"] = str(month_frame["Split"].iloc[0])
+        monthly_rows.append(row)
 
     monthly_metrics = pd.DataFrame.from_records(monthly_rows).sort_values("date").reset_index(drop=True)
     split_summary = (
@@ -100,3 +118,14 @@ def evaluate_prediction_frame(
     )
     split_summary["mean_active_assets"] = split_summary["mean_active_assets"].astype(float)
     return monthly_metrics, split_summary
+
+
+def apply_objective_profile(
+    panel: pd.DataFrame,
+    objective_profile: str | ObjectiveProfile = "risk_v1_equal_333",
+) -> pd.DataFrame:
+    profile = objective_profile if isinstance(objective_profile, ObjectiveProfile) else get_objective_profile(objective_profile)
+    adjusted = panel.copy()
+    adjusted["realized_risk"] = profile.compute_realized_risk(adjusted)
+    adjusted["realized_rank"] = adjusted.groupby("Date")["realized_risk"].rank(method="average", ascending=True)
+    return adjusted

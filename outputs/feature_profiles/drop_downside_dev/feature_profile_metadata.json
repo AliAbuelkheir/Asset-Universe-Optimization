@@ -1,0 +1,40 @@
+{
+  "description": "Leave-one-out ablation that neutralizes downside_dev.",
+  "feature_profile_id": "drop_downside_dev",
+  "parameters": {
+    "active_features": [
+      "egarch_vol",
+      "max_drawdown",
+      "volume",
+      "atr_pct_20",
+      "beta_to_egx30",
+      "price_to_sma20",
+      "rsi_14",
+      "distance_to_3m_high",
+      "usd_vol",
+      "cpi_trajectory"
+    ],
+    "atr_period": 20,
+    "beta_mode": "standard",
+    "beta_window_months": 3,
+    "change_type": "drop_feature",
+    "changed_feature": "downside_dev",
+    "cpi_mode": "trajectory",
+    "cpi_window_months": 3,
+    "distance_high_window_months": 3,
+    "downside_ewm_alpha": 0.1,
+    "downside_mode": "standard",
+    "downside_window_months": 3,
+    "egarch_mode": "aggregate_mean_3m",
+    "ma_mode": "sma",
+    "ma_period": 20,
+    "max_drawdown_window_months": 3,
+    "neutral_fill_value": 0.5,
+    "rsi_period": 14,
+    "usd_mode": "volatility",
+    "usd_window_months": 3,
+    "variant_id": "drop_downside_dev",
+    "volume_mode": "sum",
+    "volume_window_months": 3
+  }
+}

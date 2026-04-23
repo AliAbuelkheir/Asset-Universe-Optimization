@@ -1,0 +1,9 @@
+{
+  "candidate_id": "distance_to_1m_low",
+  "candidate_set_id": "shadow_add_distance_to_1m_low",
+  "candidate_type": "additive",
+  "description": "Add distance to the most recent 1-month low.",
+  "feature_column": "distance_to_1m_low",
+  "input_feature_set_id": "shadow_add_distance_to_1m_low",
+  "is_macro": false
+}

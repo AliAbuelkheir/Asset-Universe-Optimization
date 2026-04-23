@@ -9,7 +9,16 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 from src import config
+from src.data_processing import build_feature_candidate_dataset as candidate_builder
 from src.data_processing import build_model_dataset as builder
+from src.feature_candidates import (
+    ADDITIVE_CANDIDATES,
+    REPLACEMENT_CANDIDATES,
+    get_shadow_candidate,
+    ratio_tail_shortlist_candidate_ids,
+)
+from src.feature_profiles import feature_profile_ids, get_feature_profile
+from src.input_feature_sets import get_input_feature_set
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,6 +76,7 @@ def make_egarch_month_stats(*asset_ids: str) -> dict[str, dict[pd.Period, dict[s
                 "sum": mean * 5.0,
                 "count": 5,
                 "mean": mean,
+                "last": mean + 0.01,
             }
         stats[asset_id] = asset_stats
     return stats
@@ -83,6 +93,154 @@ def test_parse_volume_handles_suffixes_and_missing_values() -> None:
     assert math.isnan(parsed.iloc[4])
     assert math.isnan(parsed.iloc[5])
     assert math.isnan(parsed.iloc[6])
+
+
+def test_feature_profile_registry_exposes_base_drop_and_first_wave_variants() -> None:
+    assert config.DEFAULT_FEATURE_PROFILE_ID in feature_profile_ids()
+
+    base = get_feature_profile(config.DEFAULT_FEATURE_PROFILE_ID)
+    promoted_baseline = get_feature_profile("full_current_v2_no_distance_to_3m_high")
+    drop_rsi = get_feature_profile("drop_rsi_14")
+    atr_variant = get_feature_profile("atr_pct_14")
+    macro_variant = get_feature_profile("cpi_last_mom")
+
+    assert base.active_features == tuple(config.MODEL_FEATURE_COLUMNS)
+    assert "distance_to_3m_high" not in promoted_baseline.active_features
+    assert len(promoted_baseline.active_features) == len(config.MODEL_FEATURE_COLUMNS) - 1
+    assert drop_rsi.change_type == "drop_feature"
+    assert "rsi_14" not in drop_rsi.active_features
+    assert atr_variant.atr_period == 14
+    assert macro_variant.cpi_mode == "last_mom"
+
+
+def test_shadow_candidate_registry_classifies_replacement_and_additive_sets_without_mutating_canonical_schema() -> None:
+    replacement = get_shadow_candidate("distance_to_1m_high")
+    additive = get_shadow_candidate("distance_to_1m_low")
+    additive_input_set = get_input_feature_set(additive.input_feature_set_id)
+
+    assert replacement in REPLACEMENT_CANDIDATES
+    assert replacement.candidate_type == "replacement"
+    assert replacement.replacement_feature == "distance_to_3m_high"
+    assert replacement.input_feature_set_id == config.DEFAULT_INPUT_FEATURE_SET_ID
+
+    assert additive in ADDITIVE_CANDIDATES
+    assert additive.candidate_type == "additive"
+    assert additive.replacement_feature is None
+    assert additive_input_set.feature_columns[:-1] == tuple(config.MODEL_FEATURE_COLUMNS)
+    assert additive_input_set.feature_columns[-1] == "distance_to_1m_low"
+    assert config.MODEL_FEATURE_COLUMNS == [
+        "egarch_vol",
+        "downside_dev",
+        "max_drawdown",
+        "volume",
+        "atr_pct_20",
+        "beta_to_egx30",
+        "price_to_sma20",
+        "rsi_14",
+        "distance_to_3m_high",
+        "usd_vol",
+        "cpi_trajectory",
+    ]
+
+
+def test_ratio_and_tail_shadow_candidates_are_registered_in_shortlist_order() -> None:
+    expected_ids = (
+        "sortino_3m",
+        "sortino_1m",
+        "calmar_3m",
+        "calmar_1m",
+        "expected_shortfall_95_3m",
+        "drawdown_duration_3m",
+    )
+
+    assert ratio_tail_shortlist_candidate_ids() == expected_ids
+    additive_ids = tuple(candidate.candidate_id for candidate in ADDITIVE_CANDIDATES)
+    for candidate_id in expected_ids:
+        assert candidate_id in additive_ids
+        feature_set = get_input_feature_set(f"shadow_add_{candidate_id}")
+        assert feature_set.feature_columns[:-1] == tuple(config.MODEL_FEATURE_COLUMNS)
+        assert feature_set.feature_columns[-1] == candidate_id
+
+
+def test_top_positive_shadow_candidates_prefers_explicit_audit_flags() -> None:
+    audit = pd.DataFrame(
+        [
+            {
+                "CandidateID": "candidate_b",
+                "StandaloneMeanSpearman": 0.30,
+                "EligibleForRLScreen": True,
+                "RLScreenOrder": 2,
+            },
+            {
+                "CandidateID": "candidate_a",
+                "StandaloneMeanSpearman": 0.10,
+                "EligibleForRLScreen": True,
+                "RLScreenOrder": 1,
+            },
+            {
+                "CandidateID": "candidate_c",
+                "StandaloneMeanSpearman": 0.40,
+                "EligibleForRLScreen": False,
+                "RLScreenOrder": pd.NA,
+            },
+        ]
+    )
+
+    assert candidate_builder.top_positive_shadow_candidates(audit) == ["candidate_a", "candidate_b"]
+
+
+def test_apply_rl_screen_shortlist_override_marks_ratio_and_tail_wave_candidates() -> None:
+    audit = pd.DataFrame(
+        [
+            {"CandidateID": "distance_to_1m_low", "StandaloneMeanSpearman": 0.30},
+            {"CandidateID": "sortino_3m", "StandaloneMeanSpearman": -0.05},
+            {"CandidateID": "calmar_3m", "StandaloneMeanSpearman": 0.01},
+        ]
+    )
+
+    overridden = candidate_builder.apply_rl_screen_shortlist_override(audit)
+    eligible = overridden.loc[overridden["EligibleForRLScreen"].fillna(False)].sort_values("RLScreenOrder")
+
+    assert eligible["CandidateID"].tolist() == ["sortino_3m", "calmar_3m"]
+    assert eligible["RLScreenOrder"].tolist() == [1, 3]
+    assert eligible["RLScreenReason"].tolist() == ["approved_shortlist", "approved_shortlist"]
+    assert not bool(
+        overridden.loc[overridden["CandidateID"] == "distance_to_1m_low", "EligibleForRLScreen"].iloc[0]
+    )
+
+
+def test_compute_sortino_ratio_uses_zero_hurdle_and_downside_floor() -> None:
+    returns = pd.Series([0.02, -0.01, 0.03, -0.02], dtype=float)
+    expected = builder.compute_compounded_return(returns) / builder.compute_downside_deviation(returns)
+
+    actual = candidate_builder._compute_sortino_ratio(returns)
+
+    assert actual == pytest.approx(expected)
+    assert math.isfinite(candidate_builder._compute_sortino_ratio(pd.Series([0.01, 0.02, 0.03], dtype=float)))
+
+
+def test_compute_calmar_ratio_uses_drawdown_floor_and_ratio_clip_helper() -> None:
+    returns = pd.Series([0.04, -0.03, 0.02, -0.01], dtype=float)
+    expected = builder.compute_compounded_return(returns) / builder.compute_max_drawdown(returns)
+
+    actual = candidate_builder._compute_calmar_ratio(returns)
+
+    assert actual == pytest.approx(expected)
+    assert math.isnan(candidate_builder._sanitize_ratio_candidate_value(float("inf")))
+    assert candidate_builder._sanitize_ratio_candidate_value(12.5) == pytest.approx(10.0)
+    assert candidate_builder._sanitize_ratio_candidate_value(-12.5) == pytest.approx(-10.0)
+
+
+def test_compute_expected_shortfall_95_uses_worst_available_tail_slice() -> None:
+    returns = pd.Series([-0.10, -0.04, 0.02, 0.03], dtype=float)
+
+    assert candidate_builder._compute_expected_shortfall_95(returns) == pytest.approx(-0.10)
+
+
+def test_compute_drawdown_duration_counts_longest_underwater_run() -> None:
+    returns = pd.Series([0.10, -0.05, -0.02, 0.01, -0.03, 0.08], dtype=float)
+
+    assert candidate_builder._compute_drawdown_duration(returns) == pytest.approx(5.0)
 
 
 def test_load_market_csv_parses_ohlc_and_volume_fields(tmp_path: Path) -> None:
@@ -395,6 +553,104 @@ def test_compute_monthly_panel_builds_expected_schema_and_replaces_target_egarch
     assert panel["cpi_trajectory"].nunique() == 1
 
 
+def test_compute_monthly_panel_neutralizes_dropped_feature_without_changing_schema() -> None:
+    macro_features = {
+        pd.Period("2010-10", freq="M"): {
+            "usd_vol": 0.25,
+            "cpi_trajectory": 0.05,
+        }
+    }
+    daily_assets = {
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
+    }
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
+
+    panel = builder.compute_monthly_panel(
+        daily_assets,
+        macro_features,
+        feature_profile=get_feature_profile("drop_rsi_14"),
+        egarch_month_stats_by_asset=egarch_stats,
+    )
+
+    assert list(panel.columns) == config.PANEL_METADATA_COLUMNS + config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+    assert panel["rsi_14"].nunique() == 1
+    assert panel["rsi_14"].iloc[0] == pytest.approx(0.5)
+    assert panel["atr_pct_20"].nunique() > 1
+
+
+def test_compute_monthly_panel_preserves_schema_for_promoted_distance_removal_baseline() -> None:
+    macro_features = {
+        pd.Period("2010-10", freq="M"): {
+            "usd_vol": 0.25,
+            "cpi_trajectory": 0.05,
+        }
+    }
+    daily_assets = {
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
+    }
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
+
+    panel = builder.compute_monthly_panel(
+        daily_assets,
+        macro_features,
+        feature_profile=get_feature_profile("full_current_v2_no_distance_to_3m_high"),
+        egarch_month_stats_by_asset=egarch_stats,
+    )
+
+    assert list(panel.columns) == config.PANEL_METADATA_COLUMNS + config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+    assert panel["distance_to_3m_high"].nunique() == 1
+    assert panel["distance_to_3m_high"].iloc[0] == pytest.approx(0.5)
+    assert panel["rsi_14"].nunique() > 1
+
+
+def test_feature_variants_support_lookback_formula_and_macro_change_families() -> None:
+    observed = make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0)
+    observed_closes = observed["PriceForReturn"]
+    base_profile = get_feature_profile(config.DEFAULT_FEATURE_PROFILE_ID)
+    atr_profile = get_feature_profile("atr_pct_14")
+    ema_profile = get_feature_profile("price_to_ema20")
+
+    atr_frame = pd.DataFrame(
+        {
+            "PriceForReturn": np.linspace(100.0, 130.0, 30),
+            "HighPriceForRange": np.linspace(101.0, 131.0, 30) + (2.0 * np.sin(np.arange(30))),
+            "LowPriceForRange": np.linspace(99.0, 129.0, 30) - (2.5 * np.cos(np.arange(30))),
+        }
+    )
+    base_atr = builder.compute_atr_pct(atr_frame, base_profile.atr_period)
+    atr_14 = builder.compute_atr_pct(atr_frame, atr_profile.atr_period)
+    base_price_to_ma = builder.compute_price_to_sma(observed_closes, base_profile.ma_period)
+    ema_price_to_ma = builder.compute_price_to_ema(observed_closes, ema_profile.ma_period)
+
+    cpi = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2010-08-01", "2010-09-01", "2010-10-01"]),
+            "HeadlineMoM": [0.01, 0.02, 0.03],
+            "Month": pd.period_range("2010-08", "2010-10", freq="M"),
+        }
+    )
+    usd_daily = pd.concat(
+        [
+            frame.assign(AssetID=asset_id)
+            for asset_id, frame in {"USD": make_asset_frame("USD/EGP", "Macro", 5.0, 0.01, 0.03, 0.0)}.items()
+        ],
+        ignore_index=True,
+    )
+    macro_base = builder.compute_macro_features(usd_daily, cpi, feature_profile=get_feature_profile(config.DEFAULT_FEATURE_PROFILE_ID))
+    macro_cpi_last = builder.compute_macro_features(usd_daily, cpi, feature_profile=get_feature_profile("cpi_last_mom"))
+
+    assert base_atr != pytest.approx(atr_14)
+    assert base_price_to_ma != pytest.approx(ema_price_to_ma)
+    assert macro_base[pd.Period("2010-10", freq="M")]["cpi_trajectory"] == pytest.approx((1.01 * 1.02 * 1.03) - 1.0)
+    assert macro_cpi_last[pd.Period("2010-10", freq="M")]["cpi_trajectory"] == pytest.approx(0.03)
+
+
 def test_compute_monthly_panel_does_not_leak_future_asset_or_benchmark_data() -> None:
     macro_features = {
         pd.Period("2010-10", freq="M"): {
@@ -477,7 +733,7 @@ def ensure_current_outputs() -> None:
     daily_path = ROOT / config.READY_DATA_DIR / config.DAILY_MARKET_SERIES_NAME
     panel_path = ROOT / config.READY_DATA_DIR / config.MONTHLY_PANEL_NAME
     if not daily_path.exists() or not panel_path.exists():
-        builder.main()
+        builder.main([])
         return
 
     daily_columns = list(pd.read_csv(daily_path, nrows=0).columns)
@@ -490,7 +746,13 @@ def ensure_current_outputs() -> None:
         or panel_columns != expected_panel_columns
         or panel_start != config.PANEL_STATE_START
     ):
-        builder.main()
+        builder.main([])
+
+
+def test_non_base_feature_profile_defaults_to_profile_specific_output_dir() -> None:
+    output_dir = builder.resolve_output_dir("drop_rsi_14")
+
+    assert output_dir == ROOT / config.FEATURE_PROFILE_OUTPUT_DIR / "drop_rsi_14"
 
 
 @pytest.fixture(scope="session")

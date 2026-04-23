@@ -1,0 +1,9 @@
+{
+  "candidate_id": "volume_spike_1m_vs_3m",
+  "candidate_set_id": "shadow_add_volume_spike_1m_vs_3m",
+  "candidate_type": "additive",
+  "description": "Add a 1-month versus 3-month volume spike ratio.",
+  "feature_column": "volume_spike_1m_vs_3m",
+  "input_feature_set_id": "shadow_add_volume_spike_1m_vs_3m",
+  "is_macro": false
+}

@@ -10,11 +10,12 @@ import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
+from src import config
 from src.training.evaluate import evaluate_model_splits
 
 
 class ValidationEvaluationCallback(BaseCallback):
-    """Periodically evaluate PPO on the ordered validation split."""
+    """Periodically evaluate PPO on the ordered checkpoint-selection split."""
 
     def __init__(
         self,
@@ -23,6 +24,12 @@ class ValidationEvaluationCallback(BaseCallback):
         output_dir: str | Path,
         framework_id: str,
         eval_frequency: int,
+        comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+        objective_profile_id: str = config.DEFAULT_OBJECTIVE_PROFILE_ID,
+        reward_profile_id: str = config.DEFAULT_REWARD_PROFILE_ID,
+        feature_columns: tuple[str, ...] | list[str] | None = None,
+        selection_split_name: str = "inner_validation",
+        comparison_split_name: str = "validation",
         verbose: int = 0,
     ) -> None:
         super().__init__(verbose=verbose)
@@ -31,6 +38,12 @@ class ValidationEvaluationCallback(BaseCallback):
         self.output_dir = Path(output_dir)
         self.framework_id = framework_id
         self.eval_frequency = int(eval_frequency)
+        self.comparison_protocol_id = comparison_protocol_id
+        self.objective_profile_id = objective_profile_id
+        self.reward_profile_id = reward_profile_id
+        self.feature_columns = tuple(feature_columns) if feature_columns is not None else None
+        self.selection_split_name = selection_split_name
+        self.comparison_split_name = comparison_split_name
         self.history: list[dict[str, Any]] = []
         self.best_mean_reward = float("-inf")
         self.best_summary: dict[str, Any] | None = None
@@ -40,17 +53,36 @@ class ValidationEvaluationCallback(BaseCallback):
         if not isinstance(self.model, PPO):
             raise TypeError("ValidationEvaluationCallback expects a PPO model.")
 
-        _, _, split_summary = evaluate_model_splits(
-            model=self.model,
-            panel_path=self.panel_path,
-            daily_path=self.daily_path,
-            framework_id=self.framework_id,
-            split_names=("validation",),
-        )
+        evaluated_split = self.selection_split_name
+        try:
+            _, _, split_summary = evaluate_model_splits(
+                model=self.model,
+                panel_path=self.panel_path,
+                daily_path=self.daily_path,
+                framework_id=self.framework_id,
+                split_names=(self.selection_split_name,),
+                comparison_protocol_id=self.comparison_protocol_id,
+                objective_profile_id=self.objective_profile_id,
+                reward_profile_id=self.reward_profile_id,
+                feature_columns=self.feature_columns,
+            )
+        except ValueError:
+            evaluated_split = self.comparison_split_name
+            _, _, split_summary = evaluate_model_splits(
+                model=self.model,
+                panel_path=self.panel_path,
+                daily_path=self.daily_path,
+                framework_id=self.framework_id,
+                split_names=(self.comparison_split_name,),
+                comparison_protocol_id=self.comparison_protocol_id,
+                objective_profile_id=self.objective_profile_id,
+                reward_profile_id=self.reward_profile_id,
+                feature_columns=self.feature_columns,
+            )
         summary = split_summary.iloc[0].to_dict()
         record = {
             "timesteps": int(timesteps),
-            "split": "validation",
+            "split": evaluated_split,
             "months": int(summary["months"]),
             "mean_active_assets": float(summary["mean_active_assets"]),
             "mean_spearman": float(summary["mean_spearman"]),

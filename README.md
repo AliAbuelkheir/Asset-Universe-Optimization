@@ -96,10 +96,17 @@ Current realized targets:
 
 - [AGENTS.md](/C:/Ali/CS/Bachelor%20thesis/AGENTS.md) is the main repository contract
 - [docs/README.md](/C:/Ali/CS/Bachelor%20thesis/docs/README.md) is the documentation index
+- [docs/framework_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_phase.md)
+  tracks framework methodology, tested frameworks, and the locked framework
+  conclusion
+- [docs/feature_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/feature_phase.md)
+  tracks feature-phase planning, ablations, and feature decisions
+- [docs/ppo_tuning_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/ppo_tuning_phase.md)
+  tracks PPO tuning methodology and parameter sweeps after the feature phase
 - [docs/project_guide.md](/C:/Ali/CS/Bachelor%20thesis/docs/project_guide.md)
-  describes the active PPO architecture, data contract, and leakage rules
-- [docs/framework_experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_experiment_tracker.md)
-  tracks recorded framework-selection PPO runs, results, and the locked
-  framework winner
+  is the compact technical guide for the data contract, PPO setup, and
+  leakage rules
+- [docs/papers.md](/C:/Ali/CS/Bachelor%20thesis/docs/papers.md)
+  is the literature tracker
 
 If wording conflicts across markdown files, `AGENTS.md` is the source of truth.

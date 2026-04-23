@@ -1,4 +1,4 @@
-"""Gymnasium environment for framework-phase month-level RL risk scoring."""
+"""Gymnasium environment for month-level RL risk scoring."""
 
 from __future__ import annotations
 
@@ -9,13 +9,14 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from src.training.frameworks import get_framework_spec
+from src import config
+from src.training.frameworks import get_runtime_framework_spec
 from src.training.metrics import compute_month_metrics
 from src.training.panel_utils import (
     DecisionBatch,
     build_framework_batches,
     load_canonical_daily_market_series,
-    load_canonical_monthly_panel,
+    load_monthly_panel,
 )
 
 
@@ -31,10 +32,19 @@ class AssetRiskEnv(gym.Env):
         split_name: str = "train",
         framework_id: str = "pit_1m_shared_mlp",
         sampling_mode: str | None = None,
+        comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+        objective_profile_id: str = config.DEFAULT_OBJECTIVE_PROFILE_ID,
+        reward_profile_id: str = config.DEFAULT_REWARD_PROFILE_ID,
+        feature_columns: tuple[str, ...] | list[str] | None = None,
     ) -> None:
         super().__init__()
-        self.panel = load_canonical_monthly_panel(panel_path)
-        self.framework = get_framework_spec(framework_id)
+        self._feature_columns = tuple(config.MODEL_FEATURE_COLUMNS if feature_columns is None else feature_columns)
+        self.panel = load_monthly_panel(
+            panel_path,
+            feature_columns=self._feature_columns,
+            allow_extra_columns=tuple(self._feature_columns) != tuple(config.MODEL_FEATURE_COLUMNS),
+        )
+        self.framework = get_runtime_framework_spec(framework_id, feature_count=len(self._feature_columns))
         self.daily_market_series = (
             load_canonical_daily_market_series(daily_path) if self.framework.uses_daily_strip else None
         )
@@ -67,19 +77,27 @@ class AssetRiskEnv(gym.Env):
 
         self._framework_id = framework_id
         self._split_name = split_name
+        self._comparison_protocol_id = comparison_protocol_id
+        self._objective_profile_id = objective_profile_id
+        self._reward_profile_id = reward_profile_id
         self._sampling_mode = sampling_mode or self._default_sampling_mode(split_name)
         self._batches = build_framework_batches(
             self.panel,
             framework_id=framework_id,
             split_name=split_name,
             daily_market_series=self.daily_market_series,
+            comparison_protocol_id=self._comparison_protocol_id,
+            feature_columns=self._feature_columns,
+            objective_profile_id=self._objective_profile_id,
         )
         self._current_batch: DecisionBatch | None = None
         self._ordered_cursor = 0
+        self._block_cursor = 0
+        self._active_block_indices: list[int] | None = None
 
     @staticmethod
     def _default_sampling_mode(split_name: str) -> str:
-        return "random" if split_name == "train" else "ordered"
+        return "random_iid" if split_name == "train" else "ordered_cycle"
 
     @property
     def batch_count(self) -> int:
@@ -97,9 +115,23 @@ class AssetRiskEnv(gym.Env):
         return [batch.date for batch in self._batches]
 
     def _select_batch(self, restart_sequence: bool = False) -> DecisionBatch:
-        if self._sampling_mode == "random":
+        if self._sampling_mode in {"random", "random_iid"}:
             index = int(self.np_random.integers(len(self._batches)))
             return self._batches[index]
+
+        if self._sampling_mode == "block_random_6m":
+            if restart_sequence:
+                self._active_block_indices = None
+                self._block_cursor = 0
+            if self._active_block_indices is None or self._block_cursor >= len(self._active_block_indices):
+                block_length = min(6, len(self._batches))
+                max_start = max(0, len(self._batches) - block_length)
+                start = int(self.np_random.integers(max_start + 1)) if max_start > 0 else 0
+                self._active_block_indices = list(range(start, start + block_length))
+                self._block_cursor = 0
+            batch = self._batches[self._active_block_indices[self._block_cursor]]
+            self._block_cursor += 1
+            return batch
 
         if restart_sequence:
             self._ordered_cursor = 0
@@ -148,6 +180,9 @@ class AssetRiskEnv(gym.Env):
             "FrameworkID": batch.framework_id,
             "StateMonths": list(batch.state_months),
             "SamplingMode": self._sampling_mode,
+            "ComparisonProtocolID": self._comparison_protocol_id,
+            "ObjectiveProfileID": self._objective_profile_id,
+            "RewardProfileID": self._reward_profile_id,
             "ActiveAssetCount": batch.active_asset_count,
             "AssetIDs": list(batch.asset_ids),
             "AssetNames": list(batch.asset_names),
@@ -162,8 +197,13 @@ class AssetRiskEnv(gym.Env):
             framework_id=self._framework_id,
             split_name=split_name,
             daily_market_series=self.daily_market_series,
+            comparison_protocol_id=self._comparison_protocol_id,
+            feature_columns=self._feature_columns,
+            objective_profile_id=self._objective_profile_id,
         )
         self._ordered_cursor = 0
+        self._block_cursor = 0
+        self._active_block_indices = None
         self._current_batch = None
 
     def reset(
@@ -200,7 +240,12 @@ class AssetRiskEnv(gym.Env):
 
         clipped_actions = np.clip(action_values, 0.0, 1.0)
         active_scores = clipped_actions[: batch.active_asset_count]
-        metrics = compute_month_metrics(active_scores, batch.targets, batch.date)
+        metrics = compute_month_metrics(
+            active_scores,
+            batch.targets,
+            batch.date,
+            reward_profile=self._reward_profile_id,
+        )
         info = self._info_from_batch(batch) | {
             "Spearman": metrics.spearman,
             "MSE": metrics.mse,

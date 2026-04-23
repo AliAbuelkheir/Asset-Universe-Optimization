@@ -1,0 +1,11 @@
+{
+  "candidate_id": "downside_beta_to_egx30",
+  "candidate_set_id": "downside_beta_to_egx30",
+  "candidate_type": "replacement",
+  "description": "Replace `beta_to_egx30` with downside-only beta to EGX30.",
+  "feature_column": "beta_to_egx30",
+  "input_feature_set_id": "canonical_11",
+  "is_macro": false,
+  "replacement_feature": "beta_to_egx30",
+  "source_profile_id": "downside_beta_to_egx30"
+}

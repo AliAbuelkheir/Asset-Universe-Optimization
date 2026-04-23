@@ -245,17 +245,57 @@ Active framework candidates:
 - actor context mode: `none`
 - evaluated and rejected before the feature phase
 
-4. `pit_3m_flat_shared_mlp`
+4. `pit_1m_context_t1_dailyflat`
+- input per asset: month `t-1` monthly row plus the observed prior-month daily
+  price path from `t-1`
+- daily strip channels: `close_rel`, `ReturnFromPrice`, `log1p(Volume)`,
+  `volume_observed`
+- daily fusion mode: direct flat concatenation of the zero-padded `(23, 4)`
+  strip plus the day mask into the shared scorer MLP
+- actor context mode: pooled month context
+- evaluated and rejected before the feature phase
+
+5. `pit_1m_t1_dailyflat`
+- input per asset: month `t-1` monthly row plus the observed prior-month daily
+  price path from `t-1`
+- daily strip channels: `close_rel`, `ReturnFromPrice`, `log1p(Volume)`,
+  `volume_observed`
+- daily fusion mode: direct flat concatenation of the zero-padded `(23, 4)`
+  strip plus the day mask into the shared scorer MLP
+- actor context mode: `none`
+- screened and rejected before the feature phase
+
+6. `pit_3m_flat_shared_mlp`
 - input per asset: months `t-3`, `t-2`, `t-1` concatenated
 - actor context mode: `none`
 
-5. `pit_3m_flat_context`
+7. `pit_3m_flat_context`
 - input per asset: months `t-3`, `t-2`, `t-1` concatenated
 - actor context mode: pooled month context
 
+8. `pit_3m_flat_context_t1_dailyflat`
+- input per asset: months `t-3`, `t-2`, `t-1` concatenated plus the observed
+  prior-month daily price path from `t-1`
+- daily strip channels: `close_rel`, `ReturnFromPrice`, `log1p(Volume)`,
+  `volume_observed`
+- daily fusion mode: direct flat concatenation of the zero-padded `(23, 4)`
+  strip plus the day mask into the shared scorer MLP
+- actor context mode: pooled month context
+- evaluated and rejected before the feature phase
+
+9. `pit_3m_flat_t1_dailyflat`
+- input per asset: months `t-3`, `t-2`, `t-1` concatenated plus the observed
+  prior-month daily price path from `t-1`
+- daily strip channels: `close_rel`, `ReturnFromPrice`, `log1p(Volume)`,
+  `volume_observed`
+- daily fusion mode: direct flat concatenation of the zero-padded `(23, 4)`
+  strip plus the day mask into the shared scorer MLP
+- actor context mode: `none`
+- screened and rejected before the feature phase
+
 Conditional stretch candidate:
 
-6. `pit_3m_flat_attention`
+10. `pit_3m_flat_attention`
 - do not activate unless a context model clearly beats the base
 
 Comparison rules:
@@ -264,9 +304,9 @@ Comparison rules:
 - compare frameworks on the same decision months
 - common train decision start is `2011-01`
 - use validation only to select the winning framework
-- the daily-strip candidate may read `data/ready/daily_market_series.csv`, but
+- daily-input candidates may read `data/ready/daily_market_series.csv`, but
   only from observed rows in state month `t-1`; synthetic forward-filled rows
-  must not enter the strip encoder
+  must not enter the policy input
 
 Locked PPO config for this phase:
 
@@ -349,10 +389,13 @@ Repository rules:
 - `AGENTS.md` is the canonical repository specification
 - `README.md` is the short overview
 - `docs/README.md` is the documentation hub
-- `docs/project_guide.md` expands the data contract, framework phase, PPO
-  contract, and leakage rules
-- `docs/framework_experiment_tracker.md` is the framework-phase run tracker and
-  leaderboard
+- `docs/framework_phase.md` is the framework-phase methodology, tested-set,
+  and conclusion document
+- `docs/feature_phase.md` is the feature-phase methodology, matrix, and
+  decision document
+- `docs/ppo_tuning_phase.md` is the PPO tuning methodology and sweep tracker
+- `docs/project_guide.md` is the compact technical guide for the data
+  contract, PPO setup, and leakage rules
 - `docs/papers.md` is the paper tracker
 - `src/config.py` holds implementation constants but is not more authoritative
   than `AGENTS.md`
@@ -365,6 +408,5 @@ Repository rules:
 - Do not reintroduce non-RL trainer paths.
 - Do not reintroduce direct asset identity into the policy input.
 - Do not weaken the leakage test expectations for convenience.
-- Keep the active docs compact and update the relevant phase tracker whenever a
-  real run is completed; framework runs belong in
-  `docs/framework_experiment_tracker.md`.
+- Keep the active docs compact and update the relevant phase document whenever
+  a real run is completed.

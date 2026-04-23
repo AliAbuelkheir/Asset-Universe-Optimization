@@ -27,13 +27,21 @@ def evaluate_model_split(
     daily_path: str | Path | None,
     framework_id: str,
     split_name: str,
+    comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+    objective_profile_id: str = config.DEFAULT_OBJECTIVE_PROFILE_ID,
+    reward_profile_id: str = config.DEFAULT_REWARD_PROFILE_ID,
+    feature_columns: tuple[str, ...] | list[str] | None = None,
 ) -> pd.DataFrame:
     env = AssetRiskEnv(
         panel_path=panel_path,
         daily_path=daily_path,
         split_name=split_name,
         framework_id=framework_id,
-        sampling_mode="ordered",
+        sampling_mode="ordered_cycle",
+        comparison_protocol_id=comparison_protocol_id,
+        objective_profile_id=objective_profile_id,
+        reward_profile_id=reward_profile_id,
+        feature_columns=feature_columns,
     )
     prediction_rows: list[dict[str, Any]] = []
     observation, _ = env.reset(options={"restart_sequence": True})
@@ -71,20 +79,39 @@ def evaluate_model_splits(
     daily_path: str | Path | None,
     framework_id: str,
     split_names: Iterable[str],
+    comparison_protocol_id: str = config.DEFAULT_COMPARISON_PROTOCOL_ID,
+    objective_profile_id: str = config.DEFAULT_OBJECTIVE_PROFILE_ID,
+    reward_profile_id: str = config.DEFAULT_REWARD_PROFILE_ID,
+    feature_columns: tuple[str, ...] | list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    prediction_frames = [
-        evaluate_model_split(
-            model=model,
-            panel_path=panel_path,
-            daily_path=daily_path,
-            framework_id=framework_id,
-            split_name=split_name,
-        )
-        for split_name in split_names
-    ]
+    prediction_frames = []
+    for split_name in split_names:
+        try:
+            frame = evaluate_model_split(
+                model=model,
+                panel_path=panel_path,
+                daily_path=daily_path,
+                framework_id=framework_id,
+                split_name=split_name,
+                comparison_protocol_id=comparison_protocol_id,
+                objective_profile_id=objective_profile_id,
+                reward_profile_id=reward_profile_id,
+                feature_columns=feature_columns,
+            )
+        except ValueError as exc:
+            if "No decision batches were found" in str(exc):
+                continue
+            raise
+        prediction_frames.append(frame)
+    if not prediction_frames:
+        raise ValueError("No evaluation splits produced decision batches.")
     predictions = pd.concat(prediction_frames, ignore_index=True)
     predictions = add_prediction_ranks(predictions, score_column=PREDICTION_COLUMN)
-    monthly_metrics, split_summary = evaluate_prediction_frame(predictions, score_column=PREDICTION_COLUMN)
+    monthly_metrics, split_summary = evaluate_prediction_frame(
+        predictions,
+        score_column=PREDICTION_COLUMN,
+        reward_profile=reward_profile_id,
+    )
     return predictions, monthly_metrics, split_summary
 
 
@@ -123,6 +150,11 @@ def _build_cli_parser() -> argparse.ArgumentParser:
         help="Canonical monthly panel path.",
     )
     parser.add_argument(
+        "--daily-path",
+        default=str(ROOT / config.READY_DATA_DIR / config.DAILY_MARKET_SERIES_NAME),
+        help="Canonical daily market series path.",
+    )
+    parser.add_argument(
         "--split-name",
         default="all",
         choices=["all", "train", "validation", "test"],
@@ -142,13 +174,14 @@ def main() -> None:
     predictions, monthly_metrics, split_summary = evaluate_model_splits(
         model=model,
         panel_path=args.panel_path,
-        daily_path=None,
+        daily_path=args.daily_path,
         framework_id=args.framework_id,
         split_names=split_names,
     )
     setup_metadata = {
         "checkpoint_path": str(Path(args.checkpoint_path).resolve()),
         "panel_path": str(Path(args.panel_path).resolve()),
+        "daily_path": str(Path(args.daily_path).resolve()),
         "framework_id": args.framework_id,
         "split_name": args.split_name,
     }

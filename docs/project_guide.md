@@ -6,7 +6,7 @@ This repository builds a variable-universe, month-level PPO agent that predicts
 asset `realized_risk` scores and derives monthly risk rankings from those
 scores.
 
-The active phase is now:
+The active order of work is:
 
 1. optimize the framework
 2. then optimize the feature set
@@ -76,51 +76,28 @@ Target columns:
 - Future asset edits, future benchmark edits, and future macro edits must not
   change earlier monthly state rows.
 
-## Framework Optimization Phase
+## Framework Summary
 
 Decision month `t` is assembled from prior monthly state rows.
 
-Current framework registry:
+Monthly-only framework conclusion:
 
-- `pit_1m_shared_mlp`: use month `t-1` only
-- `pit_1m_context`: use month `t-1` plus pooled month context
-- `pit_1m_dailystrip_shared_cnn`: use month `t-1` plus an observed daily strip
-  from month `t-1`
-- `pit_3m_flat_shared_mlp`: concatenate months `t-3`, `t-2`, `t-1`
-- `pit_3m_flat_context`: same 3-month stack plus pooled month context
+- `pit_3m_flat_context` is the locked winner for feature work.
+- `1M` alone beat `3M` alone.
+- `3M + context` beat `1M + context`.
+- pooled context hurt the `1M` backbone.
+- pooled context clearly helped the `3M` backbone.
 
-Conditional stretch candidate:
+Daily-input conclusion:
 
-- `pit_3m_flat_attention`
-- keep disabled unless the context model clearly beats the base
+- daily-strip additions did not improve the monthly-only system and are
+  excluded from the feature phase.
+- shared daily CNN, shared daily flat, and actor-only daily additions all
+  stayed below the locked monthly-only winner and below the bounded `1M` base
+  on validation ranking quality.
 
-Comparison rules:
-
-- require full lookback availability for every active asset
-- compare all frameworks on the same decision months
-- common train decision start is `2011-01`
-- select frameworks on validation only
-
-Daily-strip candidate details:
-
-- the monthly branch stays the same as `pit_1m_shared_mlp`
-- the extra daily branch reads only observed rows from
-  `data/ready/daily_market_series.csv`
-- it uses the prior state month `t-1`, not decision month `t`
-- each asset gets a zero-padded `(23, 4)` strip with channels:
-  `close_rel`, `ReturnFromPrice`, `log1p(Volume)`, and `volume_observed`
-- synthetic forward-filled rows are excluded from the strip entirely
-- the daily branch is a small shared 1D CNN, not a recurrent policy
-
-Expected early coverage gap:
-
-- `monthly_asset_panel.csv` has no rows for `2011-02`, `2011-03`, or `2011-04`
-- this is expected from the Egyptian market disruption period plus the minimum
-  active-asset rule
-- under the full-lookback rule, the base `1M` framework then also loses
-  decision month `2011-05`, and the `3M` frameworks lose through `2011-07`
-- this should be treated as an expected data-availability boundary, not as a
-  panel-construction bug
+For the full framework methodology and tested-framework record, see
+[framework_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_phase.md).
 
 ## Active PPO Implementation
 
@@ -133,8 +110,9 @@ Current active modules:
 - `src/training/policy.py`
 - `src/training/train.py`
 - `src/training/evaluate.py`
+- `src/feature_profiles.py`
 
-Locked PPO config for the framework phase:
+Locked PPO config during framework and feature comparison:
 
 - `learning_rate = 1e-4`
 - `n_steps = 256`
@@ -151,9 +129,8 @@ Locked PPO config for the framework phase:
 Policy behavior:
 
 - one shared scorer is applied across all active asset rows
-- PPO now uses a bounded masked sigmoid-squashed Gaussian, so sampled risk
-  scores are already valid `[0, 1]` actions before the environment backstop
-  clip
+- PPO uses a bounded masked sigmoid-squashed Gaussian, so sampled risk scores
+  are already valid `[0, 1]` actions before the environment backstop clip
 - padded rows are masked out of action sampling, log-probability, entropy, and
   PPO loss
 - the critic remains pooled and mask-aware
@@ -165,9 +142,8 @@ Policy behavior:
 - Validation and test evaluate decision months in chronological order.
 - Standard monthly frameworks emit a padded observation dict with:
   `features` shape `(max_assets, input_dim)` and `mask` shape `(max_assets,)`.
-- `pit_1m_dailystrip_shared_cnn` additionally emits:
-  `daily_strip` shape `(max_assets, 23, 4)` and
-  `daily_mask` shape `(max_assets, 23)`.
+- Daily-input frameworks additionally emit `daily_strip` and `daily_mask`, but
+  those paths are not active in the feature phase.
 - The action is one bounded continuous risk score per padded asset slot in
   `[0, 1]`.
 - Rankings are derived by sorting predicted scores from low to high.
@@ -176,26 +152,20 @@ Month-level reward:
 
 `0.7 * SpearmanRankCorr(predicted, realized) + 0.3 * (1 - MSE)`
 
-## Current Framework Outcome
+## Feature-Phase Support
 
-The framework study has now been rerun under the active bounded-action PPO
-semantics. The only registered framework that has not been run is the disabled
-stretch candidate `pit_3m_flat_attention`.
+The feature phase now uses explicit feature profiles instead of manual code
+edits.
 
-Current selection:
+- base feature profile: `full_current_v1`
+- leave-one-out ablations keep the same 11-column model interface and
+  neutralize one feature to `0.5`
+- altered feature profiles are written to
+  `outputs/feature_profiles/<feature_profile_id>/` unless a different output
+  directory is explicitly requested
 
-- the bounded-action fix changed the framework conclusion
-- `pit_3m_flat_context` is now the framework winner
-- it beat the rerun `pit_1m_shared_mlp` base by `0.0129` on mean validation
-  reward and by `0.0141` on mean validation Spearman
-- `pit_1m_context` still did not beat the bounded base on validation
-- `pit_1m_dailystrip_shared_cnn` still underperformed materially and remains
-  rejected
-- `pit_3m_flat_shared_mlp` still did not beat the bounded base and remains
-  rejected
-- `pit_3m_flat_attention` remains disabled and intentionally untested
-
-See [framework_experiment_tracker.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_experiment_tracker.md) for the exact results.
+For the active feature-phase plan and experiment matrix, see
+[feature_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/feature_phase.md).
 
 ## Validation And Testing
 
@@ -218,8 +188,8 @@ Repository checks:
 - `tests/test_data_engineering_pipeline.py` is the stronger correctness and
   leakage suite
 - `tests/test_training_pipeline.py` protects framework assembly, PPO
-  initialization, masking, split integrity, checkpoint selection, and artifact
-  writing
+  initialization, masking, split integrity, checkpoint selection, artifact
+  writing, and feature-phase metadata paths
 
 Return QA interpretation:
 

@@ -1,0 +1,11 @@
+{
+  "candidate_id": "max_drawdown_1m",
+  "candidate_set_id": "max_drawdown_1m",
+  "candidate_type": "replacement",
+  "description": "Replace `max_drawdown` with a 1-month max drawdown.",
+  "feature_column": "max_drawdown",
+  "input_feature_set_id": "canonical_11",
+  "is_macro": false,
+  "replacement_feature": "max_drawdown",
+  "source_profile_id": "max_drawdown_1m"
+}
