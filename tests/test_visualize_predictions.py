@@ -152,11 +152,11 @@ def test_generate_split_diagnostic_pack_writes_expected_outputs(tmp_path: Path) 
     output_dir = visualize_predictions.generate_split_diagnostic_pack(artifact_dir, split_name="test")
 
     expected_files = {
-        visualize_predictions.RISK_DISTRIBUTION_FILE_NAME,
         visualize_predictions.RANK_ALIGNMENT_FILE_NAME,
         visualize_predictions.MONTHLY_PERFORMANCE_FILE_NAME,
         visualize_predictions.BEST_MONTH_RANK_FILE_NAME,
-        visualize_predictions.CALIBRATION_FILE_NAME,
+        visualize_predictions.RANK_GAP_FILE_NAME,
+        visualize_predictions.EXTREME_RANK_OVERLAP_FILE_NAME,
         visualize_predictions.SUMMARY_FILE_NAME,
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
@@ -171,3 +171,6 @@ def test_generate_split_diagnostic_pack_writes_expected_outputs(tmp_path: Path) 
     assert summary["best_month_by_reward"]["date"] == "2025-04"
     assert summary["best_month_by_spearman"]["date"] == "2025-04"
     assert Path(summary["plot_files"]["best_month_rank_comparison"]).exists()
+    assert Path(summary["plot_files"]["monthly_rank_gap"]).exists()
+    assert Path(summary["plot_files"]["extreme_rank_overlap"]).exists()
+    assert "risk_distribution" not in summary["plot_files"]

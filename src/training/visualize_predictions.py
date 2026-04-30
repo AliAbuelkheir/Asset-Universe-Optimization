@@ -23,11 +23,11 @@ if str(ROOT) not in sys.path:
 
 from src import config
 
-RISK_DISTRIBUTION_FILE_NAME = "test_risk_score_distribution.png"
 RANK_ALIGNMENT_FILE_NAME = "test_rank_alignment.png"
 MONTHLY_PERFORMANCE_FILE_NAME = "test_monthly_performance.png"
 BEST_MONTH_RANK_FILE_NAME = "test_best_month_rank_comparison.png"
-CALIBRATION_FILE_NAME = "test_score_calibration.png"
+RANK_GAP_FILE_NAME = "test_monthly_rank_gap.png"
+EXTREME_RANK_OVERLAP_FILE_NAME = "test_extreme_rank_overlap.png"
 SUMMARY_FILE_NAME = "test_diagnostic_summary.json"
 
 PREDICTIONS_FILE_NAME = "ranked_predictions.csv"
@@ -148,68 +148,6 @@ def _save_figure(figure: plt.Figure, output_path: Path) -> None:
     figure.tight_layout()
     figure.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close(figure)
-
-
-def plot_risk_score_distribution(split_predictions: pd.DataFrame, output_path: str | Path, setup_label: str, split_name: str) -> Path:
-    output_file = Path(output_path)
-    ordered_groups = (
-        split_predictions.groupby("AssetGroup", sort=False)["PredictedRisk"]
-        .median()
-        .sort_values()
-        .index.tolist()
-    )
-    boxplot_data = [
-        split_predictions.loc[split_predictions["AssetGroup"].eq(group_name), "PredictedRisk"].to_numpy()
-        for group_name in ordered_groups
-    ]
-
-    figure, axes = plt.subplots(1, 2, figsize=(13, 5.2))
-    bins = np.linspace(0.0, 1.0, 21)
-
-    axes[0].hist(
-        split_predictions["realized_risk"],
-        bins=bins,
-        alpha=0.55,
-        color=REALIZED_COLOR,
-        edgecolor=PANEL_COLOR,
-        label="Realized risk",
-    )
-    axes[0].hist(
-        split_predictions["PredictedRisk"],
-        bins=bins,
-        alpha=0.7,
-        color=PREDICTED_COLOR,
-        edgecolor=PANEL_COLOR,
-        label="Predicted risk score",
-    )
-    axes[0].axvline(split_predictions["PredictedRisk"].mean(), color=PREDICTED_COLOR, linestyle="--", linewidth=2)
-    axes[0].axvline(split_predictions["realized_risk"].mean(), color=REALIZED_COLOR, linestyle="--", linewidth=2)
-    axes[0].set_title(f"{split_name.title()} risk score distribution")
-    axes[0].set_xlabel("Risk score")
-    axes[0].set_ylabel("Asset-month count")
-    axes[0].legend(loc="upper left")
-
-    boxplot = axes[1].boxplot(
-        boxplot_data,
-        tick_labels=ordered_groups,
-        patch_artist=True,
-        medianprops={"color": PANEL_COLOR, "linewidth": 2},
-        boxprops={"edgecolor": PANEL_COLOR},
-        whiskerprops={"color": GRID_COLOR},
-        capprops={"color": GRID_COLOR},
-        flierprops={"markerfacecolor": ACCENT_COLOR, "markeredgecolor": ACCENT_COLOR, "markersize": 4, "alpha": 0.45},
-    )
-    for patch in boxplot["boxes"]:
-        patch.set_facecolor(PREDICTED_COLOR)
-        patch.set_alpha(0.88)
-    axes[1].set_title("Predicted score by asset group")
-    axes[1].set_xlabel("Asset group")
-    axes[1].set_ylabel("Predicted risk score")
-    axes[1].tick_params(axis="x", rotation=25)
-
-    figure.suptitle(f"{setup_label} | {split_name.title()} score diagnostics", fontsize=14, fontweight="bold", y=1.02)
-    _save_figure(figure, output_file)
-    return output_file
 
 
 def plot_rank_alignment(split_predictions: pd.DataFrame, output_path: str | Path, setup_label: str, split_name: str) -> Path:
@@ -335,49 +273,78 @@ def plot_best_month_rank_comparison(
     return output_file
 
 
-def plot_score_calibration(split_predictions: pd.DataFrame, output_path: str | Path, setup_label: str, split_name: str) -> Path:
-    output_file = Path(output_path)
-    frame = split_predictions.copy()
-    frame["CalibrationBin"] = pd.qcut(frame["PredictedRisk"], q=10, duplicates="drop")
-    calibration = (
-        frame.groupby("CalibrationBin", observed=True)
-        .agg(
-            mean_predicted=("PredictedRisk", "mean"),
-            mean_realized=("realized_risk", "mean"),
-            rows=("AssetID", "count"),
+def _monthly_rank_quality(split_predictions: pd.DataFrame) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for date, month_frame in split_predictions.groupby("Date", sort=True):
+        active_count = len(month_frame)
+        tail_count = max(1, math.ceil(active_count * 0.25))
+        predicted_low = set(month_frame.nsmallest(tail_count, "PredictedRank")["AssetID"])
+        realized_low = set(month_frame.nsmallest(tail_count, "realized_rank")["AssetID"])
+        predicted_high = set(month_frame.nlargest(tail_count, "PredictedRank")["AssetID"])
+        realized_high = set(month_frame.nlargest(tail_count, "realized_rank")["AssetID"])
+        rows.append(
+            {
+                "date": pd.to_datetime(str(date), format=config.DATE_FORMAT_MONTHLY),
+                "mean_absolute_rank_gap": float(month_frame["AbsoluteRankGap"].mean()),
+                "median_absolute_rank_gap": float(month_frame["AbsoluteRankGap"].median()),
+                "low_risk_overlap": len(predicted_low & realized_low) / tail_count,
+                "high_risk_overlap": len(predicted_high & realized_high) / tail_count,
+                "tail_count": tail_count,
+                "active_assets": active_count,
+            }
         )
-        .reset_index(drop=True)
-    )
-    calibration["bin_label"] = [f"Q{i}" for i in range(1, len(calibration) + 1)]
+    return pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
 
-    figure, axis = plt.subplots(figsize=(9.5, 5.5))
+
+def plot_monthly_rank_gap(split_predictions: pd.DataFrame, output_path: str | Path, setup_label: str, split_name: str) -> Path:
+    output_file = Path(output_path)
+    quality = _monthly_rank_quality(split_predictions)
+    month_labels = quality["date"].dt.strftime(config.MONTH_LABEL_FORMAT)
+    x_positions = np.arange(len(quality))
+
+    figure, axis = plt.subplots(figsize=(13, 5.2))
+    axis.plot(x_positions, quality["mean_absolute_rank_gap"], color=PREDICTED_COLOR, marker="o", linewidth=2.4, label="Mean absolute rank gap")
+    axis.plot(x_positions, quality["median_absolute_rank_gap"], color=ACCENT_COLOR, marker="D", linewidth=2.0, label="Median absolute rank gap")
+    axis.set_xticks(x_positions, month_labels, rotation=30, ha="right")
+    axis.set_ylabel("Rank positions")
+    axis.set_xlabel("Decision month")
+    axis.set_title(f"{split_name.title()} rank-gap stability")
+    axis.legend(loc="upper right")
+    figure.suptitle(f"{setup_label} | {split_name.title()} monthly rank gaps", fontsize=14, fontweight="bold", y=1.02)
+    _save_figure(figure, output_file)
+    return output_file
+
+
+def plot_extreme_rank_overlap(split_predictions: pd.DataFrame, output_path: str | Path, setup_label: str, split_name: str) -> Path:
+    output_file = Path(output_path)
+    quality = _monthly_rank_quality(split_predictions)
+    month_labels = quality["date"].dt.strftime(config.MONTH_LABEL_FORMAT)
+    x_positions = np.arange(len(quality))
+
+    figure, axis = plt.subplots(figsize=(13, 5.2))
     axis.plot(
-        calibration["mean_predicted"],
-        calibration["mean_realized"],
+        x_positions,
+        quality["low_risk_overlap"],
         marker="o",
         color=PREDICTED_COLOR,
         linewidth=2.4,
+        label="Lowest-risk overlap",
     )
-    bounds = [
-        float(min(calibration["mean_predicted"].min(), calibration["mean_realized"].min())),
-        float(max(calibration["mean_predicted"].max(), calibration["mean_realized"].max())),
-    ]
-    padding = 0.02
     axis.plot(
-        [bounds[0] - padding, bounds[1] + padding],
-        [bounds[0] - padding, bounds[1] + padding],
+        x_positions,
+        quality["high_risk_overlap"],
         color=ACCENT_COLOR,
-        linestyle="--",
-        linewidth=1.8,
-        label="Perfect calibration",
+        marker="D",
+        linewidth=2.0,
+        label="Highest-risk overlap",
     )
-    for _, row in calibration.iterrows():
-        axis.annotate(row["bin_label"], (row["mean_predicted"], row["mean_realized"]), textcoords="offset points", xytext=(4, 4))
-    axis.set_xlabel("Mean predicted risk score by score decile")
-    axis.set_ylabel("Mean realized risk by score decile")
-    axis.set_title(f"{split_name.title()} score calibration")
-    axis.legend(loc="upper left")
-    figure.suptitle(f"{setup_label} | {split_name.title()} calibration", fontsize=14, fontweight="bold", y=1.02)
+    axis.set_xticks(x_positions, month_labels, rotation=30, ha="right")
+    axis.set_ylim(-0.03, 1.03)
+    axis.set_ylabel("Overlap share")
+    axis.set_xlabel("Decision month")
+    axis.set_title(f"{split_name.title()} low/high-risk rank overlap")
+    axis.legend(loc="lower right")
+    figure.suptitle(f"{setup_label} | {split_name.title()} extreme-rank overlap", fontsize=14, fontweight="bold", y=1.02)
     _save_figure(figure, output_file)
     return output_file
 
@@ -392,7 +359,6 @@ def build_split_diagnostic_summary(split_predictions: pd.DataFrame, split_metric
         "row_count": int(len(split_predictions)),
         "month_count": int(len(split_metrics)),
         "mean_predicted_risk": float(split_predictions["PredictedRisk"].mean()),
-        "std_predicted_risk": float(split_predictions["PredictedRisk"].std(ddof=0)),
         "mean_realized_risk": float(split_predictions["realized_risk"].mean()),
         "mean_absolute_rank_gap": float(split_predictions["AbsoluteRankGap"].mean()),
         "best_month_by_reward": {
@@ -438,14 +404,6 @@ def generate_split_diagnostic_pack(
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
     written_files = {
-        "risk_distribution": str(
-            plot_risk_score_distribution(
-                split_predictions,
-                resolved_output_dir / RISK_DISTRIBUTION_FILE_NAME,
-                setup_label=setup_label,
-                split_name=split_name,
-            ).resolve()
-        ),
         "rank_alignment": str(
             plot_rank_alignment(
                 split_predictions,
@@ -473,10 +431,18 @@ def generate_split_diagnostic_pack(
                 best_month_spearman=float(best_month_row["spearman"]),
             ).resolve()
         ),
-        "score_calibration": str(
-            plot_score_calibration(
+        "monthly_rank_gap": str(
+            plot_monthly_rank_gap(
                 split_predictions,
-                resolved_output_dir / CALIBRATION_FILE_NAME,
+                resolved_output_dir / RANK_GAP_FILE_NAME,
+                setup_label=setup_label,
+                split_name=split_name,
+            ).resolve()
+        ),
+        "extreme_rank_overlap": str(
+            plot_extreme_rank_overlap(
+                split_predictions,
+                resolved_output_dir / EXTREME_RANK_OVERLAP_FILE_NAME,
                 setup_label=setup_label,
                 split_name=split_name,
             ).resolve()
