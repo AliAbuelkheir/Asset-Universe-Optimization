@@ -97,7 +97,7 @@ class AssetRiskEnv(gym.Env):
 
     @staticmethod
     def _default_sampling_mode(split_name: str) -> str:
-        return "random_iid" if split_name == "train" else "ordered_cycle"
+        return "ordered_cycle"
 
     @property
     def batch_count(self) -> int:

@@ -184,12 +184,41 @@ def validate_output_dir(
     return daily, panel
 
 
+def validate_dataset_paths(
+    daily_path: str | Path,
+    panel_path: str | Path,
+    expect_feature_profile_id: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    resolved_daily_path = Path(daily_path)
+    resolved_panel_path = Path(panel_path)
+    assert_true(resolved_daily_path.exists(), f"Missing daily market series: {resolved_daily_path}")
+    assert_true(resolved_panel_path.exists(), f"Missing monthly panel: {resolved_panel_path}")
+    assert_true(
+        resolved_daily_path.parent == resolved_panel_path.parent,
+        "Explicit daily and panel paths must live in the same output directory so metadata can be validated.",
+    )
+    return validate_output_dir(
+        input_dir=resolved_panel_path.parent,
+        expect_feature_profile_id=expect_feature_profile_id,
+    )
+
+
 def _build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate a canonical or feature-profile dataset directory.")
     parser.add_argument(
         "--input-dir",
         default=str(ROOT / config.READY_DATA_DIR),
         help="Directory that contains daily_market_series.csv and monthly_asset_panel.csv.",
+    )
+    parser.add_argument(
+        "--daily-path",
+        default=None,
+        help="Explicit daily_market_series.csv path. Must be paired with --panel-path.",
+    )
+    parser.add_argument(
+        "--panel-path",
+        default=None,
+        help="Explicit monthly_asset_panel.csv path. Must be paired with --daily-path.",
     )
     parser.add_argument(
         "--expect-feature-profile-id",
@@ -202,6 +231,14 @@ def _build_cli_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     parser = _build_cli_parser()
     args = parser.parse_args(argv)
+    if (args.daily_path is None) != (args.panel_path is None):
+        parser.error("--daily-path and --panel-path must be provided together.")
+    if args.daily_path is not None and args.panel_path is not None:
+        return validate_dataset_paths(
+            daily_path=args.daily_path,
+            panel_path=args.panel_path,
+            expect_feature_profile_id=args.expect_feature_profile_id,
+        )
     return validate_output_dir(
         input_dir=args.input_dir,
         expect_feature_profile_id=args.expect_feature_profile_id,

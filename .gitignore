@@ -17,3 +17,7 @@ pytest-cache-files-*/
 
 # Generated experiment artifacts
 outputs/experiments/
+outputs/ppo_tuning/
+outputs/feature_profiles/
+outputs/feature_candidates/
+outputs/top_candidate_reruns/

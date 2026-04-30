@@ -21,6 +21,8 @@ class FeatureProfile:
     variant_id: str = ""
     active_features: tuple[str, ...] = CANONICAL_FEATURE_COLUMNS
     neutral_fill_value: float = 0.5
+    row_feature_window_months: int = config.WINDOW_MONTHS
+    technical_min_periods_mode: str = "full"
     egarch_mode: str = "aggregate_mean_3m"
     downside_mode: str = "standard"
     downside_window_months: int = config.WINDOW_MONTHS
@@ -295,6 +297,25 @@ FEATURE_PROFILE_REGISTRY: dict[str, FeatureProfile] = {
         changed_feature="cpi_trajectory",
         variant_id="cpi_trajectory_2m",
         cpi_window_months=2,
+    ),
+    "monthly_only_rows_v1": replace(
+        BASE_FEATURE_PROFILE,
+        feature_profile_id="monthly_only_rows_v1",
+        description="Experiment profile where each panel row uses only that row month; the 3-month PPO framework stacks three independent monthly rows.",
+        change_type="alter_row_semantics",
+        changed_feature="all_row_features",
+        variant_id="monthly_only_rows_v1",
+        row_feature_window_months=1,
+        technical_min_periods_mode="available",
+        egarch_mode="realized_vol_proxy",
+        downside_window_months=1,
+        max_drawdown_window_months=1,
+        volume_window_months=1,
+        beta_window_months=1,
+        distance_high_window_months=1,
+        usd_window_months=1,
+        cpi_mode="last_mom",
+        cpi_window_months=1,
     ),
 }
 

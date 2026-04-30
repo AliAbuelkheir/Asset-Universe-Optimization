@@ -5,11 +5,8 @@
 This repository is a bachelor thesis project for a variable-universe,
 month-level RL asset risk scorer over the Egyptian market.
 
-The active repository phase is now:
-
-1. optimize the **framework**
-2. then optimize the **feature set**
-3. only after that optimize **PPO hyperparameters**
+The active repository phase is now evaluation and reporting design after the
+framework, feature, PPO tuning, and top-candidate rerun phases.
 
 The active RL system is:
 
@@ -22,6 +19,9 @@ The active RL system is:
 Deferred from the active scope:
 
 - investor-tier asset selection logic
+- production bucketing logic
+- web application or REST API serving
+- allocation or portfolio-weight simulation
 - pairwise correlation features
 - any non-RL trainer as an active repository path
 - recurrent PPO
@@ -29,16 +29,30 @@ Deferred from the active scope:
 
 ## Current Direction
 
-The immediate priority is framework selection on top of the canonical monthly
-state panel.
+The immediate priority is to keep the current ranked-risk system coherent,
+documented, and defensible for thesis evaluation.
 
-The active order of work is:
+The completed modeling order was:
 
 1. keep the data engineering pipeline correct and leakage-free
 2. compare how monthly state rows are fed into PPO
-3. lock one framework
-4. then optimize features
-5. only then tune PPO hyperparameters more broadly
+3. lock one framework: `pit_3m_flat_context`
+4. compare feature profiles
+5. tune PPO hyperparameters
+6. rerun top candidates under the tuned PPO setup
+
+The current best ranked-risk model is:
+
+- framework: `pit_3m_flat_context`
+- feature profile: `drop_distance_to_3m_high`
+- tuned PPO candidate: `refined50`
+- selection rule: three-seed validation mean reward, with validation Spearman
+  as the tie-breaker and test metrics used only for reporting
+
+Canonical defaults remain separate from current-best metadata:
+
+- canonical feature profile: `full_current_v1`
+- current-best feature profile: `drop_distance_to_3m_high`
 
 If wording conflicts across repository markdown files, `AGENTS.md` wins.
 
@@ -47,6 +61,8 @@ If wording conflicts across repository markdown files, `AGENTS.md` wins.
 - `docs/` is the single documentation hub
 - `thesis/` stays unchanged and remains the home of the thesis source and PDF
 - `docs/diagrams/` stores diagram assets
+- future web or API work must use the documented inference boundary instead of
+  mixing serving logic into training modules
 
 ## Asset Universe
 
@@ -342,7 +358,7 @@ Reward:
 
 Rules:
 
-- training samples random decision months from the train split
+- training cycles through train decision months in chronological order
 - validation and test evaluate decision months in chronological order
 - compute reward only across active assets in that month
 - padded rows must not contribute to log-probability, entropy, PPO loss, or
@@ -405,6 +421,12 @@ Repository rules:
 - Prefer the documented point-in-time monthly-state design over the old baked
   decision-month panel.
 - Keep generated canonical datasets under `data/ready/` only.
+- Keep training, inference, future bucketing, and future allocation modules
+  separate.
+- Do not reintroduce bucketing logic until its metric and thesis role are
+  explicitly reopened.
+- Treat a future web app as an interface over model inference, not as part of
+  the PPO training path.
 - Do not reintroduce non-RL trainer paths.
 - Do not reintroduce direct asset identity into the policy input.
 - Do not weaken the leakage test expectations for convenience.

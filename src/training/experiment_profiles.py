@@ -166,6 +166,12 @@ REWARD_PROFILE_REGISTRY: dict[str, RewardProfile] = {
         spearman_weight=0.70,
         mse_weight=0.30,
     ),
+    "reward_v4_rank50_mse50": RewardProfile(
+        reward_profile_id="reward_v4_rank50_mse50",
+        description="Balanced reward mix: 50% Spearman / 50% (1 - MSE).",
+        spearman_weight=0.50,
+        mse_weight=0.50,
+    ),
     "reward_v2_rank85_mse15": RewardProfile(
         reward_profile_id="reward_v2_rank85_mse15",
         description="Rank-heavier reward mix: 85% Spearman / 15% (1 - MSE).",

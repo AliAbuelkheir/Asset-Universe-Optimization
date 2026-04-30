@@ -103,14 +103,19 @@ def test_feature_profile_registry_exposes_base_drop_and_first_wave_variants() ->
     drop_rsi = get_feature_profile("drop_rsi_14")
     atr_variant = get_feature_profile("atr_pct_14")
     macro_variant = get_feature_profile("cpi_last_mom")
+    monthly_only = get_feature_profile("monthly_only_rows_v1")
 
     assert base.active_features == tuple(config.MODEL_FEATURE_COLUMNS)
+    assert base.row_feature_window_months == config.WINDOW_MONTHS
     assert "distance_to_3m_high" not in promoted_baseline.active_features
     assert len(promoted_baseline.active_features) == len(config.MODEL_FEATURE_COLUMNS) - 1
     assert drop_rsi.change_type == "drop_feature"
     assert "rsi_14" not in drop_rsi.active_features
     assert atr_variant.atr_period == 14
     assert macro_variant.cpi_mode == "last_mom"
+    assert monthly_only.row_feature_window_months == 1
+    assert monthly_only.technical_min_periods_mode == "available"
+    assert monthly_only.egarch_mode == "realized_vol_proxy"
 
 
 def test_shadow_candidate_registry_classifies_replacement_and_additive_sets_without_mutating_canonical_schema() -> None:
@@ -607,6 +612,155 @@ def test_compute_monthly_panel_preserves_schema_for_promoted_distance_removal_ba
     assert panel["distance_to_3m_high"].nunique() == 1
     assert panel["distance_to_3m_high"].iloc[0] == pytest.approx(0.5)
     assert panel["rsi_14"].nunique() > 1
+
+
+def test_monthly_only_rows_profile_uses_current_month_not_prior_month_returns() -> None:
+    macro_features = {
+        pd.Period("2010-10", freq="M"): {"usd_vol": 0.25, "cpi_trajectory": 0.05},
+        pd.Period("2010-11", freq="M"): {"usd_vol": 0.30, "cpi_trajectory": 0.06},
+        pd.Period("2010-12", freq="M"): {"usd_vol": 0.35, "cpi_trajectory": 0.07},
+    }
+    original_assets = {
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
+    }
+    prior_modified = {asset_id: frame.copy() for asset_id, frame in original_assets.items()}
+    september_mask = prior_modified["A"]["Month"] == pd.Period("2010-09", freq="M")
+    prior_modified["A"].loc[september_mask, "ReturnFromPrice"] = 0.35
+    prior_modified["A"].loc[september_mask, "PriceForReturn"] *= 3.0
+    prior_modified["A"].loc[september_mask, "HighPriceForRange"] *= 3.0
+    prior_modified["A"].loc[september_mask, "LowPriceForRange"] *= 3.0
+
+    current_modified = {asset_id: frame.copy() for asset_id, frame in original_assets.items()}
+    october_mask = current_modified["A"]["Month"] == pd.Period("2010-10", freq="M")
+    current_modified["A"].loc[october_mask, "ReturnFromPrice"] = -0.20
+    current_modified["A"].loc[october_mask, "PriceForReturn"] *= 2.0
+    current_modified["A"].loc[october_mask, "HighPriceForRange"] *= 2.0
+    current_modified["A"].loc[october_mask, "LowPriceForRange"] *= 2.0
+
+    profile = get_feature_profile("monthly_only_rows_v1")
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
+    original_panel = builder.compute_monthly_panel(
+        original_assets,
+        macro_features,
+        feature_profile=profile,
+        egarch_month_stats_by_asset=egarch_stats,
+    )
+    prior_modified_panel = builder.compute_monthly_panel(
+        prior_modified,
+        macro_features,
+        feature_profile=profile,
+        egarch_month_stats_by_asset=egarch_stats,
+    )
+    current_modified_panel = builder.compute_monthly_panel(
+        current_modified,
+        macro_features,
+        feature_profile=profile,
+        egarch_month_stats_by_asset=egarch_stats,
+    )
+
+    columns_to_compare = config.MODEL_FEATURE_COLUMNS + config.TARGET_COLUMNS
+    original_oct = original_panel.loc[original_panel["Date"] == "2010-10", ["AssetID"] + columns_to_compare]
+    prior_modified_oct = prior_modified_panel.loc[prior_modified_panel["Date"] == "2010-10", ["AssetID"] + columns_to_compare]
+    current_modified_oct = current_modified_panel.loc[current_modified_panel["Date"] == "2010-10", ["AssetID"] + columns_to_compare]
+
+    assert_frame_equal(
+        original_oct.sort_values("AssetID").reset_index(drop=True),
+        prior_modified_oct.sort_values("AssetID").reset_index(drop=True),
+    )
+    assert not original_oct.sort_values("AssetID").reset_index(drop=True).equals(
+        current_modified_oct.sort_values("AssetID").reset_index(drop=True)
+    )
+
+
+def test_monthly_only_rows_profile_matches_month_only_raw_downside_and_drawdown_ranks() -> None:
+    macro_features = {
+        pd.Period("2010-10", freq="M"): {"usd_vol": 0.25, "cpi_trajectory": 0.05},
+    }
+    daily_assets = {
+        "EGX30": make_asset_frame("EGX30 Index", "EquityIndex", 100.0, 0.18, 0.9, 500.0),
+        "A": make_asset_frame("Asset A", "Equity", 80.0, 0.05, 0.4, 100.0),
+        "B": make_asset_frame("Asset B", "Equity", 95.0, 0.12, 0.7, 200.0),
+        "C": make_asset_frame("Asset C", "Equity", 120.0, -0.02, 1.1, 300.0),
+    }
+    profile = get_feature_profile("monthly_only_rows_v1")
+    egarch_stats = make_egarch_month_stats("EGX30", "A", "B", "C")
+
+    panel = builder.compute_monthly_panel(
+        daily_assets,
+        macro_features,
+        feature_profile=profile,
+        egarch_month_stats_by_asset=egarch_stats,
+    )
+    month_panel = panel.loc[panel["Date"] == "2010-10"].sort_values("AssetID").reset_index(drop=True)
+    raw = []
+    for asset_id in month_panel["AssetID"]:
+        month_returns = daily_assets[asset_id].loc[
+            daily_assets[asset_id]["Month"] == pd.Period("2010-10", freq="M"),
+            "ReturnFromPrice",
+        ]
+        raw.append(
+            {
+                "AssetID": asset_id,
+                "downside_raw": builder.compute_downside_deviation(month_returns),
+                "drawdown_raw": builder.compute_max_drawdown(month_returns),
+            }
+        )
+    raw_frame = pd.DataFrame(raw).sort_values("AssetID").reset_index(drop=True)
+
+    expected_downside = builder.rank_to_unit_interval(raw_frame["downside_raw"]).to_numpy()
+    expected_drawdown = builder.rank_to_unit_interval(raw_frame["drawdown_raw"]).to_numpy()
+    assert month_panel["downside_dev"].to_numpy() == pytest.approx(expected_downside)
+    assert month_panel["max_drawdown"].to_numpy() == pytest.approx(expected_drawdown)
+
+
+def test_monthly_only_rows_profile_keeps_short_month_rows_for_sma_atr_rsi() -> None:
+    dates = pd.to_datetime(["2010-10-03", "2010-10-04", "2010-10-05", "2010-10-06"])
+
+    def short_asset(asset_name: str, asset_group: str, closes: list[float], volume_base: float) -> pd.DataFrame:
+        close = pd.Series(closes, dtype=float)
+        returns = close.pct_change()
+        return pd.DataFrame(
+            {
+                "Date": dates,
+                "Month": dates.to_period("M"),
+                "QuotedValue": close,
+                "OpenQuotedValue": close,
+                "HighQuotedValue": close + 1.0,
+                "LowQuotedValue": close - 1.0,
+                "PriceForReturn": close,
+                "OpenPriceForRange": close,
+                "HighPriceForRange": close + 1.0,
+                "LowPriceForRange": close - 1.0,
+                "Volume": volume_base,
+                "ChangePctRaw": returns,
+                "ReturnFromPrice": returns,
+                "IsObserved": 1,
+                "AssetName": asset_name,
+                "AssetGroup": asset_group,
+            }
+        )
+
+    macro_features = {pd.Period("2010-10", freq="M"): {"usd_vol": 0.25, "cpi_trajectory": 0.05}}
+    daily_assets = {
+        "EGX30": short_asset("EGX30 Index", "EquityIndex", [100.0, 101.0, 99.0, 102.0], 500.0),
+        "A": short_asset("Asset A", "Equity", [80.0, 81.0, 80.5, 82.0], 100.0),
+        "B": short_asset("Asset B", "Equity", [95.0, 94.0, 96.0, 97.0], 200.0),
+        "C": short_asset("Asset C", "Equity", [120.0, 119.0, 121.0, 118.0], 300.0),
+    }
+    panel = builder.compute_monthly_panel(
+        daily_assets,
+        macro_features,
+        feature_profile=get_feature_profile("monthly_only_rows_v1"),
+        egarch_month_stats_by_asset=make_egarch_month_stats("EGX30", "A", "B", "C"),
+    )
+
+    assert set(panel["AssetID"]) == {"EGX30", "A", "B", "C"}
+    assert panel["price_to_sma20"].notna().all()
+    assert panel["atr_pct_20"].notna().all()
+    assert panel["rsi_14"].notna().all()
 
 
 def test_feature_variants_support_lookback_formula_and_macro_change_families() -> None:

@@ -4,6 +4,10 @@
 
 This is the active feature-phase planning and tracking document.
 
+Status: closed for the pre-tuning feature phase. Later tuned top-candidate
+reruns selected `drop_distance_to_3m_high` under `refined50`, but canonical
+data/profile defaults remain `full_current_v1`.
+
 Use it to track:
 
 - the locked backbone for feature work
@@ -20,6 +24,10 @@ Active backbone:
 Active feature profile:
 
 - `full_current_v1`
+
+Current best after tuned top-candidate reruns:
+
+- `drop_distance_to_3m_high`
 
 Locked feature set:
 
@@ -68,6 +76,7 @@ Naming rules:
 - baseline anchor: `FT-BASE-3M-CONTEXT-S<SEED>`
 - leave-one-out ablation: `FT-ABL-DROP-<FEATURE>-S42`
 - feature variant screen: `FT-VAR-<FEATURE>-<VARIANT>-S42`
+- row-semantics variant: `FT-VAR-ROW-<VARIANT>-S<SEED>`
 
 Decision rules:
 
@@ -96,6 +105,54 @@ Decision rules:
 | --- | --- | --- | --- | --- |
 | `distance_to_3m_high` | passed | 7, 13 | removal rejected | Keep `full_current_v1` as the live baseline; no replacement testing opens in this wave. |
 
+Post-tuning note:
+
+- The pre-tuning feature phase rejected removal under the locked comparison
+  setup.
+- The later tuned top-candidate rerun with `refined50` selected
+  `drop_distance_to_3m_high` by three-seed validation mean reward.
+- This is recorded as current-best model metadata, not as a change to the
+  canonical default profile.
+
+### Row-Semantics Experiment
+
+`monthly_only_rows_v1` is a separate profile dataset, not a canonical
+replacement for `data/ready/monthly_asset_panel.csv`.
+
+Profile definition:
+
+- each row month uses only that month for asset-level features
+- `egarch_vol` is a same-month realized-volatility proxy
+- `downside_dev`, `max_drawdown`, `volume`, `beta_to_egx30`, and
+  `distance_to_3m_high` use only row month `m`
+- `usd_vol` uses row month `m`; `cpi_trajectory` uses that month CPI MoM
+- `price_to_sma20`, `atr_pct_20`, and `rsi_14` use observed in-month days,
+  capped by their standard periods so short months do not cause avoidable row
+  loss
+- PPO assembly stays fixed: `pit_3m_flat_context` stacks rows `M-3`, `M-2`,
+  and `M-1`, producing `33` input features
+
+Output dataset:
+
+- `outputs/feature_profiles/monthly_only_rows_v1/daily_market_series.csv`
+- `outputs/feature_profiles/monthly_only_rows_v1/monthly_asset_panel.csv`
+- `outputs/feature_profiles/monthly_only_rows_v1/feature_profile_metadata.json`
+
+Result: rejected for promotion. The profile improved the held-out test average
+but lost on the phase selection metrics, which are validation reward first and
+validation Spearman second.
+
+| Profile | Seeds | Mean Validation Reward | Mean Validation Spearman | Mean Test Reward | Mean Test Spearman | Decision |
+| --- | --- | --- | --- | --- | --- | --- |
+| `full_current_v1` | 42, 7, 13 | 0.6819 | 0.5722 | 0.7078 | 0.6085 | incumbent |
+| `monthly_only_rows_v1` | 42, 7, 13 | 0.6794 | 0.5687 | 0.7224 | 0.6291 | reject for promotion |
+
+| SetupID | Seed | Validation Reward | Validation Spearman | Test Reward | Test Spearman | Decision |
+| --- | --- | --- | --- | --- | --- | --- |
+| `FT-VAR-ROW-MONTHLY_ONLY_ROWS_V1-S42` | 42 | 0.6789 | 0.5680 | 0.7277 | 0.6368 | row semantics rejected |
+| `FT-VAR-ROW-MONTHLY_ONLY_ROWS_V1-S7` | 7 | 0.6706 | 0.5562 | 0.7159 | 0.6199 | row semantics rejected |
+| `FT-VAR-ROW-MONTHLY_ONLY_ROWS_V1-S13` | 13 | 0.6888 | 0.5819 | 0.7235 | 0.6305 | row semantics rejected |
+
 ## Experiment Matrix
 
 ### Stage 0: Baseline Anchors
@@ -105,6 +162,9 @@ Decision rules:
 | `FT-BASE-3M-CONTEXT-S42` | `pit_3m_flat_context` | `full_current_v1` | completed | Seed-42 anchor |
 | `FT-BASE-3M-CONTEXT-S7` | `pit_3m_flat_context` | `full_current_v1` | completed | Seed-7 anchor |
 | `FT-BASE-3M-CONTEXT-S13` | `pit_3m_flat_context` | `full_current_v1` | completed | Seed-13 anchor |
+| `FT-VAR-ROW-MONTHLY_ONLY_ROWS_V1-S42` | `pit_3m_flat_context` | `monthly_only_rows_v1` | completed | Row-semantics seed-42 experiment |
+| `FT-VAR-ROW-MONTHLY_ONLY_ROWS_V1-S7` | `pit_3m_flat_context` | `monthly_only_rows_v1` | completed | Row-semantics seed-7 experiment |
+| `FT-VAR-ROW-MONTHLY_ONLY_ROWS_V1-S13` | `pit_3m_flat_context` | `monthly_only_rows_v1` | completed | Row-semantics seed-13 experiment |
 
 ### Stage 1 And Stage 2 Matrix
 

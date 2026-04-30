@@ -539,6 +539,29 @@ def test_build_framework_batches_stack_prior_month_rows_only(tmp_path: Path) -> 
     assert np.allclose(first_batch.features[0], expected)
 
 
+def test_3m_context_keeps_33_features_and_uses_first_train_prior_rows_for_monthly_only_profile() -> None:
+    panel = make_panel()
+    monthly_only_panel = panel.copy()
+    for month_index, date in enumerate(sorted(monthly_only_panel["Date"].unique()), start=1):
+        month_mask = monthly_only_panel["Date"] == date
+        monthly_only_panel.loc[month_mask, config.MODEL_FEATURE_COLUMNS] = month_index / 100.0
+
+    batches = build_framework_batches(monthly_only_panel, framework_id="pit_3m_flat_context", split_name="train")
+    first_batch = batches[0]
+    expected = np.concatenate(
+        [
+            np.full(len(config.MODEL_FEATURE_COLUMNS), 0.01, dtype=np.float32),
+            np.full(len(config.MODEL_FEATURE_COLUMNS), 0.02, dtype=np.float32),
+            np.full(len(config.MODEL_FEATURE_COLUMNS), 0.03, dtype=np.float32),
+        ]
+    )
+
+    assert first_batch.date == "2011-01"
+    assert first_batch.state_months == ("2010-10", "2010-11", "2010-12")
+    assert first_batch.features.shape == (4, 33)
+    assert np.allclose(first_batch.features[0], expected)
+
+
 def test_daily_flat_framework_keeps_the_same_decision_months_as_3m_context(tmp_path: Path) -> None:
     panel = make_panel()
     daily = make_daily_market_series(panel)
@@ -1514,6 +1537,18 @@ def test_objective_and_reward_profiles_apply_expected_weights() -> None:
         reward_profile=pure_rank_reward,
     )
     assert pure_rank_metrics.reward == pytest.approx(1.0)
+
+    balanced_reward = get_reward_profile("reward_v4_rank50_mse50")
+    balanced_metrics = compute_month_metrics(
+        predicted=np.array([0.1, 0.4, 0.8]),
+        realized=np.array([0.0, 0.5, 1.0]),
+        date="2023-01",
+        reward_profile=balanced_reward,
+    )
+    expected_mse = float(np.mean(np.square(np.array([0.1, 0.4, 0.8]) - np.array([0.0, 0.5, 1.0]))))
+    assert balanced_metrics.spearman == pytest.approx(1.0)
+    assert balanced_metrics.mse == pytest.approx(expected_mse)
+    assert balanced_metrics.reward == pytest.approx((0.50 * 1.0) + (0.50 * (1.0 - expected_mse)))
 
 
 def test_framework_phase_can_rescore_candidate_under_anchor_without_mutating_predictions(tmp_path: Path) -> None:

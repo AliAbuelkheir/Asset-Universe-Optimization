@@ -1,36 +1,35 @@
 ---
-title: RL Flowchart
+title: RL Ranked-Risk Flow
 ---
 flowchart LR
     subgraph INPUTS["Inputs"]
-        A["Asset Price & Yield Data (All 5 Classes)"]
-        B["Inflation Metrics (CPI + USD Price)"]
-        C["Investor's Risk Tolerance"]
+        A["Market price, yield, volume, CPI, and USD data"]
+        B["Canonical monthly state panel"]
+        C["Future interface input: month and risk tolerance"]
     end
 
-    subgraph FEATURES["Feature Calculation"]
-        F["EGARCH Volatility (Forecasted)"]
-        M["Cross-Asset Correlation (Derived)"]
-        SF["Downside Deviation (Realized) - Max Drawdown (Realized)"]
+    subgraph MODEL["Current ranked-risk model"]
+        P["PPO shared scorer"]
+        S["Predicted risk score per active asset"]
+        R["Monthly reward: rank correlation plus MSE term"]
     end
 
-    subgraph MODEL["RL Agent"]
-        P["Policy Network State → Risk Scores"]
-        R["Reward Signal (α · RankCorr) + (β · (1 − MSE)) from realized market returns at t+1"]
+    subgraph OUTPUT["Current output"]
+        O["Ranked active asset universe"]
     end
 
-    subgraph OUTPUT["Output"]
-        S["Risk Score per Asset [0,1]"]
-        T["Tier Bucketing (Conservative · Moderate · Aggressive) min 3 assets · expansion via θ"]
+    subgraph FUTURE["Deferred interface stages"]
+        F1["Investor-facing selection layer"]
+        F2["Optional allocation model or REST adapter"]
+        F3["Optional simulated earnings"]
     end
 
-    A --> F
-    B --> M
-    C --> SF
-    F --> P
-    M --> P
-    SF --> P
+    A --> B
+    B --> P
     P --> S
-    S --> T
-    R -.->|feedback loop| P
-    S -.->|t+1 realized risk| R
+    S --> O
+    R -.-> P
+    C -.-> F1
+    O -.-> F1
+    F1 -.-> F2
+    F2 -.-> F3

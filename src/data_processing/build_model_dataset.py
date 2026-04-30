@@ -366,6 +366,48 @@ def compute_macro_features(
     return macro_features
 
 
+def _compute_price_to_sma_available(closes: pd.Series, window: int) -> float:
+    clean = closes.replace([np.inf, -np.inf], np.nan).dropna().astype(float)
+    if clean.empty:
+        return float("nan")
+    last_close = float(clean.iloc[-1])
+    sma = float(clean.tail(min(window, len(clean))).mean())
+    if sma <= 0:
+        return float("nan")
+    return float((last_close / sma) - 1.0)
+
+
+def _compute_atr_pct_available(observed_frame: pd.DataFrame, period: int) -> float:
+    clean = observed_frame[["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]].replace([np.inf, -np.inf], np.nan)
+    clean = clean.dropna(subset=["PriceForReturn", "HighPriceForRange", "LowPriceForRange"]).copy()
+    if clean.empty:
+        return float("nan")
+
+    prev_close = clean["PriceForReturn"].shift(1)
+    true_range = pd.concat(
+        [
+            clean["HighPriceForRange"] - clean["LowPriceForRange"],
+            (clean["HighPriceForRange"] - prev_close).abs(),
+            (clean["LowPriceForRange"] - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1, skipna=True)
+
+    atr = float(true_range.tail(min(period, len(true_range))).mean())
+    last_close = float(clean["PriceForReturn"].iloc[-1])
+    if last_close <= 0:
+        return float("nan")
+    return float(atr / last_close)
+
+
+def _compute_wilder_rsi_available(closes: pd.Series, periods: int) -> float:
+    clean = closes.replace([np.inf, -np.inf], np.nan).dropna().astype(float)
+    if len(clean) < 2:
+        return float("nan")
+    capped_period = min(periods, len(clean) - 1)
+    return compute_wilder_rsi(clean, capped_period)
+
+
 def compute_monthly_panel(
     daily_assets: dict[str, pd.DataFrame],
     macro_features: dict[pd.Period, dict[str, float]],
@@ -397,7 +439,7 @@ def compute_monthly_panel(
         )
 
         for month in state_months:
-            required_feature_months = trailing_months(month, config.WINDOW_MONTHS)
+            required_feature_months = trailing_months(month, profile.row_feature_window_months)
             if not all(required_month in observed_months for required_month in required_feature_months):
                 continue
 
@@ -447,7 +489,12 @@ def compute_monthly_panel(
                 raise ValueError(f"Unsupported volume_mode: {profile.volume_mode}")
 
             observed_closes = observed_feature_window["PriceForReturn"].dropna()
-            atr_pct = compute_atr_pct(observed_feature_window, profile.atr_period)
+            if profile.technical_min_periods_mode == "available":
+                atr_pct = _compute_atr_pct_available(observed_feature_window, profile.atr_period)
+            elif profile.technical_min_periods_mode == "full":
+                atr_pct = compute_atr_pct(observed_feature_window, profile.atr_period)
+            else:
+                raise ValueError(f"Unsupported technical_min_periods_mode: {profile.technical_min_periods_mode}")
 
             if profile.beta_mode == "standard":
                 beta_to_egx30 = compute_beta_to_benchmark(beta_asset_window, beta_benchmark_window)
@@ -457,13 +504,19 @@ def compute_monthly_panel(
                 raise ValueError(f"Unsupported beta_mode: {profile.beta_mode}")
 
             if profile.ma_mode == "sma":
-                price_to_ma = compute_price_to_sma(observed_closes, profile.ma_period)
+                if profile.technical_min_periods_mode == "available":
+                    price_to_ma = _compute_price_to_sma_available(observed_closes, profile.ma_period)
+                else:
+                    price_to_ma = compute_price_to_sma(observed_closes, profile.ma_period)
             elif profile.ma_mode == "ema":
                 price_to_ma = compute_price_to_ema(observed_closes, profile.ma_period)
             else:
                 raise ValueError(f"Unsupported ma_mode: {profile.ma_mode}")
 
-            rsi_value = compute_wilder_rsi(observed_closes, profile.rsi_period)
+            if profile.technical_min_periods_mode == "available":
+                rsi_value = _compute_wilder_rsi_available(observed_closes, profile.rsi_period)
+            else:
+                rsi_value = compute_wilder_rsi(observed_closes, profile.rsi_period)
             last_close = float(observed_closes.iloc[-1]) if not observed_closes.empty else float("nan")
             distance_to_high = compute_distance_to_high(last_close, distance_window["HighPriceForRange"])
 

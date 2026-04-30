@@ -17,6 +17,12 @@ The active system is built around:
 2. derive authoritative returns from cleaned prices
 3. build the canonical monthly panel directly
 4. train and evaluate the PPO agent from that panel
+5. compare top candidates with the tuned PPO setup
+
+Current project phase:
+
+- evaluation and reporting design for the thesis
+- future investor-facing selection and web serving are deferred
 
 ## Current Implementation Status
 
@@ -32,10 +38,23 @@ Implemented now:
 - `src/training/train.py` trains PPO and exports experiment artifacts
 - `src/training/evaluate.py` evaluates PPO checkpoints on ordered monthly
   batches
+- `src/training/tune_ppo.py` runs PPO hyperparameter searches
+- `src/training/top_candidate_reruns.py` reruns top feature/model candidates
+  with the selected tuned PPO parameters
 - `tests/test_data_engineering_pipeline.py` covers feature correctness and
   leakage prevention
 - `tests/test_training_pipeline.py` covers PPO initialization, masking, split
   integrity, evaluation, and artifact writing
+
+Current best model:
+
+- `drop_distance_to_3m_high + refined50`
+- framework: `pit_3m_flat_context`
+- selected by three-seed validation mean reward
+- canonical defaults remain `full_current_v1`
+
+The authoritative current-best record is in
+[docs/project_guide.md](/C:/Ali/CS/Bachelor%20thesis/docs/project_guide.md).
 
 ## Canonical Outputs
 
@@ -78,8 +97,14 @@ Current realized targets:
 ## Train And Evaluate PPO
 
 ```powershell
-.\.venv\Scripts\python.exe src\training\train.py --setup-id PPO-CANONICAL --total-timesteps 4096
-.\.venv\Scripts\python.exe src\training\evaluate.py --checkpoint-path outputs\experiments\PPO-CANONICAL\best_model.zip --output-dir outputs\experiments\PPO-CANONICAL\reevaluation --split-name all
+.\.venv\Scripts\python.exe src\training\train.py --setup-id PPO-CANONICAL --framework-id pit_3m_flat_context --study-phase feature_comparison --total-timesteps 4096
+.\.venv\Scripts\python.exe src\training\evaluate.py --checkpoint-path outputs\experiments\PPO-CANONICAL\best_model.zip --framework-id pit_3m_flat_context --output-dir outputs\experiments\PPO-CANONICAL\reevaluation --split-name all
+```
+
+## Top Candidate Reruns
+
+```powershell
+.\.venv\Scripts\python.exe -m src.training.top_candidate_reruns --tuned-candidate refined50 --seeds 42 7 13 --total-timesteps 32768
 ```
 
 ## Testing Policy
@@ -91,6 +116,8 @@ Current realized targets:
   months, benchmark edits, or macro revisions.
 - Training tests must protect against mask leakage, split misuse, and accidental
   reintroduction of non-RL training paths.
+- Investor-facing selection and future web/API serving must stay outside the
+  PPO training path.
 
 ## Documentation
 

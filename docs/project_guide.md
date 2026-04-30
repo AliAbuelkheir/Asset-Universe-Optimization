@@ -6,11 +6,14 @@ This repository builds a variable-universe, month-level PPO agent that predicts
 asset `realized_risk` scores and derives monthly risk rankings from those
 scores.
 
-The active order of work is:
+The completed modeling order was:
 
 1. optimize the framework
-2. then optimize the feature set
-3. only after that optimize PPO hyperparameters
+2. optimize the feature set
+3. tune PPO hyperparameters
+4. rerun top candidates with the tuned PPO setup
+
+The active work is now evaluation and reporting design for the thesis.
 
 ## Canonical Data Contract
 
@@ -99,6 +102,42 @@ Daily-input conclusion:
 For the full framework methodology and tested-framework record, see
 [framework_phase.md](/C:/Ali/CS/Bachelor%20thesis/docs/framework_phase.md).
 
+## Current Best Model
+
+Authoritative current-best record:
+
+- model id = `drop_distance_to_3m_high_refined50`
+- framework = `pit_3m_flat_context`
+- feature profile = `drop_distance_to_3m_high`
+- tuned PPO candidate = `refined50`
+- comparison protocol = `repaired_inner12_outer26_v1`
+- objective profile = `risk_v1_equal_333`
+- reward profile = `reward_v1_rank70_mse30`
+- training method = `ordered_cycle`
+- input feature set = `canonical_11`
+- checkpoint provenance = `best_inner_validation`
+- artifact root = `outputs/top_candidate_reruns/refined50/`
+
+Selection rule:
+
+- choose the highest three-seed validation mean reward
+- use validation Spearman as the tie-breaker
+- use test metrics only for reporting
+
+Three-seed metrics:
+
+- validation reward = `0.7012`
+- validation Spearman = `0.5954`
+- test reward = `0.7449`
+- test Spearman = `0.6565`
+
+Important comparison note:
+
+- `monthly_only_rows_v1` had stronger test means, but lost on validation
+  selection and remains reporting-only evidence.
+- Canonical defaults remain `full_current_v1`; current-best metadata is kept
+  separate from canonical data/profile defaults.
+
 ## Active PPO Implementation
 
 Current active modules:
@@ -126,6 +165,20 @@ Locked PPO config during framework and feature comparison:
 - `max_grad_norm = 0.5`
 - `eval_frequency = 512`
 
+Current tuned PPO candidate:
+
+- id = `refined50`
+- `learning_rate = 0.00024935310281972535`
+- `n_steps = 256`
+- `batch_size = 256`
+- `n_epochs = 10`
+- `gamma = 1.0`
+- `gae_lambda = 1.0`
+- `clip_range = 0.2990122587129351`
+- `ent_coef = 0.0023477909057284673`
+- `vf_coef = 0.9023537822799527`
+- `max_grad_norm = 0.3`
+
 Policy behavior:
 
 - one shared scorer is applied across all active asset rows
@@ -138,7 +191,7 @@ Policy behavior:
 ## PPO Environment And Reward
 
 - One PPO episode equals one decision month.
-- Training samples decision months at random from the train split.
+- Training cycles through train decision months in chronological order.
 - Validation and test evaluate decision months in chronological order.
 - Standard monthly frameworks emit a padded observation dict with:
   `features` shape `(max_assets, input_dim)` and `mask` shape `(max_assets,)`.
@@ -152,12 +205,46 @@ Month-level reward:
 
 `0.7 * SpearmanRankCorr(predicted, realized) + 0.3 * (1 - MSE)`
 
+## Future Inference Contract
+
+The future web application is not active repo scope yet, but the serving
+boundary should be planned around these stages:
+
+1. `rank_assets(month) -> ranked universe`
+2. `bucket_ranked_assets(ranked_universe, risk_tolerance) -> selected universe`
+3. `allocate_assets(selected_universe, optional constraints) -> weights`
+
+Current inference output before investor bucketing is redesigned:
+
+- active month
+- active assets
+- predicted risk scores
+- predicted risk ranks
+- realized risk fields only when evaluating historical months
+
+Future web input:
+
+- `month`
+- `risk_tolerance`
+
+Future web output after selection logic is reopened:
+
+- selected asset universe for the requested tolerance and month
+- ranked-risk metadata used to justify the selection
+- optional allocation weights and simulated earnings from a separate external
+  model or REST adapter
+
+Training, inference, investor-facing selection, and allocation must remain
+separate modules. The web app should call inference services instead of reusing
+CLI-only training code.
+
 ## Feature-Phase Support
 
 The feature phase now uses explicit feature profiles instead of manual code
 edits.
 
 - base feature profile: `full_current_v1`
+- current-best feature profile after tuned reruns: `drop_distance_to_3m_high`
 - leave-one-out ablations keep the same 11-column model interface and
   neutralize one feature to `0.5`
 - altered feature profiles are written to
