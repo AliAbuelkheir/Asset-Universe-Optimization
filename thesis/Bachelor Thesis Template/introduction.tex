@@ -3,23 +3,23 @@
 
 \section{Motivation}
 
-Portfolio construction is commonly framed as an optimization problem over a predefined set of assets. Classical portfolio theory explains how capital can be distributed across available assets once that set is known, but the prior question of which assets should be considered suitable is often left outside the model. This is a restrictive assumption because the same candidate universe is not necessarily appropriate for all investors. Before portfolio weights can be assigned, the candidate asset universe should first be evaluated with respect to investor objectives, risk tolerance, and the current market environment.
+Portfolio construction is usually presented as an optimization problem over a set of available assets. Classical portfolio theory explains how capital can be distributed once that set is known, but it often leaves an earlier question outside the model: which assets should be considered in the first place? This question matters because the same candidate universe is not suitable for every investor. Before portfolio weights are assigned, the asset universe should be checked against the investor's objectives, risk tolerance, and the current market conditions.
 
-This issue is relevant in markets where asset behavior changes across time. In the Egyptian financial market, risk characteristics can shift in response to inflation, currency movements, monetary-policy changes, and market stress. Under such conditions, a fixed label that treats an asset as permanently conservative or permanently aggressive can become misleading. A portfolio construction process that begins directly with final allocation may therefore inherit weaknesses from a candidate universe that is not suitable for the investor profile.
+This issue is important in markets where asset behavior changes over time. In the Egyptian financial market, risk can shift because of inflation, exchange-rate movements, monetary-policy changes, and market stress. In such conditions, treating an asset as permanently conservative or permanently aggressive can be misleading. A portfolio process that starts directly with final allocation may therefore depend on a candidate universe that is already weak for the target investor profile.
 
-This thesis treats asset-universe selection as a distinct pre-allocation decision stage. The objective is not to compute final portfolio weights. Instead, the thesis studies how artificial intelligence can support the selection of an investor-suitable universe before any downstream allocation model is applied. Investor suitability is interpreted through three risk-tolerance groups. Conservative investors prioritize risk control, balanced investors seek a risk-return tradeoff, and aggressive investors tolerate higher risk for higher return opportunity.
+This thesis treats asset-universe selection as a separate decision stage before allocation. The goal is not to compute final portfolio weights. Instead, the thesis studies how artificial intelligence can support the selection of an investor-suitable universe before an allocation model is applied. Investor suitability is interpreted through three risk-tolerance groups. Conservative investors prioritize risk control, balanced investors seek a risk-return tradeoff, and aggressive investors accept higher risk in exchange for higher return opportunity.
 
-The implementation studies this problem through an adaptive risk-scoring approach. A reinforcement-learning model predicts an asset-level composite realized-risk score and derives risk ranks for the active universe in each decision month. The realized-risk target combines realized volatility, downside deviation, and maximum drawdown. These predictions are then used to form risk-tolerance-oriented asset universes before allocation. The contribution is therefore the use of AI-supported asset-risk prediction for investor-suitable universe construction, rather than final portfolio optimization.
+The implementation studies this problem through an adaptive risk-scoring approach. A reinforcement-learning model predicts an asset-level composite realized-risk score and ranks the active universe in each decision month. The realized-risk target combines realized volatility, downside deviation, and maximum drawdown. These predictions are then used to form risk-tolerance-oriented asset universes before allocation. The contribution is therefore AI-supported asset-risk prediction for investor-suitable universe construction, not final portfolio optimization.
 
 \section{Problem Statement}
 
-Existing portfolio allocation methods generally assume that the investable universe has already been defined. Related AI and machine-learning preselection studies show that filtering assets before optimization is a valid modeling stage, but their selection criteria are commonly based on expected return, price movement, profitability, Sharpe-like measures, efficiency, robustness, or downstream optimizer performance. The unresolved problem addressed in this thesis is how to select an investor-suitable asset universe before allocation when suitability is defined by risk tolerance and asset-level realized-risk behavior.
+Existing portfolio allocation methods generally assume that the investable universe has already been defined. Related AI and machine-learning preselection studies show that filtering assets before optimization is a valid modeling stage. However, these studies commonly select assets using expected return, price movement, profitability, Sharpe-like measures, efficiency, robustness, or final optimizer performance. The problem addressed in this thesis is how to select an investor-suitable asset universe before allocation when suitability is defined by risk tolerance and asset-level realized-risk behavior.
 
 \section{Scope and Asset Universe}
 
-The thesis focuses on a mixed Egyptian-market universe. The investable asset universe includes money-market exposure represented by 91-day Treasury bills, government bonds represented by 5-year bonds, Egyptian equity exposure represented by EGX30 and available EGX30 constituent stocks, real-estate exposure represented by a REIT series, and gold exposure represented by 24K gold in Egyptian pounds. Macroeconomic inputs such as USD exchange-rate behavior and CPI are used as model features only. They are not treated as investable asset-universe elements.
+The thesis focuses on a mixed Egyptian-market universe. The investable asset universe includes money-market exposure represented by 91-day Treasury bills, government bonds represented by 5-year bonds, Egyptian equity exposure represented by EGX30 and available EGX30 constituent stocks, real-estate exposure represented by a REIT series, and gold exposure represented by 24K gold in Egyptian pounds. Macroeconomic inputs, including USD exchange-rate behavior and CPI, are used only as model features. They are not treated as investable assets.
 
-The current scope ends at pre-allocation universe selection. Final portfolio weighting, investor-facing production serving, and allocation simulation are not treated as the main implemented contribution. They are downstream stages that can use the selected universe produced by the proposed framework.
+The current scope ends at pre-allocation universe selection. Final portfolio weighting, investor-facing production serving, and allocation simulation are not treated as the main implemented contribution. They are later stages that can use the selected universe produced by the proposed framework.
 
 \section{Research Questions and Objectives}
 
@@ -35,9 +35,9 @@ The objectives of the thesis are to:
 
 \begin{itemize}
     \item design a pre-allocation asset-universe selection framework guided by investor risk tolerance;
-    \item construct point-in-time asset risk features and composite realized-risk targets;
+    \item construct point-in-time asset-risk features and composite realized-risk targets;
     \item train and evaluate a reinforcement-learning model that predicts asset-level realized risk;
-    \item evaluate selected universes against full-universe, random, oracle, and heuristic baselines.
+    \item evaluate the selected universes against full-universe, random, oracle, and heuristic baselines.
 \end{itemize}
 
 \section{Outline}
