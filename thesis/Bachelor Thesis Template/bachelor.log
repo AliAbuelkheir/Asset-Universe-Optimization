@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  13 APR 2026 00:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  6 MAY 2026 11:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -397,7 +397,7 @@ Package epstopdf Info: Source file: <GUC-logo-ss.eps>
 erted-to.pdf GUC-logo-ss.eps>
 (epstopdf)             \includegraphics on input line 37.
 Package epstopdf Info: Output file is already uptodate.
-<GUC-logo-ss-eps-converted-to.pdf, id=123, 271.0125pt x 259.97125pt>
+<GUC-logo-ss-eps-converted-to.pdf, id=135, 271.0125pt x 259.97125pt>
 File: GUC-logo-ss-eps-converted-to.pdf Graphic file (type pdf)
 <use GUC-logo-ss-eps-converted-to.pdf>
 Package pdftex.def Info: GUC-logo-ss-eps-converted-to.pdf  used on input line 3
@@ -451,22 +451,22 @@ Chapter 1.
 
 
 
-]) [2]
+] [2]) [3]
 \openout2 = `literature_review.aux'.
 
  (literature_review.tex
 Chapter 2.
-[3
+[4
 
 
 
 
-] [4] [5]) [6]
+] [5] [6]) [7]
 \openout2 = `methodology.aux'.
 
  (methodology.tex
 Chapter 3.
-) [7
+) [8
 
 
 
@@ -476,7 +476,7 @@ Chapter 3.
 
  (results.tex
 Chapter 4.
-) [8
+) [9
 
 
 
@@ -486,7 +486,7 @@ Chapter 4.
 
  (conclusion.tex
 Chapter 5.
-) [9
+) [10
 
 
 
@@ -494,27 +494,27 @@ Chapter 5.
 ]
 \openout2 = `appendix.aux'.
 
- (appendix.tex [10
+ (appendix.tex [11
 
 
 
 
 ]
 Appendix A.
-[11
+[12
 
 ] (bachelor.lof)
 \tf@lof=\write5
 \openout5 = `bachelor.lof'.
 
-) [12
+) [13
 
 
-] (bachelor.bbl [13
+] (bachelor.bbl [14
 
 
 
-]) [14] (bachelor.aux
+] [15]) [16] (bachelor.aux
 (GUC_TitlePage.aux) (acknowledgments.aux) (abstract.aux) (introduction.aux)
 (literature_review.aux) (methodology.aux) (results.aux) (conclusion.aux)
 (appendix.aux))
@@ -523,24 +523,26 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `bachelor.out' has not changed.
-(rerunfilecheck)             Checksum: 2B5BA74C4DCBA0814B10F54B2F1AEF7D;4544.
+(rerunfilecheck)             Checksum: 2BDE0427F06BAF8C0B709DA29451FF11;5101.
  ) 
 Here is how much of TeX's memory you used:
- 11659 strings out of 467871
- 192208 string characters out of 5418376
- 603950 words of memory out of 5000000
- 40266 multiletter control sequences out of 15000+600000
- 633280 words of font info for 58 fonts, out of 8000000 for 9000
+ 11707 strings out of 467871
+ 193127 string characters out of 5418376
+ 605607 words of memory out of 5000000
+ 40292 multiletter control sequences out of 15000+600000
+ 633786 words of font info for 60 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,6n,79p,1011b,610s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
-cmbx12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
-fonts/cm/cmr12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/pu
-blic/amsfonts/cm/cmsl12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts
-/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on bachelor.pdf (20 pages, 138562 bytes).
+ 75i,6n,79p,880b,612s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ <C:\Users\aliab\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm
+1200.pk><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfon
+ts/cm/cmbx12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/publ
+ic/amsfonts/cm/cmr12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/ty
+pe1/public/amsfonts/cm/cmsl12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX
+/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Users/aliab/AppData/Local/Progra
+ms/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
+Output written on bachelor.pdf (22 pages, 157035 bytes).
 PDF statistics:
- 323 PDF objects out of 1000 (max. 8388607)
- 70 named destinations out of 1000 (max. 500000)
- 246 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 384 PDF objects out of 1000 (max. 8388607)
+ 90 named destinations out of 1000 (max. 500000)
+ 270 words of extra memory for PDF output out of 10000 (max. 10000000)
 

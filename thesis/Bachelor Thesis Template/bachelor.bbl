@@ -4,31 +4,72 @@
 H.~Markowitz, ``Portfolio selection,'' {\em The Journal of Finance}, vol.~7,
   no.~1, pp.~77--91, 1952.
 
+\bibitem{blacklitterman1992}
+F.~Black and R.~Litterman, ``Global portfolio optimization,'' {\em Financial
+  Analysts Journal}, vol.~48, no.~5, pp.~28--43, 1992.
+
+\bibitem{rockafellar2000optimization}
+R.~T. Rockafellar and S.~Uryasev, ``Optimization of conditional
+  value-at-risk,'' {\em The Journal of Risk}, vol.~2, no.~3, pp.~21--41, 2000.
+
+\bibitem{bodnar2021quantile}
+T.~Bodnar, M.~Lindholm, E.~Thors{\'e}n, and J.~Tyrcha, ``Quantile-based optimal
+  portfolio selection,'' {\em Computational Management Science}, vol.~18,
+  pp.~299--324, 2021.
+
+\bibitem{demiguel2009optimal}
+V.~DeMiguel, L.~Garlappi, and R.~Uppal, ``Optimal versus naive diversification:
+  How inefficient is the 1/n portfolio strategy?,'' {\em The Review of
+  Financial Studies}, vol.~22, no.~5, pp.~1915--1953, 2009.
+
+\bibitem{lopezdeprado2016building}
+M.~L{\'o}pez~de Prado, ``Building diversified portfolios that outperform out of
+  sample,'' {\em The Journal of Portfolio Management}, vol.~42, no.~4,
+  pp.~59--69, 2016.
+
 \bibitem{wang2020portfolioformation}
 W.~Wang, W.~Li, N.~Zhang, and K.~Liu, ``Portfolio formation with preselection
   using deep learning from long-term financial data,'' {\em Expert Systems with
   Applications}, vol.~143, p.~113042, 2020.
-
-\bibitem{chaweewanchon2022}
-A.~Chaweewanchon and R.~Chaysiri, ``Markowitz mean-variance portfolio
-  optimization with predictive stock selection using machine learning,'' {\em
-  International Journal of Financial Studies}, vol.~10, no.~3, p.~64, 2022.
-
-\bibitem{kaczmarek2022building}
-T.~Kaczmarek and K.~Perez, ``Building portfolios based on machine learning
-  predictions,'' {\em Economic Research - Ekonomska Istrazivanja}, vol.~35,
-  no.~1, pp.~19--37, 2022.
 
 \bibitem{ma2021returnprediction}
 Y.~Ma, R.~Han, and W.~Wang, ``Portfolio optimization with return prediction
   using deep learning and machine learning,'' {\em Expert Systems with
   Applications}, vol.~165, p.~113973, 2021.
 
+\bibitem{kaczmarek2022building}
+T.~Kaczmarek and K.~Perez, ``Building portfolios based on machine learning
+  predictions,'' {\em Economic Research - Ekonomska Istra{\v{z}}ivanja},
+  vol.~35, no.~1, pp.~19--37, 2022.
+
+\bibitem{chaweewanchon2022}
+A.~Chaweewanchon and R.~Chaysiri, ``Markowitz mean-variance portfolio
+  optimization with predictive stock selection using machine learning,'' {\em
+  International Journal of Financial Studies}, vol.~10, no.~3, p.~64, 2022.
+
 \bibitem{mills2022twostage}
-E.~F. E.~A. Mills and S.~K. Anyomi, ``A hybrid two-stage robustness approach to
-  portfolio construction under uncertainty,'' {\em Journal of King Saud
+E.~F.~E. Atta~Mills and S.~K. Anyomi, ``A hybrid two-stage robustness approach
+  to portfolio construction under uncertainty,'' {\em Journal of King Saud
   University - Computer and Information Sciences}, vol.~34, no.~9,
   pp.~7735--7750, 2022.
+
+\bibitem{hosseinzadeh2023dea}
+M.~M. Hosseinzadeh, S.~Ortobelli~Lozza, F.~Hosseinzadeh~Lotfi, and V.~Moriggia,
+  ``Portfolio optimization with asset preselection using data envelopment
+  analysis,'' {\em Central European Journal of Operations Research}, vol.~31,
+  pp.~287--310, 2023.
+
+\bibitem{abdi2024prospective}
+F.~Abdi, S.~Abolmakarem, A.~Karbassi~Yazdi, Y.~Tan, and I.~A. Marchioni~Choque,
+  ``Prospective portfolio optimization with asset preselection using a
+  combination of long and short term memory and sharpe ratio maximization,''
+  {\em IEEE Access}, vol.~12, pp.~144980--144995, 2024.
+
+\bibitem{chou2025ensemble}
+J.-S. Chou and T.-B.-Q. Pham, ``Leveraging ensemble learning-based stock
+  preselection with multiobjective investment optimization for stepwise
+  decision-supported portfolio management,'' {\em Journal of Big Data},
+  vol.~12, p.~196, 2025.
 
 \bibitem{musto2015personalized}
 C.~Musto, G.~Semeraro, P.~Lops, M.~de~Gemmis, and G.~Lekkas, ``Personalized
@@ -50,15 +91,31 @@ A.~Asemi, A.~Asemi, and A.~Ko, ``A model for investment type recommender system
 J.~Wei and J.~Liu, ``Personalized fund recommendation with dynamic utility
   learning,'' {\em Financial Innovation}, vol.~11, p.~48, 2025.
 
+\bibitem{alsabah2021roboadvising}
+H.~Alsabah, A.~Capponi, O.~Ruiz~Lacedelli, and M.~Stern, ``Robo-advising:
+  Learning investors' risk preferences via portfolio choices,'' {\em Journal of
+  Financial Econometrics}, vol.~19, no.~2, pp.~369--392, 2021.
+
+\bibitem{yu2021personalized}
+C.~Yu and Y.~Liu, ``A personalized mean-cvar portfolio optimization model for
+  individual investment,'' {\em Mathematical Problems in Engineering},
+  vol.~2021, p.~8863597, 2021.
+
+\bibitem{capponi2022personalizedrobo}
+A.~Capponi, S.~{\'O}lafsson, and T.~Zariphopoulou, ``Personalized
+  robo-advising: Enhancing investment through client interaction,'' {\em
+  Management Science}, vol.~68, no.~4, pp.~2485--2512, 2022.
+
 \bibitem{schneider2025riskappetite}
 C.~J. Schneider and Y.~Yilmaz, ``Stock portfolio selection based on risk
   appetite: Evidence from chatgpt,'' {\em Finance Research Letters}, vol.~82,
   p.~107517, 2025.
 
-\bibitem{alsabah2021roboadvising}
-H.~Alsabah, A.~Capponi, O.~Ruiz~Lacedelli, and M.~Stern, ``Robo-advising:
-  Learning investors' risk preferences via portfolio choices,'' {\em Journal of
-  Financial Econometrics}, vol.~19, no.~2, pp.~369--392, 2021.
+\bibitem{deng2017deepdirect}
+Y.~Deng, F.~Bao, Y.~Kong, Z.~Ren, and Q.~Dai, ``Deep direct reinforcement
+  learning for financial signal representation and trading,'' {\em IEEE
+  Transactions on Neural Networks and Learning Systems}, vol.~28, no.~3,
+  pp.~653--664, 2017.
 
 \bibitem{jiang2017portfolioframework}
 Z.~Jiang, D.~Xu, and J.~Liang, ``A deep reinforcement learning framework for
@@ -69,6 +126,25 @@ Z.~Jiang, D.~Xu, and J.~Liang, ``A deep reinforcement learning framework for
 X.-Y. Liu, H.~Yang, Q.~Chen, R.~Zhang, L.~Yang, B.~Xiao, and C.~D. Wang,
   ``Finrl: A deep reinforcement learning library for automated stock trading in
   quantitative finance,'' {\em arXiv preprint arXiv:2011.09607}, 2020.
+
+\bibitem{lucarelli2020deepq}
+G.~Lucarelli and M.~Borrotti, ``A deep q-learning portfolio management
+  framework for the cryptocurrency market,'' {\em Neural Computing and
+  Applications}, vol.~32, pp.~17229--17244, 2020.
+
+\bibitem{soleymani2020deepbreath}
+F.~Soleymani and E.~Paquet, ``Financial portfolio optimization with online deep
+  reinforcement learning and restricted stacked autoencoder--deepbreath,'' {\em
+  Expert Systems with Applications}, vol.~156, p.~113456, 2020.
+
+\bibitem{pinelis2022machineallocation}
+M.~Pinelis and D.~Ruppert, ``Machine learning portfolio allocation,'' {\em The
+  Journal of Finance and Data Science}, vol.~8, pp.~35--54, 2022.
+
+\bibitem{rezaei2025taxonomy}
+M.~Rezaei and H.~Nezamabadi-Pour, ``A taxonomy of literature reviews and
+  experimental study of deep reinforcement learning in portfolio management,''
+  {\em Artificial Intelligence Review}, vol.~58, p.~94, 2025.
 
 \bibitem{choudhary2025riskadjusted}
 H.~Choudhary, A.~Orra, K.~Sahoo, and M.~Thakur, ``Risk-adjusted deep

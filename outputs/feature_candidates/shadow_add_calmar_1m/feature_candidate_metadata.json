@@ -1,9 +1,0 @@
-{
-  "candidate_id": "calmar_1m",
-  "candidate_set_id": "shadow_add_calmar_1m",
-  "candidate_type": "additive",
-  "description": "Add trailing 1-month Calmar ratio.",
-  "feature_column": "calmar_1m",
-  "input_feature_set_id": "shadow_add_calmar_1m",
-  "is_macro": false
-}

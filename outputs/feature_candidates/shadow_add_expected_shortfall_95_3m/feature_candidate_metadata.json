@@ -1,9 +1,0 @@
-{
-  "candidate_id": "expected_shortfall_95_3m",
-  "candidate_set_id": "shadow_add_expected_shortfall_95_3m",
-  "candidate_type": "additive",
-  "description": "Add trailing 3-month expected shortfall at the 95% tail.",
-  "feature_column": "expected_shortfall_95_3m",
-  "input_feature_set_id": "shadow_add_expected_shortfall_95_3m",
-  "is_macro": false
-}

@@ -1,9 +1,0 @@
-{
-  "candidate_id": "usd_return_1m",
-  "candidate_set_id": "shadow_add_usd_return_1m",
-  "candidate_type": "additive",
-  "description": "Add 1-month compounded USD return.",
-  "feature_column": "usd_return_1m",
-  "input_feature_set_id": "shadow_add_usd_return_1m",
-  "is_macro": true
-}

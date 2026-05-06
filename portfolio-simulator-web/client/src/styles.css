@@ -1,0 +1,663 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f7f8;
+  color: #17211f;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button, select {
+  font: inherit;
+}
+
+.appShell {
+  min-height: 100vh;
+  background: #f5f7f8;
+}
+
+.workspace {
+  min-width: 0;
+  padding: 28px;
+  display: grid;
+  gap: 22px;
+  align-content: start;
+  max-width: 1720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.workspace > *,
+.topBar,
+.headerActions,
+.workflow,
+.reportSurface,
+.metricsGrid,
+.riskComponentGrid,
+.rawRiskGrid {
+  min-width: 0;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.topNav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.topNav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #43504c;
+  background: #ffffff;
+  border: 1px solid #dce4e1;
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+h1, h2, h3, h4, p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.topBar p,
+.stepPanel p,
+.reportHeader p,
+.emptyReport p,
+.panelNote {
+  color: #64706c;
+  margin-top: 8px;
+  line-height: 1.55;
+}
+
+.panelNote {
+  margin-bottom: 16px;
+  max-width: 860px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f766e;
+  background: #e7f7f3;
+  border: 1px solid #bfe9df;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stepPanel,
+.resultPanel,
+.metricCard,
+.contractsPanel,
+.emptyReport {
+  background: #ffffff;
+  border: 1px solid #dce4e1;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.stepPanel {
+  padding: 18px;
+  min-height: 210px;
+}
+
+.stepPanel.disabled {
+  background: #fafafa;
+}
+
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepTitle span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: #101817;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.stepTitle h2 {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid #cfd8d4;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 18px;
+}
+
+.segmented button {
+  border: 0;
+  background: #ffffff;
+  padding: 10px 8px;
+  cursor: pointer;
+  color: #43504c;
+  font-weight: 760;
+}
+
+.segmented button.selected {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+select {
+  width: 100%;
+  margin-top: 18px;
+  border: 1px solid #cfd8d4;
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: #ffffff;
+  color: #17211f;
+}
+
+.primaryButton {
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #101817;
+  color: #ffffff;
+  padding: 12px 14px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #be123c;
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+
+.infoBanner {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 12px 14px;
+  border-radius: 8px;
+  line-height: 1.45;
+}
+
+.emptyReport {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 42px 24px;
+}
+
+.emptyReport svg {
+  color: #0f766e;
+}
+
+.reportSurface {
+  display: grid;
+  gap: 16px;
+}
+
+.reportHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.reportHeader > div:first-child {
+  min-width: 0;
+}
+
+.reportHeader h2 {
+  font-size: 28px;
+}
+
+.reportMeta {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.reportMeta span {
+  background: #ffffff;
+  border: 1px solid #dce4e1;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-weight: 750;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ratioNote {
+  color: #64706c;
+  font-size: 13px;
+  margin-top: -8px;
+}
+
+.metricCard {
+  padding: 16px;
+}
+
+.metricCard > span {
+  color: #64706c;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.metricCard strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.metricCard dl {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0 0;
+}
+
+.metricCard dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #64706c;
+  font-size: 13px;
+}
+
+.metricCard dd {
+  margin: 0;
+  color: #17211f;
+  font-weight: 760;
+}
+
+.resultPanel,
+.contractsPanel {
+  min-width: 0;
+  padding: 18px;
+}
+
+.resultPanel h3,
+.contractsPanel h3 {
+  font-size: 19px;
+  margin-bottom: 14px;
+}
+
+.chartWrap {
+  overflow: hidden;
+}
+
+.chartWrap svg {
+  width: 100%;
+  display: block;
+}
+
+.gridLine {
+  stroke: #e7ecea;
+  stroke-width: 1;
+}
+
+.axisLine {
+  stroke: #9aa8a4;
+  stroke-width: 1.4;
+}
+
+.axisTitle {
+  fill: #43504c;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.tickLabel {
+  fill: #64706c;
+  font-size: 11px;
+}
+
+.intervalLabel {
+  fill: #7b8783;
+  font-size: 10px;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 0 4px 4px;
+}
+
+.chartHint {
+  color: #64706c;
+  font-size: 12px;
+  margin: 2px 4px 0;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #64706c;
+  font-size: 13px;
+  font-weight: 730;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.riskComponentGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rawRiskGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rawRiskCard {
+  border: 1px solid #e2e8e5;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfc;
+}
+
+.rawRiskCard h4 {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.rawRiskCard dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.rawRiskCard dl div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rawRiskCard dt {
+  color: #64706c;
+  font-size: 13px;
+}
+
+.rawRiskCard dd {
+  margin: 0;
+  color: #17211f;
+  font-weight: 780;
+}
+
+.riskComponentCard {
+  border: 1px solid #e2e8e5;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfc;
+}
+
+.riskComponentCard h4 {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.componentBars {
+  display: grid;
+  gap: 12px;
+}
+
+.componentBarHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: #64706c;
+}
+
+.componentBarHeader strong {
+  color: #17211f;
+}
+
+.barTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: #e7ecea;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.barTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 16px;
+}
+
+.tableScroller {
+  overflow: auto;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.compactTable {
+  margin-top: 14px;
+}
+
+.compactTable table {
+  min-width: 960px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+th, td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid #edf1ef;
+  font-size: 14px;
+}
+
+th {
+  color: #64706c;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+td span {
+  display: block;
+  color: #64706c;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.weightsList {
+  display: grid;
+  gap: 10px;
+}
+
+.weightRow {
+  display: grid;
+  grid-template-columns: 76px 1fr 54px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.weightRow span,
+.weightRow strong {
+  font-weight: 780;
+}
+
+.weightRow div {
+  height: 9px;
+  background: #e7ecea;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.weightRow i {
+  display: block;
+  height: 100%;
+  background: #0f766e;
+  border-radius: inherit;
+}
+
+.contractsPanel > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.contractsPanel h4 {
+  margin-bottom: 8px;
+}
+
+.contractsPanel ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #4b5a56;
+  line-height: 1.55;
+}
+
+.assumptionList {
+  margin: 0;
+  padding-left: 20px;
+  color: #4b5a56;
+  line-height: 1.65;
+}
+
+@media (max-width: 1100px) {
+  .workflow,
+  .metricsGrid,
+  .riskComponentGrid,
+  .rawRiskGrid,
+  .twoColumn,
+  .contractsPanel > div {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    padding: 18px;
+  }
+
+  .topBar,
+  .reportHeader {
+    flex-direction: column;
+  }
+
+  .headerActions,
+  .topNav,
+  .reportMeta {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .reportMeta {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .workflow,
+  .metricsGrid,
+  .riskComponentGrid,
+  .rawRiskGrid,
+  .twoColumn,
+  .contractsPanel > div {
+    grid-template-columns: 1fr;
+  }
+
+  .tableScroller {
+    width: calc(100vw - 72px);
+    max-width: calc(100vw - 72px);
+  }
+}

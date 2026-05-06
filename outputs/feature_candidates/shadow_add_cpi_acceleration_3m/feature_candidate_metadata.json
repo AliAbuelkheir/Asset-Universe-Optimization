@@ -1,9 +1,0 @@
-{
-  "candidate_id": "cpi_acceleration_3m",
-  "candidate_set_id": "shadow_add_cpi_acceleration_3m",
-  "candidate_type": "additive",
-  "description": "Add a 3-month CPI acceleration signal.",
-  "feature_column": "cpi_acceleration_3m",
-  "input_feature_set_id": "shadow_add_cpi_acceleration_3m",
-  "is_macro": true
-}

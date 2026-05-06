@@ -1,24 +1,20 @@
+# Node / web app
+node_modules/
+dist/
+coverage/
+.vite/
+.runtime-logs/
+*.tsbuildinfo
+
 # Python caches
 __pycache__/
 *.py[cod]
-
-# Pytest/runtime temp artifacts
 .pytest_cache/
-pytest_cache/
-.tmp/
-.test_runtime/
-pytest_runtime/
-testruns_root/
-tmp_pytest_base/
-mkdir_mode_test/
-mkdir_mode_test_2/
-tmp_probe/
 pytest-cache-files-*/
 
-# Generated experiment artifacts
-outputs/experiments/
-outputs/ppo_tuning/
-outputs/feature_profiles/
-outputs/feature_candidates/
-outputs/top_candidate_reruns/
-outputs/current_best_model/
+# Local env files
+.env
+.env.*
+!.env.example
+
+# PPO project ignored artifacts are managed by ppo-risk-model/.gitignore

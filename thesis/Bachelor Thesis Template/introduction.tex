@@ -1,16 +1,45 @@
 \chapter{Introduction}
 \label{chap:intro}
 
-\section{Motivation and Objectives}
+\section{Motivation}
 
-Portfolio construction is commonly framed as an optimization problem over a predefined set of assets. While this formulation is analytically convenient, it implicitly assumes that the same investable universe is suitable for all investors and remains appropriate across changing market conditions. In practice, this assumption is restrictive. Before portfolio weights can be meaningfully assigned, the candidate asset universe itself must first be evaluated for suitability with respect to investor needs and the current market environment.
+Portfolio construction is commonly framed as an optimization problem over a predefined set of assets. Classical portfolio theory explains how capital can be distributed across available assets once that set is known, but the prior question of which assets should be considered suitable is often left outside the model. This is a restrictive assumption because the same candidate universe is not necessarily appropriate for all investors. Before portfolio weights can be assigned, the candidate asset universe should first be evaluated with respect to investor objectives, risk tolerance, and the current market environment.
 
-This issue is particularly relevant in the Egyptian financial market, where asset risk behavior can shift materially over time in response to inflation dynamics, currency movements, monetary-policy changes, and episodes of market stress. Under such conditions, static categorizations that treat certain assets as permanently conservative or permanently aggressive may fail to reflect actual market behavior. As a result, portfolio construction that begins directly with final allocation may inherit weaknesses from an inappropriate or insufficiently adaptive candidate universe.
+This issue is relevant in markets where asset behavior changes across time. In the Egyptian financial market, risk characteristics can shift in response to inflation, currency movements, monetary-policy changes, and market stress. Under such conditions, a fixed label that treats an asset as permanently conservative or permanently aggressive can become misleading. A portfolio construction process that begins directly with final allocation may therefore inherit weaknesses from a candidate universe that is not suitable for the investor profile.
 
-This thesis therefore treats asset-universe selection as a distinct decision stage within a broader investment pipeline. The focus is not the direct computation of final portfolio weights, but the prior problem of determining which assets should enter the investable set for a given investor context. The proposed direction is an artificial-intelligence-based framework, centered on reinforcement learning, that evaluates relative asset risk in a market-aware manner and supports adaptive universe construction instead of relying solely on fixed heuristics.
+This thesis treats asset-universe selection as a distinct pre-allocation decision stage. The objective is not to compute final portfolio weights. Instead, the thesis studies how artificial intelligence can support the selection of an investor-suitable universe before any downstream allocation model is applied. Investor suitability is interpreted through three risk-tolerance groups. Conservative investors prioritize risk control, balanced investors seek a risk-return tradeoff, and aggressive investors tolerate higher risk for higher return opportunity.
 
-The main objective of the thesis is to design a scientifically grounded framework for AI-supported asset-universe selection in the Egyptian market. More specifically, the thesis aims to show that universe construction can be modeled as an explicit stage positioned between upstream risk quantification and downstream portfolio allocation. The defended contribution lies in combining AI-based selection, market-conditioned risk evaluation, and the explicit treatment of asset-universe design as an independent component of portfolio construction rather than as a hidden preprocessing step. Accordingly, the central research question addressed by this thesis is: how can machine learning techniques support the dynamic selection of an investor-appropriate asset universe in the Egyptian financial market, based on risk tolerance, while allowing asset risk characteristics to adapt to changing market regimes?
+The implementation studies this problem through an adaptive risk-scoring approach. A reinforcement-learning model predicts an asset-level composite realized-risk score and derives risk ranks for the active universe in each decision month. The realized-risk target combines realized volatility, downside deviation, and maximum drawdown. These predictions are then used to form risk-tolerance-oriented asset universes before allocation. The contribution is therefore the use of AI-supported asset-risk prediction for investor-suitable universe construction, rather than final portfolio optimization.
+
+\section{Problem Statement}
+
+Existing portfolio allocation methods generally assume that the investable universe has already been defined. Related AI and machine-learning preselection studies show that filtering assets before optimization is a valid modeling stage, but their selection criteria are commonly based on expected return, price movement, profitability, Sharpe-like measures, efficiency, robustness, or downstream optimizer performance. The unresolved problem addressed in this thesis is how to select an investor-suitable asset universe before allocation when suitability is defined by risk tolerance and asset-level realized-risk behavior.
+
+\section{Scope and Asset Universe}
+
+The thesis focuses on a mixed Egyptian-market universe. The investable asset universe includes money-market exposure represented by 91-day Treasury bills, government bonds represented by 5-year bonds, Egyptian equity exposure represented by EGX30 and available EGX30 constituent stocks, real-estate exposure represented by a REIT series, and gold exposure represented by 24K gold in Egyptian pounds. Macroeconomic inputs such as USD exchange-rate behavior and CPI are used as model features only. They are not treated as investable asset-universe elements.
+
+The current scope ends at pre-allocation universe selection. Final portfolio weighting, investor-facing production serving, and allocation simulation are not treated as the main implemented contribution. They are downstream stages that can use the selected universe produced by the proposed framework.
+
+\section{Research Questions and Objectives}
+
+This thesis is guided by the following research questions:
+
+\begin{itemize}
+    \item RQ1: Can AI/ML support dynamic asset-universe selection before allocation using asset-level realized-risk prediction?
+    \item RQ2: Do the selected universes align with conservative, balanced, and aggressive investor risk-tolerance profiles?
+    \item RQ3: How does direct asset-risk prediction differ from existing AI/ML preselection criteria such as return prediction, price movement, Sharpe-like performance, efficiency, or optimizer quality?
+\end{itemize}
+
+The objectives of the thesis are to:
+
+\begin{itemize}
+    \item design a pre-allocation asset-universe selection framework guided by investor risk tolerance;
+    \item construct point-in-time asset risk features and composite realized-risk targets;
+    \item train and evaluate a reinforcement-learning model that predicts asset-level realized risk;
+    \item evaluate selected universes against full-universe, random, oracle, and heuristic baselines.
+\end{itemize}
 
 \section{Outline}
 
-The remainder of this thesis is organized as follows. Chapter~\ref{chap:litreview} reviews the relevant literature on asset preselection, investor-risk-conditioned recommendation, adaptive AI methods, and the research gap addressed by this work. Chapter~\ref{chap:method} presents the methodology and overall system design. Chapter~4 reports the results and evaluation of the proposed framework. Chapter~5 concludes the thesis and summarizes the main implications of the study.
+The remainder of this thesis is organized as follows. Chapter~\ref{chap:litreview} reviews the relevant literature on portfolio optimization, AI/ML asset preselection, investor-risk personalization, reinforcement-learning methods, and the research gap addressed by this work. Later chapters present the methodology, experimental evaluation, and conclusions of the proposed framework.

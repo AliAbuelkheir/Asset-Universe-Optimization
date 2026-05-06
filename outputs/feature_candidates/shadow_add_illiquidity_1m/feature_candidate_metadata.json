@@ -1,9 +1,0 @@
-{
-  "candidate_id": "illiquidity_1m",
-  "candidate_set_id": "shadow_add_illiquidity_1m",
-  "candidate_type": "additive",
-  "description": "Add 1-month Amihud-style illiquidity.",
-  "feature_column": "illiquidity_1m",
-  "input_feature_set_id": "shadow_add_illiquidity_1m",
-  "is_macro": false
-}

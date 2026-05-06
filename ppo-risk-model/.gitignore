@@ -1,0 +1,21 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Pytest/runtime temp artifacts
+.pytest_cache/
+pytest_cache/
+.tmp/
+.test_runtime/
+pytest_runtime/
+testruns_root/
+tmp_pytest_base/
+mkdir_mode_test/
+mkdir_mode_test_2/
+tmp_probe/
+pytest-cache-files-*/
+
+# Generated experiment artifacts
+outputs/*
+!outputs/best_model/
+!outputs/best_model/**
