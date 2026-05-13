@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fetchMonths, fetchRiskLevels, runFastSimulation, runQuestionnaireSimulation } from "./api";
+import { PipelinePlayback } from "./components/PipelinePlayback";
 import { ReportView } from "./components/ReportView";
 import { RunPanel } from "./components/RunPanel";
 import { SimulationControls } from "./components/SimulationControls";
@@ -53,6 +54,19 @@ function App() {
       (lastRun?.mode === "fast" && report.riskLevel !== riskLevel) ||
       (lastRun?.mode === "questionnaire" && lastRun.questionnaireKey !== questionnaireKey) ||
       (report.requestedDurationMonths ?? null) !== durationMonths);
+
+  useEffect(() => {
+    if (!report) {
+      return;
+    }
+    const prefersReducedMotion = typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motion = prefersReducedMotion ? "auto" : "smooth";
+    const timer = window.setTimeout(() => {
+      document.getElementById("pipeline-replay")?.scrollIntoView({ behavior: motion, block: "start" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [report?.simulationId]);
 
   async function handleRunSimulation() {
     setLoading(true);
@@ -125,6 +139,7 @@ function App() {
         </section>
 
         {error && <div className="errorBanner"><AlertTriangle size={18} />{error}</div>}
+        <PipelinePlayback report={report} isStale={isReportStale} />
         <ReportView report={report} isStale={isReportStale} />
       </section>
     </main>

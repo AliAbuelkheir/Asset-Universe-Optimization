@@ -57,6 +57,26 @@ def run_questionnaire_simulation(
     return report
 
 
+def _pipeline_asset(
+    row: Any,
+    selected_ids: set[str],
+    selected_equal_weights: dict[str, float],
+    selected_optimizer_weights: dict[str, float],
+) -> dict[str, Any]:
+    asset_id = str(row["AssetID"])
+    selected_by_filter = asset_id in selected_ids
+    return {
+        "assetId": asset_id,
+        "assetName": str(row["AssetName"]),
+        "assetGroup": str(row["AssetGroup"]),
+        "predictedRisk": float(row["PredictedRisk"]),
+        "predictedRankPct": float(row["PredictedRankPct"]),
+        "selectedByFilter": selected_by_filter,
+        "equalWeight": selected_equal_weights.get(asset_id) if selected_by_filter else None,
+        "optimizedWeight": selected_optimizer_weights.get(asset_id) if selected_by_filter else None,
+    }
+
+
 def run_fast_simulation(month: str, risk_level: str, duration_months: int | None = None) -> dict[str, Any]:
     selected, split = select_assets(month, risk_level)
     predictions = read_predictions()
@@ -70,7 +90,9 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
     selected_asset_ids = selected["AssetID"].astype(str).tolist()
     selected_weights = equal_weights(selected_asset_ids)
 
-    same_month_universe = predictions.loc[predictions["Date"].eq(month) & predictions["Split"].isin(VALID_SPLITS)].copy()
+    same_month_universe = predictions.loc[
+        predictions["Date"].eq(month) & predictions["Split"].isin(VALID_SPLITS)
+    ].copy()
     all_universe_asset_ids = same_month_universe["AssetID"].astype(str).tolist()
     all_universe_weights = equal_weights(all_universe_asset_ids)
 
@@ -107,16 +129,35 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
         for index in range(len(forward_months))
     ]
 
+    selected_id_set = set(selected_asset_ids)
+    active_assets = [
+        _pipeline_asset(row, selected_id_set, selected_weights, optimized_selected.weights)
+        for _, row in same_month_universe.iterrows()
+    ]
+    selected_assets = [asset for asset in active_assets if asset["selectedByFilter"]]
+
     comparison = [
-        {"id": "optimizedPortfolio", "label": "Optimizer on selected risk bucket", "metrics": performance_metrics(optimized_returns)},
+        {
+            "id": "optimizedPortfolio",
+            "label": "Full pipeline: PPO-filtered assets + optimizer weights",
+            "metrics": performance_metrics(optimized_returns),
+        },
         {
             "id": "optimizedRawUniverse",
-            "label": "Optimizer on full active universe",
+            "label": "Skip asset filter: all active assets + optimizer weights",
             "metrics": performance_metrics(optimized_raw_universe_returns),
         },
-        {"id": "assignedRiskBucket", "label": "Assigned risk bucket equal weight", "metrics": performance_metrics(bucket_returns)},
-        {"id": "allEqualWeight", "label": "All active universe equal weight", "metrics": performance_metrics(all_equal_returns)},
-        {"id": "egx30", "label": "EGX30 equity context", "metrics": performance_metrics(egx_returns)},
+        {
+            "id": "assignedRiskBucket",
+            "label": "Skip weight optimizer: PPO-filtered assets + equal weights",
+            "metrics": performance_metrics(bucket_returns),
+        },
+        {
+            "id": "allEqualWeight",
+            "label": "Skip asset filter and optimizer: all active assets + equal weights",
+            "metrics": performance_metrics(all_equal_returns),
+        },
+        {"id": "egx30", "label": "EGX30 index benchmark", "metrics": performance_metrics(egx_returns)},
     ]
 
     return {
@@ -135,5 +176,13 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
         "optimizerMode": "external_model",
         "monthlyReturns": monthly_points,
         "comparison": comparison,
+        "pipeline": {
+            "activeUniverse": active_assets,
+            "selectedAssets": selected_assets,
+            "activeUniverseCount": len(active_assets),
+            "selectedAssetCount": len(selected_assets),
+            "optimizerWeightSum": optimized_selected.sum_check,
+            "optimizerDecisionDate": optimized_selected.decision_date,
+        },
         "questionnaireInference": None,
     }

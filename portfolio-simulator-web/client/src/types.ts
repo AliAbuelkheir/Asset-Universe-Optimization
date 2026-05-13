@@ -64,6 +64,26 @@ export interface ComparisonRow {
   metrics: PerformanceMetrics;
 }
 
+export interface PipelineAsset {
+  assetId: string;
+  assetName: string;
+  assetGroup: string;
+  predictedRisk: number;
+  predictedRankPct: number;
+  selectedByFilter: boolean;
+  equalWeight: number | null;
+  optimizedWeight: number | null;
+}
+
+export interface SimulationPipeline {
+  activeUniverse: PipelineAsset[];
+  selectedAssets: PipelineAsset[];
+  activeUniverseCount: number;
+  selectedAssetCount: number;
+  optimizerWeightSum: number;
+  optimizerDecisionDate: string;
+}
+
 export interface SimulationReport {
   simulationId: string;
   month: string;
@@ -79,5 +99,6 @@ export interface SimulationReport {
   optimizerMode: "external_model";
   monthlyReturns: MonthlyReturnPoint[];
   comparison: ComparisonRow[];
+  pipeline: SimulationPipeline;
   questionnaireInference?: QuestionnaireInference | null;
 }

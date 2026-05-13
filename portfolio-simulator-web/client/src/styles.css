@@ -13,8 +13,6 @@
   --accent: #10b981;
   --accent-strong: #059669;
   --accent-soft: #e7f8f0;
-  --blue: #5574d8;
-  --blue-soft: #edf2ff;
   --danger: #b42318;
   --warning: #9a3412;
   --shadow: 0 16px 40px rgba(21, 23, 33, 0.08);
@@ -69,6 +67,8 @@ p {
 .workspace > *,
 .topBar,
 .simulationConsole,
+.pipelinePanel,
+.pipelineBody,
 .reportSurface,
 .metricsGrid,
 .resultPanel {
@@ -461,6 +461,284 @@ select {
   border: 1px solid #fed7aa;
 }
 
+.pipelinePanel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  scroll-margin-top: 28px;
+  overflow: hidden;
+}
+
+.pipelinePanel.stale {
+  border-color: #fed7aa;
+}
+
+.pipelineHeader,
+.assetUniverseHeader,
+.weightRow,
+.weightInsight {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.pipelineHeader h2 {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.pipelineHeader p,
+.assetUniverseHeader p,
+.weightAssignmentCard p,
+.assetNode span,
+.assetNode small,
+.weightRowLabel span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.pipelineSummary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pipelineSummary span,
+.assetUniverseHeader > span,
+.weightInsight {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.pipelineStaleNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--warning);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.pipelineBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 410px);
+  gap: 16px;
+  align-items: start;
+}
+
+.assetUniverseCard,
+.weightAssignmentCard {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.assetUniverseCard {
+  grid-template-rows: auto auto;
+  align-content: start;
+}
+
+.assetUniverseHeader h3,
+.weightAssignmentCard h3 {
+  margin-bottom: 5px;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.assetUniverseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+
+.assetNode {
+  min-height: 88px;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  transition:
+    opacity 900ms ease,
+    transform 900ms ease,
+    border-color 900ms ease,
+    background 900ms ease,
+    box-shadow 900ms ease;
+}
+
+.assetNode.faded {
+  opacity: 0.18;
+  transform: scale(0.98);
+}
+
+.assetNode.selected {
+  border-color: rgba(16, 185, 129, 0.56);
+  background: #fbfffc;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.18);
+}
+
+.assetNode.weighted {
+  animation: selectedAssetPulse 1400ms ease both;
+}
+
+.assetNodeTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.assetNode strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.weightRowLabel strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.assetNodeTop svg {
+  color: var(--accent-strong);
+  flex: 0 0 auto;
+}
+
+.assetNode em {
+  align-self: start;
+  color: #047857;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.weightAssignmentCard {
+  height: var(--asset-card-height, auto);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.weightRows {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.weightRow {
+  align-items: center;
+  gap: 9px;
+  min-height: 33px;
+}
+
+.weightRowLabel {
+  min-width: 0;
+  flex: 1 1 145px;
+  display: grid;
+  gap: 2px;
+}
+
+.weightRowLabel span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.weightTrack {
+  position: relative;
+  flex: 0 0 106px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dfeee6;
+}
+
+.weightTrack i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-strong), #34d399);
+}
+
+.weightRow.assigned .weightTrack i {
+  animation: assignWeight 1100ms ease forwards;
+  animation-delay: var(--weight-delay);
+}
+
+.weightRow b {
+  flex: 0 0 58px;
+  text-align: right;
+  font-size: 13px;
+}
+
+.weightInsight {
+  align-items: center;
+  border-radius: 8px;
+}
+
+.weightInsight span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.weightInsight strong {
+  text-align: right;
+}
+
+@keyframes assignWeight {
+  from {
+    width: 0;
+  }
+  to {
+    width: calc(var(--weight-pct) * 1%);
+  }
+}
+
+@keyframes selectedAssetPulse {
+  0% {
+    transform: scale(0.98);
+  }
+  55% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .emptyReport {
   min-height: 320px;
   display: grid;
@@ -662,6 +940,20 @@ th {
   .runPanel {
     position: static;
   }
+
+  .pipelineBody {
+    grid-template-columns: 1fr;
+  }
+
+  .weightAssignmentCard {
+    height: auto;
+    overflow: visible;
+  }
+
+  .weightRows {
+    overflow: visible;
+    padding-right: 0;
+  }
 }
 
 @media (max-width: 720px) {
@@ -671,6 +963,8 @@ th {
 
   .topBar,
   .reportHeader,
+  .pipelineHeader,
+  .assetUniverseHeader,
   .sectionHeading,
   .activeModeHeader {
     flex-direction: column;
@@ -678,7 +972,8 @@ th {
 
   .headerActions,
   .topNav,
-  .reportMeta {
+  .reportMeta,
+  .pipelineSummary {
     justify-content: flex-start;
     width: 100%;
   }
@@ -693,8 +988,25 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .assetUniverseGrid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
+
   .tableScroller {
     width: calc(100vw - 72px);
     max-width: calc(100vw - 72px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assetNode,
+  .assetNode.weighted,
+  .weightRow.assigned .weightTrack i {
+    animation: none;
+    transition: none;
+  }
+
+  .weightRow.assigned .weightTrack i {
+    width: calc(var(--weight-pct) * 1%);
   }
 }

@@ -1,3 +1,4 @@
+import { comparisonLabels } from "../comparisonLabels";
 import { percent } from "../format";
 import type { ComparisonRow } from "../types";
 import {
@@ -12,19 +13,11 @@ import {
 } from "recharts";
 
 const COLORS: Record<string, string> = {
-  optimizedPortfolio: "#00A63E",
-  optimizedRawUniverse: "#FF8A00",
-  assignedRiskBucket: "#47D16C",
-  allEqualWeight: "#667085",
-  egx30: "#8AA8FF"
-};
-
-const LABELS: Record<string, string> = {
-  optimizedPortfolio: "Optimizer after risk filter",
-  optimizedRawUniverse: "Optimizer on raw universe",
-  assignedRiskBucket: "Selected risk profile equal weight",
-  allEqualWeight: "Market universe",
-  egx30: "EGX30 index"
+  optimizedPortfolio: "#2563EB",
+  optimizedRawUniverse: "#F97316",
+  assignedRiskBucket: "#7C3AED",
+  allEqualWeight: "#64748B",
+  egx30: "#0891B2"
 };
 
 export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
@@ -33,7 +26,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
   }
   const data = rows.map((row) => ({
     id: row.id,
-    label: LABELS[row.id] ?? row.label,
+    label: comparisonLabels[row.id] ?? row.label,
     volatility: row.metrics.annualizedVolatility,
     cumulativeReturn: row.metrics.cumulativeReturn,
     color: COLORS[row.id] ?? "#151721"
@@ -87,7 +80,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
         {rows.map((row) => (
           <span key={row.id}>
             <i style={{ background: COLORS[row.id] ?? "#151721" }} />
-            {LABELS[row.id] ?? row.label}
+            {comparisonLabels[row.id] ?? row.label}
           </span>
         ))}
       </div>

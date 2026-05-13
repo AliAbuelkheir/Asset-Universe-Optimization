@@ -81,6 +81,17 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
         "allEqualWeight",
         "egx30",
     }
+    assert report["pipeline"]["activeUniverseCount"] >= report["pipeline"]["selectedAssetCount"] > 0
+    assert len(report["pipeline"]["activeUniverse"]) == report["pipeline"]["activeUniverseCount"]
+    assert len(report["pipeline"]["selectedAssets"]) == report["pipeline"]["selectedAssetCount"]
+    assert report["pipeline"]["optimizerWeightSum"] == pytest.approx(1.0)
+    selected_asset_ids = {asset["assetId"] for asset in report["pipeline"]["selectedAssets"]}
+    assert selected_asset_ids
+    assert all(asset["selectedByFilter"] for asset in report["pipeline"]["selectedAssets"])
+    assert all(asset["optimizedWeight"] is not None for asset in report["pipeline"]["selectedAssets"])
+    assert selected_asset_ids.issubset({asset["assetId"] for asset in report["pipeline"]["activeUniverse"]})
+    active_rank_order = [asset["predictedRankPct"] for asset in report["pipeline"]["activeUniverse"]]
+    assert active_rank_order != sorted(active_rank_order)
     assert "selectedAssets" not in report
     assert "filterImpact" not in report
     assert "riskComponents" not in report
@@ -106,7 +117,7 @@ def test_optimizer_missing_artifacts_return_503(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_questionnaire_feature_vector_uses_exact_order() -> None:
-    assert build_feature_vector(SAMPLE_QUESTIONNAIRE) == [29.0, 1.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 1.0]
+    assert build_feature_vector(SAMPLE_QUESTIONNAIRE) == [29.0, 1.0, 2.0, 2.0, 1.0, 0.0, 1.0, 0.0, 1.0]
 
 
 def test_questionnaire_model_predicts_valid_risk_level() -> None:
@@ -119,6 +130,32 @@ def test_questionnaire_model_predicts_valid_risk_level() -> None:
     assert 0.0 <= inference["riskScore"] <= 100.0
     assert "featureNames" not in inference
     assert "featureVector" not in inference
+
+
+def test_questionnaire_mapping_matches_controlled_profiles() -> None:
+    conservative = {
+        "gender": "Female",
+        "age": 60,
+        "Duration": "Less than 1 year",
+        "Invest_Monitor": "Monthly",
+        "Expect": "10%-20%",
+        "Objective": "Income",
+        "Purpose": "Savings for Future",
+        "What are your savings objectives?": "Retirement Plan",
+    }
+    aggressive = {
+        "gender": "Male",
+        "age": 22,
+        "Duration": "More than 5 years",
+        "Invest_Monitor": "Daily",
+        "Expect": "30%-40%",
+        "Objective": "Growth",
+        "Purpose": "Wealth Creation",
+        "What are your savings objectives?": "Education",
+    }
+
+    assert predict_questionnaire_risk(conservative)["riskLevel"] == "low"
+    assert predict_questionnaire_risk(aggressive)["riskLevel"] == "high"
 
 
 def test_questionnaire_simulation_attaches_inference_metadata() -> None:

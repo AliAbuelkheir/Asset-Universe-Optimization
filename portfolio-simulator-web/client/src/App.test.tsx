@@ -22,6 +22,66 @@ const baseReport = {
   ],
   thesisSafeSummary: "Historical diagnostic only.",
   optimizerMode: "external_model",
+  pipeline: {
+    activeUniverse: [
+      {
+        assetId: "ALFA",
+        assetName: "Alpha Holding",
+        assetGroup: "Financials",
+        predictedRisk: 0.12,
+        predictedRankPct: 0.1,
+        selectedByFilter: false,
+        equalWeight: null,
+        optimizedWeight: null
+      },
+      {
+        assetId: "BETA",
+        assetName: "Beta Cement",
+        assetGroup: "Materials",
+        predictedRisk: 0.42,
+        predictedRankPct: 0.48,
+        selectedByFilter: true,
+        equalWeight: 0.5,
+        optimizedWeight: 0.6
+      },
+      {
+        assetId: "GAMA",
+        assetName: "Gamma Bank",
+        assetGroup: "Banks",
+        predictedRisk: 0.56,
+        predictedRankPct: 0.64,
+        selectedByFilter: true,
+        equalWeight: 0.5,
+        optimizedWeight: 0.4
+      }
+    ],
+    selectedAssets: [
+      {
+        assetId: "BETA",
+        assetName: "Beta Cement",
+        assetGroup: "Materials",
+        predictedRisk: 0.42,
+        predictedRankPct: 0.48,
+        selectedByFilter: true,
+        equalWeight: 0.5,
+        optimizedWeight: 0.6
+      },
+      {
+        assetId: "GAMA",
+        assetName: "Gamma Bank",
+        assetGroup: "Banks",
+        predictedRisk: 0.56,
+        predictedRankPct: 0.64,
+        selectedByFilter: true,
+        equalWeight: 0.5,
+        optimizedWeight: 0.4
+      }
+    ],
+    activeUniverseCount: 3,
+    selectedAssetCount: 2,
+    optimizerWeightSum: 1,
+    optimizerDecisionDate: "2025-03-01"
+  },
   monthlyReturns: [
     { month: "2025-03", optimizedPortfolio: 0.015, optimizedRawUniverse: 0.012, assignedRiskBucket: 0.01, allEqualWeight: 0.02, egx30: 0.03 },
     { month: "2025-04", optimizedPortfolio: -0.005, optimizedRawUniverse: -0.008, assignedRiskBucket: -0.01, allEqualWeight: 0.01, egx30: 0.02 }
@@ -132,8 +192,13 @@ describe("App", () => {
     fireEvent.click(screen.getByText("Run simulation"));
 
     expect(await screen.findByText("Simulation report")).toBeInTheDocument();
-    expect(screen.getAllByText("Optimizer after risk filter").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Optimizer on raw universe").length).toBeGreaterThan(0);
+    expect(screen.getByText("Pipeline replay")).toBeInTheDocument();
+    expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
+    expect(screen.getByText("Final selected-asset weights")).toBeInTheDocument();
+    expect(screen.getAllByText("Full pipeline: PPO-filtered assets + optimizer weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Skip asset filter: all active assets + optimizer weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Skip weight optimizer: PPO-filtered assets + equal weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Skip asset filter and optimizer: all active assets + equal weights").length).toBeGreaterThan(0);
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
     expect(screen.queryByText("Component-risk separation across the test period")).not.toBeInTheDocument();
     expect(screen.queryByText("Asset-universe filter impact")).not.toBeInTheDocument();

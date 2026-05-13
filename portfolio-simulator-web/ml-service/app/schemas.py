@@ -102,6 +102,26 @@ class ComparisonRow(BaseModel):
     metrics: PerformanceMetrics
 
 
+class PipelineAsset(BaseModel):
+    assetId: str
+    assetName: str
+    assetGroup: str
+    predictedRisk: float
+    predictedRankPct: float
+    selectedByFilter: bool
+    equalWeight: float | None = None
+    optimizedWeight: float | None = None
+
+
+class SimulationPipeline(BaseModel):
+    activeUniverse: list[PipelineAsset]
+    selectedAssets: list[PipelineAsset]
+    activeUniverseCount: int
+    selectedAssetCount: int
+    optimizerWeightSum: float
+    optimizerDecisionDate: str
+
+
 class SimulationReport(BaseModel):
     simulationId: str
     month: str
@@ -114,4 +134,5 @@ class SimulationReport(BaseModel):
     optimizerMode: Literal["external_model"]
     monthlyReturns: list[MonthlyReturnPoint]
     comparison: list[ComparisonRow]
+    pipeline: SimulationPipeline
     questionnaireInference: QuestionnaireInference | None = None

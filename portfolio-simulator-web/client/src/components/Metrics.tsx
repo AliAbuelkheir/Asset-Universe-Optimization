@@ -1,20 +1,13 @@
+import { comparisonLabels } from "../comparisonLabels";
 import { number, percent } from "../format";
 import type { ComparisonRow } from "../types";
-
-const publicLabels: Partial<Record<ComparisonRow["id"], string>> = {
-  optimizedPortfolio: "Optimizer after risk filter",
-  optimizedRawUniverse: "Optimizer on raw universe",
-  assignedRiskBucket: "Selected risk profile equal weight",
-  allEqualWeight: "Market universe",
-  egx30: "EGX30 index"
-};
 
 export function Metrics({ rows }: { rows: ComparisonRow[] }) {
   return (
     <div className="metricsGrid">
       {rows.map((row) => (
         <article className="metricCard" key={row.id}>
-          <span>{publicLabels[row.id] ?? row.label}</span>
+          <span>{comparisonLabels[row.id] ?? row.label}</span>
           <strong>{percent(row.metrics.cumulativeReturn)}</strong>
           <dl>
             <div><dt>Volatility</dt><dd>{percent(row.metrics.annualizedVolatility)}</dd></div>
