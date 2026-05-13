@@ -2,6 +2,11 @@ fastapi
 uvicorn[standard]
 pandas
 numpy
+torch>=2.6.0,<3.0
+stable-baselines3>=2.5.0,<3.0
+gymnasium>=1.0.0,<2.0
+openpyxl>=3.1,<4.0
+scikit-learn==1.6.1
+joblib==1.4.2
 pytest
 httpx
-

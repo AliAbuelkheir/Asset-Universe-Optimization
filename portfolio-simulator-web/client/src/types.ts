@@ -1,5 +1,7 @@
 export type RiskLevel = "low" | "medium" | "high";
 
+export type SimulationMode = "questionnaire" | "fast";
+
 export interface MonthOption {
   month: string;
   split: "validation" | "test";
@@ -14,26 +16,29 @@ export interface RiskLevelDefinition {
   description: string;
 }
 
-export interface SelectedAsset {
-  assetId: string;
-  assetName: string;
-  assetGroup: string;
-  predictedRankPct: number;
-  realizedVol?: number | null;
-  realizedDownsideDev?: number | null;
-  realizedMaxDrawdown?: number | null;
-  weight?: number;
+export interface QuestionnaireInput {
+  gender: "Male" | "Female";
+  age: number;
+  Duration: "Less than 1 year" | "1-3 years" | "3-5 years" | "More than 5 years";
+  Invest_Monitor: "Monthly" | "Weekly" | "Daily";
+  Expect: "10%-20%" | "20%-30%" | "30%-40%";
+  Objective: "Risk" | "Returns" | "Growth" | "Income";
+  Purpose: "Wealth Creation" | "Savings for Future" | "Returns" | "Income";
+  "What are your savings objectives?": "Health Care" | "Retirement Plan" | "Education";
 }
 
-export interface RealizedRiskComponents {
-  realizedVol: number;
-  realizedDownsideDev: number;
-  realizedMaxDrawdown: number;
+export interface QuestionnaireInference {
+  riskClass: 0 | 1 | 2;
+  riskLabel: "Conservative" | "Moderate" | "Aggressive";
+  riskLevel: RiskLevel;
+  probabilities: Partial<Record<"Conservative" | "Moderate" | "Aggressive", number>>;
+  riskScore: number;
 }
 
 export interface MonthlyReturnPoint {
   month: string;
-  optimizedPortfolio?: number;
+  optimizedPortfolio: number;
+  optimizedRawUniverse: number;
   assignedRiskBucket: number;
   allEqualWeight: number;
   egx30: number;
@@ -54,28 +59,9 @@ export interface PerformanceMetrics {
 }
 
 export interface ComparisonRow {
-  id: "optimizedPortfolio" | "assignedRiskBucket" | "allEqualWeight" | "egx30";
+  id: "optimizedPortfolio" | "optimizedRawUniverse" | "assignedRiskBucket" | "allEqualWeight" | "egx30";
   label: string;
   metrics: PerformanceMetrics;
-}
-
-export interface RiskComponentRow {
-  id: "optimizedPortfolio" | "assignedRiskBucket" | "allEqualWeight" | "egx30";
-  label: string;
-  components: RealizedRiskComponents;
-}
-
-export interface RawRiskComponents {
-  annualizedVolatility: number;
-  annualizedDownsideDeviation: number;
-  maxDrawdown: number;
-  observations: number;
-}
-
-export interface RawRiskComponentRow {
-  id: "assignedRiskBucket" | "allEqualWeight" | "egx30";
-  label: string;
-  components: RawRiskComponents;
 }
 
 export interface SimulationReport {
@@ -90,15 +76,8 @@ export interface SimulationReport {
     daysSincePrevious: number;
   }>;
   thesisSafeSummary: string;
-  optimizerMode: "mock_equal_weight" | "external_model";
-  selectedAssets: SelectedAsset[];
+  optimizerMode: "external_model";
   monthlyReturns: MonthlyReturnPoint[];
   comparison: ComparisonRow[];
-  riskComponents: RiskComponentRow[];
-  rawRiskComponents: RawRiskComponentRow[];
-  assumptions: string[];
-  requiredExternalContracts: {
-    riskToleranceModel: string[];
-    weightOptimizerModel: string[];
-  };
+  questionnaireInference?: QuestionnaireInference | null;
 }

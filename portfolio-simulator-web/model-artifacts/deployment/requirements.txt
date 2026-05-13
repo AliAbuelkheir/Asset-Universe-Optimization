@@ -1,0 +1,12 @@
+# Pinned for reproducibility. These are the EXACT versions used to train and
+# package the models. Different versions are likely to load but may produce
+# subtly different numerical output.
+#
+# Python: 3.11 - 3.13 supported (tested on 3.13.3)
+
+torch>=2.6.0,<3.0
+stable-baselines3>=2.5.0,<3.0
+gymnasium>=1.0.0,<2.0
+pandas>=2.2,<4.0
+numpy>=1.24,<3.0
+openpyxl>=3.1,<4.0

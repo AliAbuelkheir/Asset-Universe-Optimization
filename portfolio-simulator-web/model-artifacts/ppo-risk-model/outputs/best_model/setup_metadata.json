@@ -1,0 +1,195 @@
+{
+  "action_distribution": "masked_sigmoid_gaussian",
+  "artifacts_dir": "C:\\Ali\\CS\\Bachelor thesis\\outputs\\best_model",
+  "base_framework_id": "pit_3m_flat_context",
+  "best_model_path": "C:\\Ali\\CS\\Bachelor thesis\\outputs\\best_model\\best_model.zip",
+  "change_type": "shadow_additive_tail_screen",
+  "changed_feature": "downside_tail_ratio_3m",
+  "checkpoint_provenance": "best_inner_validation",
+  "common_decision_start": "2011-01",
+  "comparison_protocol": {
+    "checkpoint_selection_split_name": "inner_validation",
+    "comparison_split_name": "validation",
+    "description": "Pre-PPO repaired protocol with 2022 carved out for inner validation and 2023-01 to 2025-02 retained for outer comparison.",
+    "split_windows": [
+      {
+        "end": "2021-12",
+        "name": "train",
+        "start": "2011-01"
+      },
+      {
+        "end": "2022-12",
+        "name": "inner_validation",
+        "start": "2022-01"
+      },
+      {
+        "end": "2025-02",
+        "name": "validation",
+        "start": "2023-01"
+      },
+      {
+        "end": "2026-01",
+        "name": "test",
+        "start": "2025-03"
+      }
+    ],
+    "training_split_name": "train"
+  },
+  "comparison_protocol_id": "repaired_inner12_outer26_v1",
+  "daily_path": "C:\\Ali\\CS\\Bachelor thesis\\outputs\\generated\\datasets\\feature_candidates\\shadow_add_downside_tail_ratio_3m\\daily_market_series.csv",
+  "feature_profile": {
+    "description": "Current full 11-feature monthly panel.",
+    "parameters": {
+      "active_features": [
+        "egarch_vol",
+        "downside_dev",
+        "max_drawdown",
+        "volume",
+        "atr_pct_20",
+        "beta_to_egx30",
+        "price_to_sma20",
+        "rsi_14",
+        "distance_to_3m_high",
+        "usd_vol",
+        "cpi_trajectory"
+      ],
+      "atr_period": 20,
+      "beta_mode": "standard",
+      "beta_window_months": 3,
+      "change_type": "baseline",
+      "changed_feature": "",
+      "cpi_mode": "trajectory",
+      "cpi_window_months": 3,
+      "distance_high_window_months": 3,
+      "downside_ewm_alpha": 0.1,
+      "downside_mode": "standard",
+      "downside_window_months": 3,
+      "egarch_mode": "aggregate_mean_3m",
+      "ma_mode": "sma",
+      "ma_period": 20,
+      "max_drawdown_window_months": 3,
+      "neutral_fill_value": 0.5,
+      "row_feature_window_months": 3,
+      "rsi_period": 14,
+      "technical_min_periods_mode": "full",
+      "usd_mode": "volatility",
+      "usd_window_months": 3,
+      "variant_id": "",
+      "volume_mode": "sum",
+      "volume_window_months": 3
+    }
+  },
+  "feature_profile_id": "full_current_v1",
+  "final_model_path": "C:\\Ali\\CS\\Bachelor thesis\\outputs\\best_model\\final_model.zip",
+  "fixed_ppo_config": {
+    "batch_size": 256,
+    "clip_range": 0.2990122587129351,
+    "ent_coef": 0.0023477909057284673,
+    "eval_frequency": 512,
+    "gae_lambda": 1.0,
+    "gamma": 1.0,
+    "learning_rate": 0.00024935310281972535,
+    "max_grad_norm": 0.3,
+    "n_epochs": 10,
+    "n_steps": 256,
+    "vf_coef": 0.9023537822799527
+  },
+  "framework_id": "pit_3m_flat_context",
+  "framework_spec": {
+    "actor_context_mode": "pooled",
+    "actor_hidden_dims": [
+      64,
+      32
+    ],
+    "daily_channel_names": [],
+    "daily_fusion_mode": "none",
+    "daily_path_scope": "none",
+    "daily_strip_channels": 0,
+    "daily_strip_length": 0,
+    "input_dim": 36,
+    "lookback_months": 3,
+    "monthly_feature_dim": 36,
+    "observation_mode": "flat_monthly",
+    "row_encoder_dims": [
+      64
+    ],
+    "state_assembly_mode": "flat",
+    "uses_daily_strip": false
+  },
+  "input_feature_columns": [
+    "egarch_vol",
+    "downside_dev",
+    "max_drawdown",
+    "volume",
+    "atr_pct_20",
+    "beta_to_egx30",
+    "price_to_sma20",
+    "rsi_14",
+    "distance_to_3m_high",
+    "usd_vol",
+    "cpi_trajectory",
+    "downside_tail_ratio_3m"
+  ],
+  "input_feature_set_id": "shadow_add_downside_tail_ratio_3m",
+  "objective_profile": {
+    "description": "Equal-weight realized risk target: 0.333 vol / 0.333 downside / 0.333 max drawdown.",
+    "weights": {
+      "realized_downside_dev": 0.3333333333333333,
+      "realized_max_drawdown": 0.3333333333333333,
+      "realized_vol": 0.3333333333333333
+    }
+  },
+  "objective_profile_id": "risk_v1_equal_333",
+  "panel_path": "C:\\Ali\\CS\\Bachelor thesis\\outputs\\generated\\datasets\\feature_candidates\\shadow_add_downside_tail_ratio_3m\\monthly_asset_panel.csv",
+  "panel_state_start": "2010-10",
+  "policy_class": "MaskedActorCriticPolicy",
+  "policy_semantics_version": "bounded_v2",
+  "reported_checkpoint": "C:\\Ali\\CS\\Bachelor thesis\\outputs\\best_model\\best_model.zip",
+  "reward_profile": {
+    "description": "Current reward mix: 70% Spearman / 30% (1 - MSE).",
+    "formula": "0.70*spearman + 0.30*(1-mse)",
+    "mse_weight": 0.3,
+    "spearman_weight": 0.7
+  },
+  "reward_profile_id": "reward_v1_rank70_mse30",
+  "setup": {
+    "base_framework_id": "pit_3m_flat_context",
+    "batch_size": 256,
+    "change_type": "shadow_additive_tail_screen",
+    "changed_feature": "downside_tail_ratio_3m",
+    "checkpoint_provenance": "best_inner_validation",
+    "clip_range": 0.2990122587129351,
+    "comparison_protocol_id": "repaired_inner12_outer26_v1",
+    "ent_coef": 0.0023477909057284673,
+    "eval_frequency": 512,
+    "feature_profile_id": "full_current_v1",
+    "feature_profile_parameters": {},
+    "framework_id": "pit_3m_flat_context",
+    "gae_lambda": 1.0,
+    "gamma": 1.0,
+    "input_feature_set_id": "shadow_add_downside_tail_ratio_3m",
+    "learning_rate": 0.00024935310281972535,
+    "max_grad_norm": 0.3,
+    "n_epochs": 10,
+    "n_steps": 256,
+    "notes": "tail_refined50_shadow_screen_downside_tail_ratio_3m",
+    "objective_profile_id": "risk_v1_equal_333",
+    "reward_profile_id": "reward_v1_rank70_mse30",
+    "seed": 13,
+    "setup_id": "TAIL-REFINED50-DOWNSIDE_TAIL_RATIO_3M-S13",
+    "study_phase": "feature_comparison",
+    "total_timesteps": 32768,
+    "training_method_id": "ordered_cycle",
+    "variant_id": "downside_tail_ratio_3m",
+    "vf_coef": 0.9023537822799527
+  },
+  "study_phase": "feature_comparison",
+  "trainer": "ppo_monthly_ranking",
+  "training_method": {
+    "description": "Cycle through the train months in chronological order.",
+    "sampling_mode": "ordered_cycle"
+  },
+  "training_method_id": "ordered_cycle",
+  "validation_selection_metric": "mean_reward",
+  "variant_id": "downside_tail_ratio_3m"
+}
