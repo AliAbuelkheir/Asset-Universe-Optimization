@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass
 from functools import lru_cache
@@ -9,6 +10,12 @@ from typing import Any, Literal
 import pandas as pd
 
 from .paths import MODEL_ARTIFACTS_ROOT
+
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+os.environ.setdefault("TORCH_NUM_THREADS", "1")
 
 DEPLOYMENT_ROOT = MODEL_ARTIFACTS_ROOT / "deployment"
 MODEL_DIR = DEPLOYMENT_ROOT / "models"
@@ -45,6 +52,13 @@ def optimizer_available() -> bool:
 def _import_package():
     if str(DEPLOYMENT_ROOT) not in sys.path:
         sys.path.insert(0, str(DEPLOYMENT_ROOT))
+    try:
+        import torch
+
+        torch.set_num_threads(1)
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        pass
     from egtportfolio import load_model, predict, request_from_dict
 
     return load_model, predict, request_from_dict

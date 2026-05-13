@@ -14,6 +14,11 @@ FROM python:3.12-slim
 ENV ENVIRONMENT=production
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV OMP_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV NUMEXPR_NUM_THREADS=1
+ENV TORCH_NUM_THREADS=1
 
 WORKDIR /app
 
@@ -23,7 +28,7 @@ RUN apt-get update \
 
 COPY ml-service/requirements.txt ml-service/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r ml-service/requirements.txt
+    && pip install --no-cache-dir --root-user-action=ignore -r ml-service/requirements.txt
 
 COPY ml-service ml-service
 COPY model-artifacts model-artifacts
