@@ -139,40 +139,27 @@ def load_model(
         print(f"  WARNING: VecNormalize.load failed ({e}); using identity normalization.")
         env = VecNormalize(env, training=False, norm_reward=False, norm_obs=False)
 
-    # Load the policy weights with strict=False so we tolerate any future
-    # shape-dependent parameters being added without crashing.
-    custom_objects = {
-        'features_extractor_class': SetBasedFeatureExtractor,
-        'features_extractor_kwargs': {'features_dim': 256, 'hidden_dim': 64},
-        'observation_space': env.observation_space,
-        'action_space': env.action_space,
-    }
-
-    # First try the standard load. If it errors on shape, fall back to manual.
-    try:
-        model = PPO.load(str(model_path), env=env, custom_objects=custom_objects)
-    except (RuntimeError, ValueError):
-        # Manual load: build fresh PPO + load state_dict with strict=False
-        model = PPO(
-            SetBasedActorCriticPolicy,
-            env,
-            policy_kwargs=dict(
-                features_extractor_class=SetBasedFeatureExtractor,
-                features_extractor_kwargs=dict(features_dim=256, hidden_dim=64),
-                hidden_dim=64, head_dim=64,
-                normalize_images=False,
-            ),
-            verbose=0,
-        )
-        # Extract policy.pth from the zip
-        with zipfile.ZipFile(str(model_path) + '.zip') as zf:
-            with zf.open('policy.pth') as f:
-                saved_state = torch.load(io.BytesIO(f.read()), weights_only=False)
-        # Drop any shape-mismatched params (e.g. legacy per-asset log_std)
-        fresh_state = model.policy.state_dict()
-        filtered = {k: v for k, v in saved_state.items()
-                    if k in fresh_state and fresh_state[k].shape == v.shape}
-        model.policy.load_state_dict(filtered, strict=False)
+    # Build a fresh PPO shell and load only policy.pth from the zip. This avoids
+    # cloudpickle deserialization of training-time schedules such as FloatSchedule,
+    # which can differ across SB3 versions and has caused Linux deployment crashes.
+    model = PPO(
+        SetBasedActorCriticPolicy,
+        env,
+        policy_kwargs=dict(
+            features_extractor_class=SetBasedFeatureExtractor,
+            features_extractor_kwargs=dict(features_dim=256, hidden_dim=64),
+            hidden_dim=64, head_dim=64,
+            normalize_images=False,
+        ),
+        verbose=0,
+    )
+    with zipfile.ZipFile(str(model_path) + '.zip') as zf:
+        with zf.open('policy.pth') as f:
+            saved_state = torch.load(io.BytesIO(f.read()), weights_only=False, map_location='cpu')
+    fresh_state = model.policy.state_dict()
+    filtered = {k: v for k, v in saved_state.items()
+                if k in fresh_state and fresh_state[k].shape == v.shape}
+    model.policy.load_state_dict(filtered, strict=False)
 
     return ModelBundle(
         tier=tier,
