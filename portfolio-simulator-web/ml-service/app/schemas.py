@@ -106,8 +106,6 @@ class PipelineAsset(BaseModel):
     assetId: str
     assetName: str
     assetGroup: str
-    predictedRisk: float
-    predictedRankPct: float
     selectedByFilter: bool
     equalWeight: float | None = None
     optimizedWeight: float | None = None

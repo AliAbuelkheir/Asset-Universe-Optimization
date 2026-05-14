@@ -127,8 +127,8 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
             <div>
               <h3>Asset universe selection</h3>
               <p>
-                Rank is the PPO predicted-risk percentile for {report.month}. Filtered assets move to the front before
-                weights are assigned.
+                Assets remain in the active universe layout for {report.month}. PPO-selected assets stay highlighted
+                before weights are assigned.
               </p>
             </div>
             <span>{phase === "universe" ? "Scanning" : phase === "filter" ? "Filtering" : "Weighted"}</span>
@@ -141,7 +141,6 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
                   {asset.selectedByFilter && phase !== "universe" && <CheckCircle2 size={15} />}
                 </div>
                 <span>{asset.assetGroup}</span>
-                <small>Rank {percent(asset.predictedRankPct, 0)}</small>
                 {phase === "weights" && asset.selectedByFilter && (
                   <em>{percent(asset.optimizedWeight ?? 0)} weight</em>
                 )}

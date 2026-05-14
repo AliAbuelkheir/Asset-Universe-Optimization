@@ -69,8 +69,6 @@ def _pipeline_asset(
         "assetId": asset_id,
         "assetName": str(row["AssetName"]),
         "assetGroup": str(row["AssetGroup"]),
-        "predictedRisk": float(row["PredictedRisk"]),
-        "predictedRankPct": float(row["PredictedRankPct"]),
         "selectedByFilter": selected_by_filter,
         "equalWeight": selected_equal_weights.get(asset_id) if selected_by_filter else None,
         "optimizedWeight": selected_optimizer_weights.get(asset_id) if selected_by_filter else None,

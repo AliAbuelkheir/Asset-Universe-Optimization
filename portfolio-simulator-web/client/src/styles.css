@@ -496,7 +496,6 @@ select {
 .assetUniverseHeader p,
 .weightAssignmentCard p,
 .assetNode span,
-.assetNode small,
 .weightRowLabel span {
   color: var(--muted);
   line-height: 1.45;

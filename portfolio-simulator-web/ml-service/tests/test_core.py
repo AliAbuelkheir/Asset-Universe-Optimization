@@ -90,8 +90,8 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
     assert all(asset["selectedByFilter"] for asset in report["pipeline"]["selectedAssets"])
     assert all(asset["optimizedWeight"] is not None for asset in report["pipeline"]["selectedAssets"])
     assert selected_asset_ids.issubset({asset["assetId"] for asset in report["pipeline"]["activeUniverse"]})
-    active_rank_order = [asset["predictedRankPct"] for asset in report["pipeline"]["activeUniverse"]]
-    assert active_rank_order != sorted(active_rank_order)
+    assert all("predictedRisk" not in asset for asset in report["pipeline"]["activeUniverse"])
+    assert all("predictedRankPct" not in asset for asset in report["pipeline"]["activeUniverse"])
     assert "selectedAssets" not in report
     assert "filterImpact" not in report
     assert "riskComponents" not in report

@@ -28,8 +28,6 @@ const baseReport = {
         assetId: "ALFA",
         assetName: "Alpha Holding",
         assetGroup: "Financials",
-        predictedRisk: 0.12,
-        predictedRankPct: 0.1,
         selectedByFilter: false,
         equalWeight: null,
         optimizedWeight: null
@@ -38,8 +36,6 @@ const baseReport = {
         assetId: "BETA",
         assetName: "Beta Cement",
         assetGroup: "Materials",
-        predictedRisk: 0.42,
-        predictedRankPct: 0.48,
         selectedByFilter: true,
         equalWeight: 0.5,
         optimizedWeight: 0.6
@@ -48,8 +44,6 @@ const baseReport = {
         assetId: "GAMA",
         assetName: "Gamma Bank",
         assetGroup: "Banks",
-        predictedRisk: 0.56,
-        predictedRankPct: 0.64,
         selectedByFilter: true,
         equalWeight: 0.5,
         optimizedWeight: 0.4
@@ -60,8 +54,6 @@ const baseReport = {
         assetId: "BETA",
         assetName: "Beta Cement",
         assetGroup: "Materials",
-        predictedRisk: 0.42,
-        predictedRankPct: 0.48,
         selectedByFilter: true,
         equalWeight: 0.5,
         optimizedWeight: 0.6
@@ -70,8 +62,6 @@ const baseReport = {
         assetId: "GAMA",
         assetName: "Gamma Bank",
         assetGroup: "Banks",
-        predictedRisk: 0.56,
-        predictedRankPct: 0.64,
         selectedByFilter: true,
         equalWeight: 0.5,
         optimizedWeight: 0.4
@@ -195,6 +185,7 @@ describe("App", () => {
     expect(screen.getByText("Pipeline replay")).toBeInTheDocument();
     expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
     expect(screen.getByText("Final selected-asset weights")).toBeInTheDocument();
+    expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Full pipeline: PPO-filtered assets + optimizer weights").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Skip asset filter: all active assets + optimizer weights").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Skip weight optimizer: PPO-filtered assets + equal weights").length).toBeGreaterThan(0);

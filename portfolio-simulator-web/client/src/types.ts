@@ -68,8 +68,6 @@ export interface PipelineAsset {
   assetId: string;
   assetName: string;
   assetGroup: string;
-  predictedRisk: number;
-  predictedRankPct: number;
   selectedByFilter: boolean;
   equalWeight: number | null;
   optimizedWeight: number | null;
