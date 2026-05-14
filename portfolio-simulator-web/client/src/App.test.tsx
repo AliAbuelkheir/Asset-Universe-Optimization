@@ -73,8 +73,8 @@ const baseReport = {
     optimizerDecisionDate: "2025-03-01"
   },
   monthlyReturns: [
-    { month: "2025-03", optimizedPortfolio: 0.015, optimizedRawUniverse: 0.012, assignedRiskBucket: 0.01, allEqualWeight: 0.02, egx30: 0.03 },
-    { month: "2025-04", optimizedPortfolio: -0.005, optimizedRawUniverse: -0.008, assignedRiskBucket: -0.01, allEqualWeight: 0.01, egx30: 0.02 }
+    { month: "2025-03", optimizedPortfolio: 0.015, optimizedRawUniverse: 0.012, assignedRiskBucket: 0.01, egx30: 0.03 },
+    { month: "2025-04", optimizedPortfolio: -0.005, optimizedRawUniverse: -0.008, assignedRiskBucket: -0.01, egx30: 0.02 }
   ],
   comparison: [
     {
@@ -168,7 +168,7 @@ describe("App", () => {
 
   it("renders the simulation workflow", async () => {
     render(<App />);
-    expect(await screen.findByText("Egypt Risk-Bucket Historical Simulator")).toBeInTheDocument();
+    expect(await screen.findByText("Egyptian Market Portfolio Optimization Simulator")).toBeInTheDocument();
     expect(screen.getByText("Choose simulation mode")).toBeInTheDocument();
     expect(screen.getAllByText("Questionnaire").length).toBeGreaterThan(0);
     expect(screen.getByText("Fast select")).toBeInTheDocument();
@@ -186,10 +186,11 @@ describe("App", () => {
     expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
     expect(screen.getByText("Final selected-asset weights")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Full pipeline: PPO-filtered assets + optimizer weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Skip asset filter: all active assets + optimizer weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Skip weight optimizer: PPO-filtered assets + equal weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Skip asset filter and optimizer: all active assets + equal weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Filtered Universe with optimized weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Filtered Universe with equal weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full Universe with optimized weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("EGX30").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Full Universe with equal weights")).not.toBeInTheDocument();
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
     expect(screen.queryByText("Component-risk separation across the test period")).not.toBeInTheDocument();
     expect(screen.queryByText("Asset-universe filter impact")).not.toBeInTheDocument();

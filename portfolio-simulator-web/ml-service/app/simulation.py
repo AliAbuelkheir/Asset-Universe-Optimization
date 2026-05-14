@@ -92,7 +92,6 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
         predictions["Date"].eq(month) & predictions["Split"].isin(VALID_SPLITS)
     ].copy()
     all_universe_asset_ids = same_month_universe["AssetID"].astype(str).tolist()
-    all_universe_weights = equal_weights(all_universe_asset_ids)
 
     optimized_selected = run_weight_optimizer(
         tier=risk_level,
@@ -112,7 +111,6 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
         monthly_returns, forward_months, optimized_raw_universe.weights
     )
     bucket_returns = portfolio_monthly_returns(monthly_returns, forward_months, selected_weights)
-    all_equal_returns = portfolio_monthly_returns(monthly_returns, forward_months, all_universe_weights)
     egx_returns = egx30_returns(monthly_returns, forward_months)
 
     monthly_points = [
@@ -121,7 +119,6 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
             "optimizedPortfolio": optimized_returns[index],
             "optimizedRawUniverse": optimized_raw_universe_returns[index],
             "assignedRiskBucket": bucket_returns[index],
-            "allEqualWeight": all_equal_returns[index],
             "egx30": egx_returns[index],
         }
         for index in range(len(forward_months))
@@ -137,25 +134,20 @@ def run_fast_simulation(month: str, risk_level: str, duration_months: int | None
     comparison = [
         {
             "id": "optimizedPortfolio",
-            "label": "Full pipeline: PPO-filtered assets + optimizer weights",
+            "label": "Filtered Universe with optimized weights",
             "metrics": performance_metrics(optimized_returns),
         },
         {
-            "id": "optimizedRawUniverse",
-            "label": "Skip asset filter: all active assets + optimizer weights",
-            "metrics": performance_metrics(optimized_raw_universe_returns),
-        },
-        {
             "id": "assignedRiskBucket",
-            "label": "Skip weight optimizer: PPO-filtered assets + equal weights",
+            "label": "Filtered Universe with equal weights",
             "metrics": performance_metrics(bucket_returns),
         },
         {
-            "id": "allEqualWeight",
-            "label": "Skip asset filter and optimizer: all active assets + equal weights",
-            "metrics": performance_metrics(all_equal_returns),
+            "id": "optimizedRawUniverse",
+            "label": "Full Universe with optimized weights",
+            "metrics": performance_metrics(optimized_raw_universe_returns),
         },
-        {"id": "egx30", "label": "EGX30 index benchmark", "metrics": performance_metrics(egx_returns)},
+        {"id": "egx30", "label": "EGX30", "metrics": performance_metrics(egx_returns)},
     ]
 
     return {

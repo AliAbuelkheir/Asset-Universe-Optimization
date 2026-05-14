@@ -99,8 +99,8 @@ function App() {
             <img src="/robin-logo.png" alt="Robin Solutions" />
             <div>
               <span>Robin Solutions</span>
-              <h1>Egypt Risk-Bucket Historical Simulator</h1>
-              <p>Questionnaire-guided historical diagnostics over validation and test months.</p>
+              <h1>Egyptian Market Portfolio Optimization Simulator</h1>
+              <p>Questionnaire-guided historical diagnostics.</p>
             </div>
           </div>
           <div className="headerActions">
@@ -108,7 +108,7 @@ function App() {
               <a href="#simulation"><SlidersHorizontal size={16} />Simulation</a>
               <a href="#report"><BarChart3 size={16} />Report</a>
             </nav>
-            <div className="statusPill"><CheckCircle2 size={16} />Historical diagnostics</div>
+            {/* <div className="statusPill"><CheckCircle2 size={16} />Historical diagnostics</div> */}
           </div>
         </header>
 

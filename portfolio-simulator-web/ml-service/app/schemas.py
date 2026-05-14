@@ -76,7 +76,6 @@ class MonthlyReturnPoint(BaseModel):
     optimizedPortfolio: float
     optimizedRawUniverse: float
     assignedRiskBucket: float
-    allEqualWeight: float
     egx30: float
 
 
@@ -97,7 +96,7 @@ class PerformanceMetrics(BaseModel):
 
 
 class ComparisonRow(BaseModel):
-    id: Literal["optimizedPortfolio", "optimizedRawUniverse", "assignedRiskBucket", "allEqualWeight", "egx30"]
+    id: Literal["optimizedPortfolio", "optimizedRawUniverse", "assignedRiskBucket", "egx30"]
     label: str
     metrics: PerformanceMetrics
 

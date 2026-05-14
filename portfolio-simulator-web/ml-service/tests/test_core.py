@@ -71,14 +71,12 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
         "optimizedPortfolio",
         "optimizedRawUniverse",
         "assignedRiskBucket",
-        "allEqualWeight",
         "egx30",
     }
     assert {row["id"] for row in report["comparison"]} == {
         "optimizedPortfolio",
         "optimizedRawUniverse",
         "assignedRiskBucket",
-        "allEqualWeight",
         "egx30",
     }
     assert report["pipeline"]["activeUniverseCount"] >= report["pipeline"]["selectedAssetCount"] > 0

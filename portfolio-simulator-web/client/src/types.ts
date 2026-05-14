@@ -40,7 +40,6 @@ export interface MonthlyReturnPoint {
   optimizedPortfolio: number;
   optimizedRawUniverse: number;
   assignedRiskBucket: number;
-  allEqualWeight: number;
   egx30: number;
 }
 
@@ -59,7 +58,7 @@ export interface PerformanceMetrics {
 }
 
 export interface ComparisonRow {
-  id: "optimizedPortfolio" | "optimizedRawUniverse" | "assignedRiskBucket" | "allEqualWeight" | "egx30";
+  id: "optimizedPortfolio" | "optimizedRawUniverse" | "assignedRiskBucket" | "egx30";
   label: string;
   metrics: PerformanceMetrics;
 }

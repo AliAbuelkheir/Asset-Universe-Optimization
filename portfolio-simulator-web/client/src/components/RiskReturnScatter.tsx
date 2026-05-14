@@ -16,7 +16,6 @@ const COLORS: Record<string, string> = {
   optimizedPortfolio: "#2563EB",
   optimizedRawUniverse: "#F97316",
   assignedRiskBucket: "#7C3AED",
-  allEqualWeight: "#64748B",
   egx30: "#0891B2"
 };
 

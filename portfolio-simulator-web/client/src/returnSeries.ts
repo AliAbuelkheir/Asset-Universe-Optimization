@@ -3,9 +3,8 @@ import type { MonthlyReturnPoint } from "./types";
 
 export const returnSeries = [
   { key: "optimizedPortfolio", label: comparisonLabels.optimizedPortfolio, color: "#2563EB" },
-  { key: "optimizedRawUniverse", label: comparisonLabels.optimizedRawUniverse, color: "#F97316" },
   { key: "assignedRiskBucket", label: comparisonLabels.assignedRiskBucket, color: "#7C3AED" },
-  { key: "allEqualWeight", label: comparisonLabels.allEqualWeight, color: "#64748B" },
+  { key: "optimizedRawUniverse", label: comparisonLabels.optimizedRawUniverse, color: "#F97316" },
   { key: "egx30", label: comparisonLabels.egx30, color: "#0891B2" }
 ] as const;
 
