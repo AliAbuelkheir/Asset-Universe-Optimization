@@ -68,6 +68,7 @@ p {
 .topBar,
 .simulationConsole,
 .pipelinePanel,
+.rebalancePanel,
 .pipelineBody,
 .reportSurface,
 .metricsGrid,
@@ -312,6 +313,7 @@ p {
 
 .questionItem > span,
 .runPanel label > span,
+.runPanelGroup > span,
 .runSummary span,
 .riskPreview span {
   color: var(--muted);
@@ -377,12 +379,14 @@ select {
   box-shadow: inset 0 -4px 0 var(--accent);
 }
 
-.runPanel label {
+.runPanel label,
+.runPanelGroup {
   display: grid;
   gap: 6px;
 }
 
 .runPanel label > span,
+.runPanelGroup > span,
 .runPanel .runSummary span,
 .runPanel .riskPreview span {
   color: rgba(255, 255, 255, 0.64);
@@ -392,6 +396,42 @@ select {
   color: #ffffff;
   background: #101827;
   border-color: rgba(125, 211, 252, 0.34);
+}
+
+.simulatorModeToggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.simulatorModeToggle button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.78);
+  background: #101827;
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 8px;
+}
+
+.simulatorModeToggle button.selected {
+  color: #052e16;
+  background: #86efac;
+  border-color: #4ade80;
+}
+
+.simulatorModeToggle strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.simulatorModeToggle small {
+  color: inherit;
+  opacity: 0.78;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .runSummary,
@@ -461,7 +501,8 @@ select {
   border: 1px solid #fed7aa;
 }
 
-.pipelinePanel {
+.pipelinePanel,
+.rebalancePanel {
   display: grid;
   gap: 14px;
   padding: 16px;
@@ -473,7 +514,8 @@ select {
   overflow: hidden;
 }
 
-.pipelinePanel.stale {
+.pipelinePanel.stale,
+.rebalancePanel.stale {
   border-color: #fed7aa;
 }
 
@@ -536,6 +578,109 @@ select {
   grid-template-columns: minmax(0, 1fr) minmax(340px, 410px);
   gap: 16px;
   align-items: start;
+}
+
+.rebalanceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.rebalanceCard {
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.rebalanceCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rebalanceCardHeader h3 {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.rebalanceCardHeader p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.rebalanceCardHeader > span {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  color: #052e16;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rebalanceStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.rebalanceStats div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.rebalanceStats dt,
+.rebalanceAllocations > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rebalanceStats dd {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.rebalanceAllocations {
+  display: grid;
+  gap: 7px;
+}
+
+.rebalanceAllocation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.rebalanceAllocation strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rebalanceAllocation em {
+  color: #047857;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .assetUniverseCard,

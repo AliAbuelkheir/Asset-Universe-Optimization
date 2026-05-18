@@ -16,8 +16,8 @@ FEATURE_NAMES = [
     "Expect_Score",
     "Monitor_Score",
     "gender_Male",
-    "Objective_Growth",
     "Objective_Income",
+    "Objective_Growth",
     "Purpose_Savings for Future",
     "What are your savings objectives?_Health Care",
 ]
@@ -67,8 +67,8 @@ def build_feature_vector(questionnaire: dict[str, Any]) -> list[float]:
         float(EXPECT_SCORE[expect]),
         float(MONITOR_SCORE[monitor]),
         1.0 if gender == "Male" else 0.0,
-        1.0 if objective == "Growth" else 0.0,
         1.0 if objective == "Income" else 0.0,
+        1.0 if objective == "Growth" else 0.0,
         1.0 if purpose == "Savings for Future" else 0.0,
         1.0 if savings_objective == "Health Care" else 0.0,
     ]

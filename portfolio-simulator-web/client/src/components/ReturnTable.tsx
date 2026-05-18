@@ -1,17 +1,19 @@
 import { percent } from "../format";
 import { cumulativeReturns, visibleReturnSeries, type ReturnSeriesKey } from "../returnSeries";
-import type { MonthlyReturnPoint, SimulationReport } from "../types";
+import type { ComparisonRow, MonthlyReturnPoint, SimulationReport } from "../types";
 
 export function ReturnTable({
   points,
   intervals,
+  comparison,
   showOptimizer
 }: {
   points: MonthlyReturnPoint[];
   intervals: SimulationReport["chartIntervals"];
+  comparison: ComparisonRow[];
   showOptimizer: boolean;
 }) {
-  const visibleSeries = visibleReturnSeries(showOptimizer);
+  const visibleSeries = visibleReturnSeries(showOptimizer, comparison);
   const cumulativeByKey = Object.fromEntries(
     visibleSeries.map((series) => [series.key, cumulativeReturns(points, series.key)])
   ) as Record<ReturnSeriesKey, Array<{ monthlyReturn: number; cumulativeReturn: number }>>;
@@ -22,6 +24,7 @@ export function ReturnTable({
         <thead>
           <tr>
             <th>Month</th>
+            <th>Split</th>
             <th>Days since previous point</th>
             {visibleSeries.map((series) => (
               <th key={`${series.key}-monthly`}>{series.label} monthly</th>
@@ -35,6 +38,7 @@ export function ReturnTable({
           {points.map((point, index) => (
             <tr key={point.month}>
               <td>{point.month}</td>
+              <td>{point.split}</td>
               <td>{intervals[index + 1]?.daysSincePrevious ?? 0} days</td>
               {visibleSeries.map((series) => (
                 <td key={`${series.key}-${point.month}-monthly`}>{percent(point[series.key] ?? 0)}</td>

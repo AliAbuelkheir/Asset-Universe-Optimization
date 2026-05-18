@@ -25,7 +25,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
   }
   const data = rows.map((row) => ({
     id: row.id,
-    label: comparisonLabels[row.id] ?? row.label,
+    label: row.label || comparisonLabels[row.id],
     volatility: row.metrics.annualizedVolatility,
     cumulativeReturn: row.metrics.cumulativeReturn,
     color: COLORS[row.id] ?? "#151721"
@@ -79,7 +79,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
         {rows.map((row) => (
           <span key={row.id}>
             <i style={{ background: COLORS[row.id] ?? "#151721" }} />
-            {comparisonLabels[row.id] ?? row.label}
+            {row.label || comparisonLabels[row.id]}
           </span>
         ))}
       </div>

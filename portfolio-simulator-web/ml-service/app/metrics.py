@@ -21,18 +21,24 @@ def portfolio_monthly_returns(
     for month in months:
         frame = monthly_returns.loc[monthly_returns["Date"].eq(month)]
         returns = frame.set_index("AssetID")["MonthlyReturn"].to_dict()
-        available = {asset_id: weight for asset_id, weight in weights.items() if asset_id in returns}
-        if not available:
-            rows.append(0.0)
-            continue
-        total_weight = sum(available.values())
-        rows.append(float(sum((weight / total_weight) * returns[asset_id] for asset_id, weight in available.items())))
+        missing = sorted(asset_id for asset_id in weights if asset_id not in returns)
+        if missing:
+            raise ValueError(
+                f"Missing monthly returns for {len(missing)} weighted asset(s) in {month}: {', '.join(missing)}"
+            )
+        total_weight = sum(weights.values())
+        if total_weight <= 0:
+            raise ValueError(f"Portfolio weights for {month} must sum to a positive value.")
+        rows.append(float(sum((weight / total_weight) * returns[asset_id] for asset_id, weight in weights.items())))
     return rows
 
 
 def egx30_returns(monthly_returns: pd.DataFrame, months: list[str]) -> list[float]:
     egx = monthly_returns.loc[monthly_returns["AssetID"].eq("EGX30")].set_index("Date")["MonthlyReturn"].to_dict()
-    return [float(egx.get(month, 0.0)) for month in months]
+    missing = [month for month in months if month not in egx]
+    if missing:
+        raise ValueError(f"Missing EGX30 monthly returns for: {', '.join(missing)}")
+    return [float(egx[month]) for month in months]
 
 
 def performance_metrics(returns: list[float]) -> dict[str, Any]:
@@ -58,8 +64,9 @@ def performance_metrics(returns: list[float]) -> dict[str, Any]:
     downside = values[values < 0]
     downside_vol = float(downside.std(ddof=1) * math.sqrt(12)) if len(downside) > 1 else 0.0
     sortino = float((mean_monthly * 12) / downside_vol) if downside_vol > 0 else None
-    running_peak = np.maximum.accumulate(cumulative_curve)
-    drawdowns = cumulative_curve / running_peak - 1.0
+    wealth_curve = np.concatenate(([1.0], cumulative_curve))
+    running_peak = np.maximum.accumulate(wealth_curve)
+    drawdowns = wealth_curve / running_peak - 1.0
     return {
         "cumulativeReturn": float(cumulative_curve[-1] - 1.0),
         "annualizedVolatility": volatility,

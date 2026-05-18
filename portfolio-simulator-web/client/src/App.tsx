@@ -1,22 +1,23 @@
 import {
   AlertTriangle,
   BarChart3,
-  CheckCircle2,
   SlidersHorizontal
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fetchMonths, fetchRiskLevels, runFastSimulation, runQuestionnaireSimulation } from "./api";
 import { PipelinePlayback } from "./components/PipelinePlayback";
+import { RebalanceTimeline } from "./components/RebalanceTimeline";
 import { ReportView } from "./components/ReportView";
 import { RunPanel } from "./components/RunPanel";
 import { SimulationControls } from "./components/SimulationControls";
-import { defaultQuestionnaire } from "./simulationOptions";
+import { defaultQuestionnaire, defaultSimulatorMode } from "./simulationOptions";
 import type {
   MonthOption,
   QuestionnaireInput,
   RiskLevel,
   RiskLevelDefinition,
   SimulationMode,
+  SimulatorMode,
   SimulationReport
 } from "./types";
 import "./styles.css";
@@ -27,6 +28,7 @@ function App() {
   const [month, setMonth] = useState("2025-03");
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium");
   const [durationMonths, setDurationMonths] = useState<number | null>(6);
+  const [simulatorMode, setSimulatorMode] = useState<SimulatorMode>(defaultSimulatorMode);
   const [simulationMode, setSimulationMode] = useState<SimulationMode>("questionnaire");
   const [questionnaire, setQuestionnaire] = useState<QuestionnaireInput>(defaultQuestionnaire);
   const [lastRun, setLastRun] = useState<{ mode: SimulationMode; questionnaireKey?: string } | null>(null);
@@ -51,6 +53,7 @@ function App() {
     !!report &&
     (report.month !== month ||
       lastRun?.mode !== simulationMode ||
+      report.simulatorMode !== simulatorMode ||
       (lastRun?.mode === "fast" && report.riskLevel !== riskLevel) ||
       (lastRun?.mode === "questionnaire" && lastRun.questionnaireKey !== questionnaireKey) ||
       (report.requestedDurationMonths ?? null) !== durationMonths);
@@ -63,7 +66,8 @@ function App() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const motion = prefersReducedMotion ? "auto" : "smooth";
     const timer = window.setTimeout(() => {
-      document.getElementById("pipeline-replay")?.scrollIntoView({ behavior: motion, block: "start" });
+      const targetId = report.simulatorMode === "monthly_rebalance" ? "rebalance-timeline" : "pipeline-replay";
+      document.getElementById(targetId)?.scrollIntoView({ behavior: motion, block: "start" });
     }, 120);
     return () => window.clearTimeout(timer);
   }, [report?.simulationId]);
@@ -73,8 +77,8 @@ function App() {
     setError(null);
     try {
       const nextReport = simulationMode === "questionnaire"
-        ? await runQuestionnaireSimulation(month, questionnaire, durationMonths)
-        : await runFastSimulation(month, riskLevel, durationMonths);
+        ? await runQuestionnaireSimulation(month, questionnaire, durationMonths, simulatorMode)
+        : await runFastSimulation(month, riskLevel, durationMonths, simulatorMode);
       if (simulationMode === "questionnaire") {
         setRiskLevel(nextReport.riskLevel);
       }
@@ -128,18 +132,24 @@ function App() {
             mode={simulationMode}
             month={month}
             riskLevel={riskLevel}
+            simulatorMode={simulatorMode}
             durationMonths={durationMonths}
             report={report}
             lastRunMode={lastRun?.mode ?? null}
             loading={loading}
             onMonthChange={setMonth}
+            onSimulatorModeChange={setSimulatorMode}
             onDurationChange={setDurationMonths}
             onRun={handleRunSimulation}
           />
         </section>
 
         {error && <div className="errorBanner"><AlertTriangle size={18} />{error}</div>}
-        <PipelinePlayback report={report} isStale={isReportStale} />
+        {report?.simulatorMode === "monthly_rebalance" ? (
+          <RebalanceTimeline report={report} isStale={isReportStale} />
+        ) : (
+          <PipelinePlayback report={report} isStale={isReportStale} />
+        )}
         <ReportView report={report} isStale={isReportStale} />
       </section>
     </main>

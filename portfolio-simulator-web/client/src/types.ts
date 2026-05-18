@@ -1,6 +1,7 @@
 export type RiskLevel = "low" | "medium" | "high";
 
 export type SimulationMode = "questionnaire" | "fast";
+export type SimulatorMode = "single" | "monthly_rebalance";
 
 export interface MonthOption {
   month: string;
@@ -37,6 +38,7 @@ export interface QuestionnaireInference {
 
 export interface MonthlyReturnPoint {
   month: string;
+  split: "validation" | "test";
   optimizedPortfolio: number;
   optimizedRawUniverse: number;
   assignedRiskBucket: number;
@@ -81,10 +83,24 @@ export interface SimulationPipeline {
   optimizerDecisionDate: string;
 }
 
+export interface RebalanceTimelinePoint {
+  month: string;
+  split: "validation" | "test";
+  optimizerDecisionDate: string;
+  startingValue: number;
+  monthlyReturn: number;
+  endingValue: number;
+  activeUniverseCount: number;
+  selectedAssetCount: number;
+  optimizerWeightSum: number;
+  selectedAssets: PipelineAsset[];
+}
+
 export interface SimulationReport {
   simulationId: string;
   month: string;
   riskLevel: RiskLevel;
+  simulatorMode: SimulatorMode;
   split: "validation" | "test";
   durationMonths: number;
   requestedDurationMonths?: number | null;
@@ -97,5 +113,6 @@ export interface SimulationReport {
   monthlyReturns: MonthlyReturnPoint[];
   comparison: ComparisonRow[];
   pipeline: SimulationPipeline;
+  rebalanceTimeline: RebalanceTimelinePoint[];
   questionnaireInference?: QuestionnaireInference | null;
 }

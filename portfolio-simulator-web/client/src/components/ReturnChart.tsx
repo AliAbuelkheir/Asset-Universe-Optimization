@@ -1,6 +1,6 @@
 import { percent } from "../format";
 import { cumulativeReturns, visibleReturnSeries } from "../returnSeries";
-import type { MonthlyReturnPoint, SimulationReport } from "../types";
+import type { ComparisonRow, MonthlyReturnPoint, SimulationReport } from "../types";
 import {
   CartesianGrid,
   Line,
@@ -14,13 +14,15 @@ import {
 export function ReturnChart({
   points,
   intervals,
+  comparison,
   showOptimizer
 }: {
   points: MonthlyReturnPoint[];
   intervals: SimulationReport["chartIntervals"];
+  comparison: ComparisonRow[];
   showOptimizer: boolean;
 }) {
-  const visibleSeries = visibleReturnSeries(showOptimizer);
+  const visibleSeries = visibleReturnSeries(showOptimizer, comparison);
   const labels = intervals.length > 0 ? intervals : [{ label: "Start", daysSincePrevious: 0 }];
   const seriesValues = visibleSeries.map((series) => ({
     ...series,
@@ -69,19 +71,22 @@ export function ReturnChart({
               }}
               contentStyle={{ borderRadius: 8, borderColor: "#cdd5ef" }}
             />
-            {visibleSeries.map((series, index) => (
+            {visibleSeries.map((series) => {
+              const isPrimaryPipeline = series.key === "optimizedPortfolio";
+              return (
               <Line
                 key={series.key}
                 type="monotone"
                 dataKey={series.key}
                 name={series.label}
                 stroke={series.color}
-                strokeWidth={index === 0 ? 4 : 3}
-                strokeDasharray={index === 0 ? undefined : "7 7"}
+                strokeWidth={isPrimaryPipeline ? 4 : 3}
+                strokeDasharray={isPrimaryPipeline ? undefined : "7 7"}
                 dot={false}
                 activeDot={{ r: 5 }}
               />
-            ))}
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>

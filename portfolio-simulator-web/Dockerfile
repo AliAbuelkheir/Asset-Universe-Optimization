@@ -7,11 +7,13 @@ COPY client/package.json client/package.json
 RUN npm ci
 
 COPY client client
+ENV VITE_SIMULATOR_PROFILE=production
 RUN npm run build
 
 FROM python:3.12-slim
 
 ENV ENVIRONMENT=production
+ENV SIMULATOR_PROFILE=production
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV OMP_NUM_THREADS=1

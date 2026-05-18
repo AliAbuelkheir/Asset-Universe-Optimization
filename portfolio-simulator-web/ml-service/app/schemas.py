@@ -5,12 +5,14 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 RiskLevel = Literal["low", "medium", "high"]
+SimulatorMode = Literal["single", "monthly_rebalance"]
 
 
 class FastSimulationRequest(BaseModel):
     month: str = Field(pattern=r"^\d{4}-\d{2}$")
     riskLevel: RiskLevel
     durationMonths: int | None = Field(default=None, ge=1)
+    simulatorMode: SimulatorMode = "single"
 
 
 class QuestionnaireInput(BaseModel):
@@ -31,6 +33,7 @@ class QuestionnaireInput(BaseModel):
 class QuestionnaireSimulationRequest(BaseModel):
     month: str = Field(pattern=r"^\d{4}-\d{2}$")
     durationMonths: int | None = Field(default=None, ge=1)
+    simulatorMode: SimulatorMode = "single"
     questionnaire: QuestionnaireInput
 
 
@@ -73,6 +76,7 @@ class ChartInterval(BaseModel):
 
 class MonthlyReturnPoint(BaseModel):
     month: str
+    split: Literal["validation", "test"]
     optimizedPortfolio: float
     optimizedRawUniverse: float
     assignedRiskBucket: float
@@ -119,10 +123,24 @@ class SimulationPipeline(BaseModel):
     optimizerDecisionDate: str
 
 
+class RebalanceTimelinePoint(BaseModel):
+    month: str
+    split: Literal["validation", "test"]
+    optimizerDecisionDate: str
+    startingValue: float
+    monthlyReturn: float
+    endingValue: float
+    activeUniverseCount: int
+    selectedAssetCount: int
+    optimizerWeightSum: float
+    selectedAssets: list[PipelineAsset]
+
+
 class SimulationReport(BaseModel):
     simulationId: str
     month: str
     riskLevel: RiskLevel
+    simulatorMode: SimulatorMode
     split: Literal["validation", "test"]
     durationMonths: int
     requestedDurationMonths: int | None
@@ -132,4 +150,5 @@ class SimulationReport(BaseModel):
     monthlyReturns: list[MonthlyReturnPoint]
     comparison: list[ComparisonRow]
     pipeline: SimulationPipeline
+    rebalanceTimeline: list[RebalanceTimelinePoint]
     questionnaireInference: QuestionnaireInference | None = None

@@ -22,8 +22,8 @@ Expected inference feature vector, in exact order:
 3. `Expect_Score`
 4. `Monitor_Score`
 5. `gender_Male`
-6. `Objective_Growth`
-7. `Objective_Income`
+6. `Objective_Income`
+7. `Objective_Growth`
 8. `Purpose_Savings for Future`
 9. `What are your savings objectives?_Health Care`
 
@@ -38,3 +38,9 @@ Number of features: 9.
 The simulator uses the predicted risk level as the input to the existing
 historical simulation path. Portfolio results must remain described as
 historical diagnostics, not guaranteed performance.
+
+Note: the supplied pickle is missing the richer `feature_names` and `scaler`
+metadata described in `karmapart.pdf`. Controlled-profile validation showed the
+raw model expects the two objective one-hot columns as `Objective_Income` then
+`Objective_Growth`; using the reverse order makes income-oriented conservative
+profiles classify as aggressive.

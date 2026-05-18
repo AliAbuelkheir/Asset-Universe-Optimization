@@ -7,7 +7,7 @@ export function Metrics({ rows }: { rows: ComparisonRow[] }) {
     <div className="metricsGrid">
       {rows.map((row) => (
         <article className="metricCard" key={row.id}>
-          <span>{comparisonLabels[row.id] ?? row.label}</span>
+          <span>{row.label || comparisonLabels[row.id]}</span>
           <strong>{percent(row.metrics.cumulativeReturn)}</strong>
           <dl>
             <div><dt>Volatility</dt><dd>{percent(row.metrics.annualizedVolatility)}</dd></div>

@@ -1,7 +1,14 @@
 import { Play } from "lucide-react";
 import { labelRisk } from "../format";
-import { durationOptions } from "../simulationOptions";
-import type { MonthOption, RiskLevel, RiskLevelDefinition, SimulationMode, SimulationReport } from "../types";
+import { durationOptions, simulatorModeOptions } from "../simulationOptions";
+import type {
+  MonthOption,
+  RiskLevel,
+  RiskLevelDefinition,
+  SimulationMode,
+  SimulatorMode,
+  SimulationReport
+} from "../types";
 
 interface RunPanelProps {
   months: MonthOption[];
@@ -9,11 +16,13 @@ interface RunPanelProps {
   mode: SimulationMode;
   month: string;
   riskLevel: RiskLevel;
+  simulatorMode: SimulatorMode;
   durationMonths: number | null;
   report: SimulationReport | null;
   lastRunMode: SimulationMode | null;
   loading: boolean;
   onMonthChange: (month: string) => void;
+  onSimulatorModeChange: (simulatorMode: SimulatorMode) => void;
   onDurationChange: (duration: number | null) => void;
   onRun: () => void;
 }
@@ -24,11 +33,13 @@ export function RunPanel({
   mode,
   month,
   riskLevel,
+  simulatorMode,
   durationMonths,
   report,
   lastRunMode,
   loading,
   onMonthChange,
+  onSimulatorModeChange,
   onDurationChange,
   onRun
 }: RunPanelProps) {
@@ -67,6 +78,25 @@ export function RunPanel({
           ))}
         </select>
       </label>
+      {simulatorModeOptions.length > 1 && (
+        <div className="runPanelGroup">
+          <span>Simulator type</span>
+          <div className="simulatorModeToggle" role="group" aria-label="Simulator type">
+            {simulatorModeOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={simulatorMode === option.value ? "selected" : ""}
+                aria-pressed={simulatorMode === option.value}
+                onClick={() => onSimulatorModeChange(option.value)}
+              >
+                <strong>{option.label}</strong>
+                <small>{option.description}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="riskPreview">
         <span>{mode === "questionnaire" ? "Estimated risk level" : "Selected risk level"}</span>
         <strong>

@@ -12,6 +12,7 @@ const riskLevels = [
 const baseReport = {
   simulationId: "test",
   month: "2025-03",
+  simulatorMode: "single",
   split: "test",
   durationMonths: 2,
   requestedDurationMonths: 3,
@@ -72,14 +73,59 @@ const baseReport = {
     optimizerWeightSum: 1,
     optimizerDecisionDate: "2025-03-01"
   },
+  rebalanceTimeline: [
+    {
+      month: "2025-03",
+      split: "test",
+      optimizerDecisionDate: "2025-03-01",
+      startingValue: 1,
+      monthlyReturn: 0.015,
+      endingValue: 1.015,
+      activeUniverseCount: 3,
+      selectedAssetCount: 2,
+      optimizerWeightSum: 1,
+      selectedAssets: [
+        {
+          assetId: "BETA",
+          assetName: "Beta Cement",
+          assetGroup: "Materials",
+          selectedByFilter: true,
+          equalWeight: 0.5,
+          optimizedWeight: 0.6
+        },
+        {
+          assetId: "GAMA",
+          assetName: "Gamma Bank",
+          assetGroup: "Banks",
+          selectedByFilter: true,
+          equalWeight: 0.5,
+          optimizedWeight: 0.4
+        }
+      ]
+    }
+  ],
   monthlyReturns: [
-    { month: "2025-03", optimizedPortfolio: 0.015, optimizedRawUniverse: 0.012, assignedRiskBucket: 0.01, egx30: 0.03 },
-    { month: "2025-04", optimizedPortfolio: -0.005, optimizedRawUniverse: -0.008, assignedRiskBucket: -0.01, egx30: 0.02 }
+    {
+      month: "2025-03",
+      split: "test",
+      optimizedPortfolio: 0.015,
+      optimizedRawUniverse: 0.012,
+      assignedRiskBucket: 0.01,
+      egx30: 0.03
+    },
+    {
+      month: "2025-04",
+      split: "test",
+      optimizedPortfolio: -0.005,
+      optimizedRawUniverse: -0.008,
+      assignedRiskBucket: -0.01,
+      egx30: 0.02
+    }
   ],
   comparison: [
     {
       id: "optimizedPortfolio",
-      label: "Optimizer on selected risk bucket",
+      label: "FULL pipeline",
       metrics: {
         cumulativeReturn: 0.01,
         annualizedVolatility: 0.08,
@@ -93,7 +139,7 @@ const baseReport = {
     },
     {
       id: "optimizedRawUniverse",
-      label: "Optimizer on full active universe",
+      label: "MVO on FULL Asset universe",
       metrics: {
         cumulativeReturn: 0.004,
         annualizedVolatility: 0.09,
@@ -107,7 +153,7 @@ const baseReport = {
     },
     {
       id: "assignedRiskBucket",
-      label: "Assigned risk bucket equal weight",
+      label: "Filtered universe with equal weights",
       metrics: {
         cumulativeReturn: 0,
         annualizedVolatility: 0.1,
@@ -118,11 +164,58 @@ const baseReport = {
         worstMonth: -0.01,
         ratioNotes: { sharpe: "n/a", sortino: "n/a" }
       }
+    },
+    {
+      id: "egx30",
+      label: "EGX30",
+      metrics: {
+        cumulativeReturn: 0.05,
+        annualizedVolatility: 0.12,
+        sharpe: 1.3,
+        sortino: null,
+        maxDrawdown: 0,
+        bestMonth: 0.03,
+        worstMonth: 0.02,
+        ratioNotes: { sharpe: "", sortino: "n/a" }
+      }
     }
   ]
 };
 
-const fetchMock = vi.fn((url: string) => {
+function reportForMode(simulatorMode: "single" | "monthly_rebalance") {
+  const rebalanceTimeline = simulatorMode === "monthly_rebalance"
+    ? [
+        baseReport.rebalanceTimeline[0],
+        {
+          ...baseReport.rebalanceTimeline[0],
+          month: "2025-04",
+          optimizerDecisionDate: "2025-04-01",
+          startingValue: 1.015,
+          monthlyReturn: -0.005,
+          endingValue: 1.009925
+        }
+      ]
+    : baseReport.rebalanceTimeline;
+  const comparison = simulatorMode === "monthly_rebalance"
+    ? baseReport.comparison.map((row) => row.id === "optimizedPortfolio"
+      ? { ...row, label: "Monthly rebalanced filtered universe with optimized weights" }
+      : row.id === "optimizedRawUniverse"
+        ? { ...row, label: "Monthly rebalanced full universe with optimized weights" }
+        : row.id === "assignedRiskBucket"
+          ? { ...row, label: "Monthly reselected filtered universe with equal weights" }
+          : row)
+    : baseReport.comparison;
+  return { ...baseReport, simulatorMode, rebalanceTimeline, comparison };
+}
+
+function latestSimulationRequest() {
+  const call = [...fetchMock.mock.calls].reverse().find(([url]) => String(url).includes("/api/simulations/"));
+  return JSON.parse(String((call?.[1] as RequestInit | undefined)?.body ?? "{}"));
+}
+
+const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+  const body = init?.body ? JSON.parse(String(init.body)) : {};
+  const simulatorMode = body.simulatorMode === "single" ? "single" : "monthly_rebalance";
   if (url.endsWith("/api/months")) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve(monthOptions) });
   }
@@ -132,14 +225,14 @@ const fetchMock = vi.fn((url: string) => {
   if (url.endsWith("/api/simulations/fast")) {
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({ ...baseReport, riskLevel: "low", questionnaireInference: null })
+      json: () => Promise.resolve({ ...reportForMode(simulatorMode), riskLevel: "low", questionnaireInference: null })
     });
   }
   if (url.endsWith("/api/simulations/questionnaire")) {
     return Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
-        ...baseReport,
+        ...reportForMode(simulatorMode),
         riskLevel: "medium",
         durationMonths: 1,
         requestedDurationMonths: 1,
@@ -157,9 +250,9 @@ const fetchMock = vi.fn((url: string) => {
     });
   }
   return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "unknown" }) });
-}) as unknown as typeof fetch;
+});
 
-vi.stubGlobal("fetch", fetchMock);
+vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
 describe("App", () => {
   beforeEach(() => {
@@ -172,23 +265,27 @@ describe("App", () => {
     expect(screen.getByText("Choose simulation mode")).toBeInTheDocument();
     expect(screen.getAllByText("Questionnaire").length).toBeGreaterThan(0);
     expect(screen.getByText("Fast select")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Monthly rebalance/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Single allocation/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Run simulation")).toBeInTheDocument();
   });
 
-  it("runs fast mode and renders only public report fields", async () => {
+  it("runs fast mode with single allocation and renders only public report fields", async () => {
     render(<App />);
     fireEvent.click(await screen.findByText("Fast select"));
     fireEvent.click(await screen.findByText("Low"));
+    fireEvent.click(screen.getByRole("button", { name: /Single allocation/ }));
     fireEvent.click(screen.getByText("Run simulation"));
 
     expect(await screen.findByText("Simulation report")).toBeInTheDocument();
+    expect(latestSimulationRequest().simulatorMode).toBe("single");
     expect(screen.getByText("Pipeline replay")).toBeInTheDocument();
     expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
     expect(screen.getByText("Final selected-asset weights")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Filtered Universe with optimized weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Filtered Universe with equal weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Full Universe with optimized weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("FULL pipeline").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Filtered universe with equal weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("MVO on FULL Asset universe").length).toBeGreaterThan(0);
     expect(screen.getAllByText("EGX30").length).toBeGreaterThan(0);
     expect(screen.queryByText("Full Universe with equal weights")).not.toBeInTheDocument();
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
@@ -199,11 +296,24 @@ describe("App", () => {
     expect(screen.queryByText("Predicted risk")).not.toBeInTheDocument();
   });
 
+  it("runs fast mode with monthly rebalance by default", async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByText("Fast select"));
+    fireEvent.click(await screen.findByText("Low"));
+    fireEvent.click(screen.getByText("Run simulation"));
+
+    expect(await screen.findByText("Monthly rebalance timeline")).toBeInTheDocument();
+    expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
+    expect(screen.queryByText("Pipeline replay")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Monthly rebalanced filtered universe with optimized weights").length).toBeGreaterThan(0);
+  });
+
   it("runs questionnaire simulation and displays inferred label", async () => {
     render(<App />);
     fireEvent.click(await screen.findByText("Run simulation"));
 
     expect(await screen.findByText("Moderate questionnaire")).toBeInTheDocument();
+    expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
   });
 
@@ -223,7 +333,7 @@ describe("App", () => {
     fireEvent.click(await screen.findByText("Run simulation"));
     expect(await screen.findByText("Moderate questionnaire")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Fast select"));
+    fireEvent.click(screen.getByRole("button", { name: /Single allocation/ }));
     expect(screen.getByText("Controls changed after this report was generated. Run the simulation again to refresh the dashboard.")).toBeInTheDocument();
   });
 });

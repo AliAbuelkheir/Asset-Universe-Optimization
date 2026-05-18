@@ -3,6 +3,7 @@ import type {
   QuestionnaireInput,
   RiskLevel,
   RiskLevelDefinition,
+  SimulatorMode,
   SimulationReport
 } from "./types";
 
@@ -33,20 +34,26 @@ export function fetchRiskLevels() {
   return request<RiskLevelDefinition[]>("/api/risk-levels");
 }
 
-export function runFastSimulation(month: string, riskLevel: RiskLevel, durationMonths?: number | null) {
+export function runFastSimulation(
+  month: string,
+  riskLevel: RiskLevel,
+  durationMonths?: number | null,
+  simulatorMode: SimulatorMode = "single"
+) {
   return request<SimulationReport>("/api/simulations/fast", {
     method: "POST",
-    body: JSON.stringify({ month, riskLevel, durationMonths })
+    body: JSON.stringify({ month, riskLevel, durationMonths, simulatorMode })
   });
 }
 
 export function runQuestionnaireSimulation(
   month: string,
   questionnaire: QuestionnaireInput,
-  durationMonths?: number | null
+  durationMonths?: number | null,
+  simulatorMode: SimulatorMode = "single"
 ) {
   return request<SimulationReport>("/api/simulations/questionnaire", {
     method: "POST",
-    body: JSON.stringify({ month, questionnaire, durationMonths })
+    body: JSON.stringify({ month, questionnaire, durationMonths, simulatorMode })
   });
 }

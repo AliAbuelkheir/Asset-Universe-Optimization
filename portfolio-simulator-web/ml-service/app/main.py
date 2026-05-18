@@ -50,7 +50,7 @@ def get_risk_levels() -> list[dict]:
 @app.post("/api/simulations/fast", response_model=SimulationReport)
 def post_fast_simulation(request: FastSimulationRequest) -> dict:
     try:
-        return run_fast_simulation(request.month, request.riskLevel, request.durationMonths)
+        return run_fast_simulation(request.month, request.riskLevel, request.durationMonths, request.simulatorMode)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
@@ -64,6 +64,7 @@ def post_questionnaire_simulation(request: QuestionnaireSimulationRequest) -> di
             request.month,
             request.questionnaire.model_dump(by_alias=True),
             request.durationMonths,
+            request.simulatorMode,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

@@ -85,7 +85,7 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
     return () => window.removeEventListener("resize", updateHeight);
   }, [displayedUniverse.length, phase]);
 
-  if (!report || !pipeline) {
+  if (!report || !pipeline || report.simulatorMode !== "single") {
     return null;
   }
 

@@ -1,6 +1,26 @@
-import type { QuestionnaireInput, RiskLevel } from "./types";
+import type { QuestionnaireInput, RiskLevel, SimulatorMode } from "./types";
+import { localMonthlyRebalanceEnabled } from "./environment";
 
 export const riskOrder: RiskLevel[] = ["low", "medium", "high"];
+
+const localSimulatorModeOptions: Array<{ label: string; value: SimulatorMode; description: string }> = [
+  {
+    label: "Monthly rebalance",
+    value: "monthly_rebalance",
+    description: "Re-run selection and optimizer every plotted month."
+  },
+  {
+    label: "Single allocation",
+    value: "single",
+    description: "Use the start-month selection and weights for the full window."
+  }
+];
+
+export const simulatorModeOptions = localMonthlyRebalanceEnabled
+  ? localSimulatorModeOptions
+  : localSimulatorModeOptions.filter((option) => option.value === "single");
+
+export const defaultSimulatorMode: SimulatorMode = localMonthlyRebalanceEnabled ? "monthly_rebalance" : "single";
 
 export const durationOptions = [
   { label: "1 month", value: 1 },

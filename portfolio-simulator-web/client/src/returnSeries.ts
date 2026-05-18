@@ -1,5 +1,5 @@
 import { comparisonLabels } from "./comparisonLabels";
-import type { MonthlyReturnPoint } from "./types";
+import type { ComparisonRow, MonthlyReturnPoint } from "./types";
 
 export const returnSeries = [
   { key: "optimizedPortfolio", label: comparisonLabels.optimizedPortfolio, color: "#2563EB" },
@@ -10,8 +10,16 @@ export const returnSeries = [
 
 export type ReturnSeriesKey = (typeof returnSeries)[number]["key"];
 
-export function visibleReturnSeries(showOptimizer: boolean) {
-  return returnSeries.filter(
+export function visibleReturnSeries(showOptimizer: boolean, comparison?: ComparisonRow[]) {
+  const seriesByKey = new Map(returnSeries.map((series) => [series.key, series]));
+  const orderedSeries = comparison?.length
+    ? comparison.flatMap((row) => {
+        const series = seriesByKey.get(row.id);
+        return series ? [{ ...series, label: row.label }] : [];
+      })
+    : returnSeries;
+
+  return orderedSeries.filter(
     (series) => showOptimizer || (series.key !== "optimizedPortfolio" && series.key !== "optimizedRawUniverse")
   );
 }

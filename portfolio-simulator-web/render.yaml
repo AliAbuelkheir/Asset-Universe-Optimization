@@ -9,5 +9,9 @@ services:
     envVars:
       - key: ENVIRONMENT
         value: production
+      - key: SIMULATOR_PROFILE
+        value: production
+      - key: VITE_SIMULATOR_PROFILE
+        value: production
       - key: PYTHONUNBUFFERED
         value: "1"
