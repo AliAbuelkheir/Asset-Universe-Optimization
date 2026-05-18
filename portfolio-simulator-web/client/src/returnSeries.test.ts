@@ -19,15 +19,13 @@ const metrics: ComparisonRow["metrics"] = {
 describe("visibleReturnSeries", () => {
   it("uses API comparison rows as the visible benchmark order", () => {
     const comparison: ComparisonRow[] = [
-      { id: "egx30", label: "EGX30", metrics },
-      { id: "optimizedRawUniverse", label: "MVO on FULL Asset universe", metrics },
-      { id: "optimizedPortfolio", label: "FULL pipeline", metrics }
+      { id: "optimizedPortfolio", label: "FULL pipeline", metrics },
+      { id: "egx30", label: "EGX30", metrics }
     ];
 
     expect(visibleReturnSeries(true, comparison).map((series) => series.key)).toEqual([
-      "egx30",
-      "optimizedRawUniverse",
-      "optimizedPortfolio"
+      "optimizedPortfolio",
+      "egx30"
     ]);
   });
 });

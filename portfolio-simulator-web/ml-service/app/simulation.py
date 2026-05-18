@@ -59,10 +59,6 @@ def _uses_public_benchmark_set() -> bool:
     return _simulator_profile() in PRODUCTION_SIMULATOR_PROFILES
 
 
-def _monthly_rebalance_enabled() -> bool:
-    return not _uses_public_benchmark_set()
-
-
 @dataclass(frozen=True)
 class DecisionContext:
     month: str
@@ -261,17 +257,12 @@ def _comparison_rows(
 ) -> list[dict[str, Any]]:
     if _uses_public_benchmark_set():
         return [
-            {"id": "egx30", "label": "EGX30", "metrics": performance_metrics(egx_returns)},
-            {
-                "id": "optimizedRawUniverse",
-                "label": "MVO on FULL Asset universe",
-                "metrics": performance_metrics(optimized_raw_universe_returns),
-            },
             {
                 "id": "optimizedPortfolio",
                 "label": "FULL pipeline",
                 "metrics": performance_metrics(optimized_returns),
             },
+            {"id": "egx30", "label": "EGX30", "metrics": performance_metrics(egx_returns)},
         ]
 
     if simulator_mode == "monthly_rebalance":
@@ -504,8 +495,6 @@ def run_fast_simulation(
 ) -> dict[str, Any]:
     if simulator_mode not in {"single", "monthly_rebalance"}:
         raise ValueError(f"Unknown simulator mode: {simulator_mode}")
-    if simulator_mode == "monthly_rebalance" and not _monthly_rebalance_enabled():
-        raise ValueError("Monthly rebalance simulator mode is available only when SIMULATOR_PROFILE=development")
 
     predictions = read_predictions()
     monthly_returns = read_monthly_returns()

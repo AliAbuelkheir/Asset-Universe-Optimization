@@ -144,17 +144,18 @@ def test_production_profile_exposes_public_benchmark_set(monkeypatch: pytest.Mon
     report = run_fast_simulation("2025-03", "medium", duration_months=1, simulator_mode="single")
 
     assert [row["id"] for row in report["comparison"]] == [
-        "egx30",
-        "optimizedRawUniverse",
         "optimizedPortfolio",
+        "egx30",
     ]
     assert [row["label"] for row in report["comparison"]] == [
-        "EGX30",
-        "MVO on FULL Asset universe",
         "FULL pipeline",
+        "EGX30",
     ]
-    with pytest.raises(ValueError, match="Monthly rebalance simulator mode is available only"):
-        run_fast_simulation("2025-03", "medium", duration_months=1, simulator_mode="monthly_rebalance")
+
+    monthly_report = run_fast_simulation("2025-03", "medium", duration_months=1, simulator_mode="monthly_rebalance")
+    assert monthly_report["simulatorMode"] == "monthly_rebalance"
+    assert [row["id"] for row in monthly_report["comparison"]] == ["optimizedPortfolio", "egx30"]
+    assert len(monthly_report["rebalanceTimeline"]) == 1
 
 
 def test_monthly_rebalance_recomputes_decisions_for_each_month(monkeypatch: pytest.MonkeyPatch) -> None:

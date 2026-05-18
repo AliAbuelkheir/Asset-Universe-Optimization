@@ -25,11 +25,10 @@ Environment variables:
 | --- | --- |
 | `ENVIRONMENT` | `production` |
 | `SIMULATOR_PROFILE` | `production` |
-| `VITE_SIMULATOR_PROFILE` | `production` |
 | `PYTHONUNBUFFERED` | `1` |
 
 Do not set `VITE_API_BASE_URL` for the production build. The React app calls the same-origin FastAPI routes under `/api`.
-Use `SIMULATOR_PROFILE=production` and `VITE_SIMULATOR_PROFILE=production` for the public benchmark set: EGX30, MVO on FULL Asset universe, and FULL pipeline. Use `development` locally to expose monthly rebalance diagnostics.
+Use `SIMULATOR_PROFILE=production` for the public benchmark set: FULL pipeline and EGX30. The single-allocation and monthly-rebalance simulator modes remain available in both production and local environments. Use `development` locally to expose additional diagnostic comparison rows such as filtered-universe equal weight and full-universe optimized weight.
 
 ## Runtime layout
 
