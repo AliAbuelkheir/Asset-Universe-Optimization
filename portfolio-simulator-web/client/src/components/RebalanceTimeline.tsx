@@ -31,7 +31,7 @@ export function RebalanceTimeline({ report, isStale }: RebalanceTimelineProps) {
         <div>
           <h2>Monthly rebalance timeline</h2>
           <p>
-            Each month reruns PPO risk-bucket selection and optimizer allocation before compounding realized returns.
+            Each month refreshes the selected universe and target allocation before compounding realized returns.
           </p>
         </div>
         <div className="pipelineSummary">
@@ -56,7 +56,7 @@ export function RebalanceTimeline({ report, isStale }: RebalanceTimelineProps) {
               <div className="rebalanceCardHeader">
                 <div>
                   <h3>{snapshot.month}</h3>
-                  <p>{snapshot.split} split, decision {snapshot.optimizerDecisionDate}</p>
+                  <p>{snapshot.activeUniverseCount} active assets, {snapshot.selectedAssetCount} selected</p>
                 </div>
                 <span>{signedPercent(snapshot.monthlyReturn)}</span>
               </div>

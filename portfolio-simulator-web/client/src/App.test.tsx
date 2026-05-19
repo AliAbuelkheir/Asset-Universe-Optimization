@@ -296,15 +296,18 @@ describe("App", () => {
     expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
     expect(screen.getByText("Final selected-asset weights")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("FULL pipeline").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Filtered universe with equal weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("MVO on FULL Asset universe").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Optimized portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Equal-weight selected assets").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full-universe optimized").length).toBeGreaterThan(0);
     expect(screen.getAllByText("EGX30").length).toBeGreaterThan(0);
     expect(screen.queryByText("Full Universe with equal weights")).not.toBeInTheDocument();
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
     expect(screen.queryByText("Component-risk separation across the test period")).not.toBeInTheDocument();
     expect(screen.queryByText("Asset-universe filter impact")).not.toBeInTheDocument();
-    expect(screen.queryByText("Relative risk-rank components at decision month")).not.toBeInTheDocument();
+    expect(screen.queryByText(/split/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/decision date/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/PPO/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Relative risk-rank components/)).not.toBeInTheDocument();
     expect(screen.queryByText("Selection rank")).not.toBeInTheDocument();
     expect(screen.queryByText("Predicted risk")).not.toBeInTheDocument();
   });
@@ -318,7 +321,7 @@ describe("App", () => {
     expect(await screen.findByText("Monthly Rebalance Intelligence")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.queryByText("Pipeline replay")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Monthly rebalanced filtered universe with optimized weights").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Optimized portfolio").length).toBeGreaterThan(0);
   });
 
   it("updates selected-month intelligence when a rebalance month is clicked", async () => {
@@ -327,11 +330,13 @@ describe("App", () => {
     fireEvent.click(screen.getByText("Run simulation"));
 
     const intelligence = await screen.findByLabelText("Monthly Rebalance Intelligence");
-    expect(within(intelligence).getByText("2025-03-01")).toBeInTheDocument();
+    expect(within(intelligence).getAllByText("2025-03").length).toBeGreaterThan(0);
+    expect(within(intelligence).queryByText(/split/i)).not.toBeInTheDocument();
+    expect(within(intelligence).queryByText(/Decision date/i)).not.toBeInTheDocument();
 
     fireEvent.click(within(intelligence).getAllByRole("button", { name: /2025-04/i })[0]);
 
-    expect(within(intelligence).getByText("2025-04-01")).toBeInTheDocument();
+    expect(within(intelligence).getAllByText("2025-04").length).toBeGreaterThan(0);
     expect(within(intelligence).getAllByText("-0.5%").length).toBeGreaterThan(0);
   });
 

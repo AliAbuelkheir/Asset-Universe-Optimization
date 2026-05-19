@@ -24,7 +24,6 @@ export function ReturnTable({
         <thead>
           <tr>
             <th>Month</th>
-            <th>Split</th>
             <th>Days since previous point</th>
             {visibleSeries.map((series) => (
               <th key={`${series.key}-monthly`}>{series.label} monthly</th>
@@ -38,7 +37,6 @@ export function ReturnTable({
           {points.map((point, index) => (
             <tr key={point.month}>
               <td>{point.month}</td>
-              <td>{point.split}</td>
               <td>{intervals[index + 1]?.daysSincePrevious ?? 0} days</td>
               {visibleSeries.map((series) => (
                 <td key={`${series.key}-${point.month}-monthly`}>{percent(point[series.key] ?? 0)}</td>

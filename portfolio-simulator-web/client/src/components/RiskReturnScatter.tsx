@@ -1,4 +1,4 @@
-import { comparisonLabels } from "../comparisonLabels";
+import { displayComparisonLabel } from "../comparisonLabels";
 import { percent } from "../format";
 import type { ComparisonRow } from "../types";
 import {
@@ -25,7 +25,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
   }
   const data = rows.map((row) => ({
     id: row.id,
-    label: row.label || comparisonLabels[row.id],
+    label: displayComparisonLabel(row),
     volatility: row.metrics.annualizedVolatility,
     cumulativeReturn: row.metrics.cumulativeReturn,
     color: COLORS[row.id] ?? "var(--ink)"
@@ -84,7 +84,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
         {rows.map((row) => (
           <span key={row.id}>
             <i style={{ background: COLORS[row.id] ?? "var(--ink)" }} />
-            {row.label || comparisonLabels[row.id]}
+            {displayComparisonLabel(row)}
           </span>
         ))}
       </div>

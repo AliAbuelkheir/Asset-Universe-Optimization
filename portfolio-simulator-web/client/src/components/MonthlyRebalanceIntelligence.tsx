@@ -73,6 +73,7 @@ function reportSeriesRows(report: SimulationReport, enabledSeries: ReturnSeriesK
 export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalanceIntelligenceProps) {
   const timeline = report?.simulatorMode === "monthly_rebalance" ? report.rebalanceTimeline : [];
   const months = useMemo(() => timeline.map((snapshot) => snapshot.month), [timeline]);
+  const timelineByMonth = useMemo(() => new Map(timeline.map((snapshot) => [snapshot.month, snapshot])), [timeline]);
   const [selectedMonth, setSelectedMonth] = useState(months[0] ?? "");
   const selectedMonthButtonRef = useRef<HTMLButtonElement | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>("snapshot");
@@ -236,7 +237,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
                 onClick={() => setSelectedMonth(point.month)}
               >
                 <strong>{point.month}</strong>
-                <span>{point.split} split</span>
+                <span>{timelineByMonth.get(point.month)?.selectedAssetCount ?? 0} selected assets</span>
                 <em className={positive ? "positive" : "negative"}>
                   <TrendIcon size={13} />
                   {signedPercent(point.optimizedPortfolio)}
@@ -296,8 +297,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
                 <div><dt>Ending value</dt><dd>{number(selectedSnapshot.endingValue)}</dd></div>
                 <div><dt>Active universe count</dt><dd>{selectedSnapshot.activeUniverseCount}</dd></div>
                 <div><dt>Selected asset count</dt><dd>{selectedSnapshot.selectedAssetCount}</dd></div>
-                <div><dt>Optimizer weight sum</dt><dd>{percent(selectedSnapshot.optimizerWeightSum)}</dd></div>
-                <div><dt>Decision date</dt><dd>{selectedSnapshot.optimizerDecisionDate}</dd></div>
+                <div><dt>Weight sum</dt><dd>{percent(selectedSnapshot.optimizerWeightSum)}</dd></div>
               </dl>
             </section>
 

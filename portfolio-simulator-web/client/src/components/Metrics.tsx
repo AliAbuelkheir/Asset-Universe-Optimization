@@ -1,4 +1,4 @@
-import { comparisonLabels } from "../comparisonLabels";
+import { displayComparisonLabel } from "../comparisonLabels";
 import { number, percent } from "../format";
 import type { ComparisonRow } from "../types";
 
@@ -7,7 +7,7 @@ export function Metrics({ rows }: { rows: ComparisonRow[] }) {
     <div className="metricsGrid">
       {rows.map((row) => (
         <article className="metricCard" key={row.id}>
-          <span>{row.label || comparisonLabels[row.id]}</span>
+          <span>{displayComparisonLabel(row)}</span>
           <strong>{percent(row.metrics.cumulativeReturn)}</strong>
           <dl>
             <div><dt>Volatility</dt><dd>{percent(row.metrics.annualizedVolatility)}</dd></div>

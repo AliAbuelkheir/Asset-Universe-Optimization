@@ -39,7 +39,7 @@ export function QuestionnaireForm({ questionnaire, onChange }: QuestionnaireForm
       <div className="activeModeHeader">
         <div>
           <h3>Questionnaire</h3>
-          <p>The model estimates the risk band, then runs the same historical diagnostic.</p>
+          <p>Answers select the risk band, then run the same historical diagnostic.</p>
         </div>
         <span>8 inputs</span>
       </div>

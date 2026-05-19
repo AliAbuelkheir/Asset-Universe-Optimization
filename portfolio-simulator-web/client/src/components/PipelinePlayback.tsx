@@ -104,7 +104,7 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
         <div>
           <h2>Pipeline replay</h2>
           <p>
-            Active universe, PPO risk-bucket selection, and optimizer weights used for this historical diagnostic.
+            Active universe, selected assets, and portfolio weights used for this historical diagnostic.
           </p>
         </div>
         <div className="pipelineSummary">
@@ -127,8 +127,8 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
             <div>
               <h3>Asset universe selection</h3>
               <p>
-                Assets remain in the active universe layout for {report.month}. PPO-selected assets stay highlighted
-                before weights are assigned.
+                Assets remain in the active universe layout for {report.month}. Selected assets stay highlighted before
+                weights are assigned.
               </p>
             </div>
             <span>{phase === "universe" ? "Scanning" : phase === "filter" ? "Filtering" : "Weighted"}</span>
@@ -153,8 +153,7 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
           <div>
             <h3>Final selected-asset weights</h3>
             <p>
-              These are the optimizer allocations for the PPO-filtered universe. Equal-weight baselines below skip this
-              stage.
+              These are the final allocations for the selected universe. Equal-weight baselines below skip this stage.
             </p>
           </div>
           <div className="weightRows">

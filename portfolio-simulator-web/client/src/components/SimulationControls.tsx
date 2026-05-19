@@ -23,12 +23,17 @@ export function SimulationControls({
   onRiskLevelChange,
   onQuestionnaireChange
 }: SimulationControlsProps) {
+  const selectedLevel = levels.find((level) => level.id === riskLevel);
+  const selectedBandWidth = selectedLevel
+    ? Math.round((selectedLevel.maxRankPct - selectedLevel.minRankPct) * 100)
+    : null;
+
   return (
     <article className="simulationMain">
       <div className="sectionHeading">
         <div>
           <h2>Choose simulation mode</h2>
-          <p>Run either questionnaire inference or manual fast select for this simulation.</p>
+          <p>Use the questionnaire or choose a risk profile directly for this simulation.</p>
         </div>
         <span>Only one mode runs at a time</span>
       </div>
@@ -42,7 +47,7 @@ export function SimulationControls({
         >
           <UserCheck size={24} />
           <strong>Questionnaire</strong>
-          <span>Infer risk level from answers</span>
+          <span>Estimate risk level from answers</span>
         </button>
         <button
           type="button"
@@ -52,18 +57,18 @@ export function SimulationControls({
         >
           <Gauge size={24} />
           <strong>Fast select</strong>
-          <span>Manually choose a risk band</span>
+          <span>Choose a risk band directly</span>
         </button>
       </div>
 
       {mode === "questionnaire" ? (
         <QuestionnaireForm questionnaire={questionnaire} onChange={onQuestionnaireChange} />
       ) : (
-        <section className="activeModePanel" aria-label="Fast select input">
+        <section className="activeModePanel fastModePanel" aria-label="Fast select input">
           <div className="activeModeHeader">
             <div>
               <h3>Fast select risk level</h3>
-              <p>Skip questionnaire inference and choose the risk profile directly.</p>
+              <p>Choose the risk profile directly and keep the setup compact.</p>
             </div>
             <span>Manual</span>
           </div>
@@ -79,7 +84,21 @@ export function SimulationControls({
               </button>
             ))}
           </div>
-          <p className="modeDescription">{levels.find((level) => level.id === riskLevel)?.description ?? "Select a risk band."}</p>
+          <p className="modeDescription">{selectedLevel?.description ?? "Select a risk band."}</p>
+          <div className="modeSetupSummary" aria-label="Fast select summary">
+            <div>
+              <span>Current band</span>
+              <strong>{labelRisk(riskLevel)}</strong>
+            </div>
+            <div>
+              <span>Universe range</span>
+              <strong>{selectedBandWidth ? `${selectedBandWidth}% band` : "Selected band"}</strong>
+            </div>
+            <div>
+              <span>Output focus</span>
+              <strong>Historical diagnostics</strong>
+            </div>
+          </div>
         </section>
       )}
     </article>

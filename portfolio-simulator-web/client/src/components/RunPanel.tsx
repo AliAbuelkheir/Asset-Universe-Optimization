@@ -60,7 +60,7 @@ export function RunPanel({
         <select value={month} onChange={(event) => onMonthChange(event.target.value)}>
           {months.map((candidate) => (
             <option value={candidate.month} key={candidate.month}>
-              {candidate.month} - {candidate.split} - {candidate.assetCount} assets
+              {candidate.month} - {candidate.assetCount} assets
             </option>
           ))}
         </select>
@@ -117,7 +117,7 @@ export function RunPanel({
       </button>
       <p className="runNote">
         {selectedMonth
-          ? `${selectedMonth.split} split, ${selectedMonth.assetCount} active assets, ${durationRequestLabel} requested.`
+          ? `${selectedMonth.assetCount} active assets, ${durationRequestLabel} requested.`
           : "Loading months."}
       </p>
     </aside>

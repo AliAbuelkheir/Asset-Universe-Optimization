@@ -62,6 +62,7 @@
   --tooltip-border: #cdd5ef;
   --field-bg: #ffffff;
   --brand-logo-bg: #000000;
+  --panel-glow: rgba(37, 99, 235, 0.08);
   --heat-positive: 16, 185, 129;
   --heat-negative: 244, 63, 94;
   --shadow: 0 16px 40px rgba(21, 23, 33, 0.08);
@@ -71,40 +72,40 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  background: #070b12;
+  background: #09090b;
   color: #f8fafc;
-  --bg: #070b12;
-  --page-start: #0b1220;
-  --surface: #0f172a;
-  --surface-soft: #111c2e;
-  --surface-raised: #172033;
-  --surface-muted: #111827;
-  --surface-selected: #102446;
+  --bg: #09090b;
+  --page-start: #09090b;
+  --surface: #18181b;
+  --surface-soft: #1f1f23;
+  --surface-raised: #202024;
+  --surface-muted: #1f1f23;
+  --surface-selected: #27272a;
   --ink: #f8fafc;
-  --muted: #9aa8bd;
-  --border: #26364d;
-  --border-strong: #3b4a60;
-  --table-border: #223047;
-  --accent: #94a3b8;
-  --accent-strong: #cbd5e1;
-  --accent-soft: #1f2937;
-  --accent-contrast: #0b1220;
-  --accent-button: #e5e7eb;
-  --accent-button-hover: #f8fafc;
-  --primary-action-bg: #e5e7eb;
+  --muted: #a1a1aa;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --table-border: #27272a;
+  --accent: #d4d4d8;
+  --accent-strong: #f4f4f5;
+  --accent-soft: #27272a;
+  --accent-contrast: #09090b;
+  --accent-button: #e4e4e7;
+  --accent-button-hover: #f4f4f5;
+  --primary-action-bg: #e4e4e7;
   --primary-action-hover: #ffffff;
-  --primary-action-ink: #0b1220;
-  --selected-control-bg: #1f2937;
+  --primary-action-ink: #09090b;
+  --selected-control-bg: #27272a;
   --selected-control-ink: #f8fafc;
-  --selected-control-border: #cbd5e1;
-  --selected-control-accent: #e5e7eb;
-  --selected-control-soft: rgba(226, 232, 240, 0.16);
-  --subtle-pill-bg: #1f2937;
-  --subtle-pill-ink: #e2e8f0;
+  --selected-control-border: #d4d4d8;
+  --selected-control-accent: #f4f4f5;
+  --selected-control-soft: rgba(244, 244, 245, 0.14);
+  --subtle-pill-bg: #27272a;
+  --subtle-pill-ink: #e4e4e7;
   --blue: #60a5fa;
-  --blue-soft: #102446;
-  --blue-muted: #7dd3fc;
-  --blue-chip: #0e2f4a;
+  --blue-soft: #27272a;
+  --blue-muted: #d4d4d8;
+  --blue-chip: #27272a;
   --danger: #fda4af;
   --danger-soft: #3b1119;
   --danger-border: #7f1d1d;
@@ -113,25 +114,26 @@
   --warning-soft: #3b2412;
   --warning-border: #7c2d12;
   --positive: #6ee7b7;
-  --topbar-bg: #020617;
-  --topbar-border: rgba(148, 163, 184, 0.22);
+  --topbar-bg: #09090b;
+  --topbar-border: rgba(244, 244, 245, 0.12);
   --topbar-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
   --on-dark: #f8fafc;
-  --on-dark-muted: rgba(226, 232, 240, 0.78);
-  --on-dark-subtle: rgba(226, 232, 240, 0.68);
-  --nav-border: rgba(148, 163, 184, 0.24);
-  --nav-bg: rgba(148, 163, 184, 0.1);
-  --run-panel-start: #020617;
-  --run-panel-end: #0b1220;
-  --run-panel-input: #111827;
-  --run-panel-border: rgba(148, 163, 184, 0.28);
-  --chart-grid: #223047;
-  --chart-axis: #3b4a60;
-  --chart-tick: #9aa8bd;
-  --tooltip-bg: rgba(15, 23, 42, 0.98);
-  --tooltip-border: #3b4a60;
-  --field-bg: #0b1220;
-  --brand-logo-bg: #020617;
+  --on-dark-muted: rgba(228, 228, 231, 0.78);
+  --on-dark-subtle: rgba(228, 228, 231, 0.68);
+  --nav-border: rgba(244, 244, 245, 0.14);
+  --nav-bg: rgba(244, 244, 245, 0.08);
+  --run-panel-start: #09090b;
+  --run-panel-end: #121214;
+  --run-panel-input: #18181b;
+  --run-panel-border: rgba(244, 244, 245, 0.14);
+  --chart-grid: #27272a;
+  --chart-axis: #3f3f46;
+  --chart-tick: #a1a1aa;
+  --tooltip-bg: rgba(24, 24, 27, 0.98);
+  --tooltip-border: #3f3f46;
+  --field-bg: #09090b;
+  --brand-logo-bg: #09090b;
+  --panel-glow: rgba(244, 244, 245, 0.04);
   --heat-positive: 52, 211, 153;
   --heat-negative: 251, 113, 133;
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
@@ -324,7 +326,10 @@ p {
 
 .simulationMain {
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 18px;
+  align-self: stretch;
+  align-content: stretch;
 }
 
 .runPanel {
@@ -424,8 +429,47 @@ p {
 .activeModePanel {
   display: grid;
   gap: 14px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+  align-content: start;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.fastModePanel {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.modeSetupSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  grid-row: 5;
+}
+
+.modeSetupSummary div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.modeSetupSummary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.modeSetupSummary strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.2;
 }
 
 .questionnaireStack {
@@ -655,7 +699,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(37, 99, 235, 0.08) 0, rgba(37, 99, 235, 0) 280px),
+    linear-gradient(180deg, var(--panel-glow) 0, transparent 280px),
     var(--surface);
   box-shadow: var(--shadow);
   scroll-margin-top: 28px;
@@ -1892,6 +1936,7 @@ th {
   }
 
   .modeCards,
+  .modeSetupSummary,
   .questionnaireStack {
     grid-template-columns: 1fr;
   }

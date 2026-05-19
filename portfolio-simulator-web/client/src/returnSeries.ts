@@ -1,4 +1,4 @@
-import { comparisonLabels } from "./comparisonLabels";
+import { comparisonLabels, displayComparisonLabel } from "./comparisonLabels";
 import type { ComparisonRow, MonthlyReturnPoint } from "./types";
 
 export const returnSeries = [
@@ -15,7 +15,7 @@ export function visibleReturnSeries(showOptimizer: boolean, comparison?: Compari
   const orderedSeries = comparison?.length
     ? comparison.flatMap((row) => {
         const series = seriesByKey.get(row.id);
-        return series ? [{ ...series, label: row.label }] : [];
+        return series ? [{ ...series, label: displayComparisonLabel(row) }] : [];
       })
     : returnSeries;
 

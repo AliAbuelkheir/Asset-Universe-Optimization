@@ -69,8 +69,8 @@ export function ReportView({ report, isStale }: ReportViewProps) {
         <section className="resultPanel">
           <h3>Cumulative return comparison</h3>
           <p className="panelNote">
-            All lines start at 0% before the first realized month, then compound forward from the selected decision month.
-            Model-based rows keep the start-month selection and weights.
+            All lines start at 0% before the first realized month, then compound through the selected period.
+            Portfolio rows keep the start-month selection and weights.
             The x-axis labels show the month and calendar days since the previous plotted point.
           </p>
           <ReturnChart
