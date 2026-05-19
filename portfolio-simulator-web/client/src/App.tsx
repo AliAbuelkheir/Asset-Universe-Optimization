@@ -1,12 +1,14 @@
 import {
   AlertTriangle,
   BarChart3,
+  Moon,
+  Sun,
   SlidersHorizontal
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fetchMonths, fetchRiskLevels, runFastSimulation, runQuestionnaireSimulation } from "./api";
+import { MonthlyRebalanceIntelligence } from "./components/MonthlyRebalanceIntelligence";
 import { PipelinePlayback } from "./components/PipelinePlayback";
-import { RebalanceTimeline } from "./components/RebalanceTimeline";
 import { ReportView } from "./components/ReportView";
 import { RunPanel } from "./components/RunPanel";
 import { SimulationControls } from "./components/SimulationControls";
@@ -22,9 +24,25 @@ import type {
 } from "./types";
 import "./styles.css";
 
+type ThemeMode = "light" | "dark";
+
+function initialTheme(): ThemeMode {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+  const storedTheme = window.localStorage.getItem("portfolio-simulator-theme");
+  if (storedTheme === "light" || storedTheme === "dark") {
+    return storedTheme;
+  }
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
 function App() {
   const [months, setMonths] = useState<MonthOption[]>([]);
   const [levels, setLevels] = useState<RiskLevelDefinition[]>([]);
+  const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [month, setMonth] = useState("2025-03");
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium");
   const [durationMonths, setDurationMonths] = useState<number | null>(6);
@@ -47,6 +65,12 @@ function App() {
       })
       .catch((cause: Error) => setError(cause.message));
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem("portfolio-simulator-theme", theme);
+  }, [theme]);
 
   const questionnaireKey = useMemo(() => JSON.stringify(questionnaire), [questionnaire]);
   const isReportStale =
@@ -112,6 +136,16 @@ function App() {
               <a href="#simulation"><SlidersHorizontal size={16} />Simulation</a>
               <a href="#report"><BarChart3 size={16} />Report</a>
             </nav>
+            <button
+              type="button"
+              className="themeToggle"
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              aria-pressed={theme === "dark"}
+              onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === "dark" ? "Light" : "Dark"}</span>
+            </button>
             {/* <div className="statusPill"><CheckCircle2 size={16} />Historical diagnostics</div> */}
           </div>
         </header>
@@ -146,7 +180,7 @@ function App() {
 
         {error && <div className="errorBanner"><AlertTriangle size={18} />{error}</div>}
         {report?.simulatorMode === "monthly_rebalance" ? (
-          <RebalanceTimeline report={report} isStale={isReportStale} />
+          <MonthlyRebalanceIntelligence report={report} isStale={isReportStale} />
         ) : (
           <PipelinePlayback report={report} isStale={isReportStale} />
         )}

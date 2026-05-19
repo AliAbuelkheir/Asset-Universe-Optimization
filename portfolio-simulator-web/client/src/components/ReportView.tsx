@@ -26,6 +26,7 @@ export function ReportView({ report, isStale }: ReportViewProps) {
     ? `${report.durationMonths} plotted months from ${report.requestedDurationMonths} requested`
     : `${report.durationMonths} plotted months`;
   const simulatorLabel = report.simulatorMode === "monthly_rebalance" ? "Monthly rebalance" : "Single allocation";
+  const isMonthlyRebalance = report.simulatorMode === "monthly_rebalance";
 
   return (
     <section className="reportSurface" id="report">
@@ -56,35 +57,36 @@ export function ReportView({ report, isStale }: ReportViewProps) {
         annualization and may appear as n/a when the selected duration is too short or has too few negative months.
       </p>
       <section className="resultPanel">
-        <h3>Risk and return comparison</h3>
+        <h3>{isMonthlyRebalance ? "Period-level risk and return map" : "Risk and return comparison"}</h3>
         <p className="panelNote">
           Each point compares cumulative return against annualized volatility for the selected historical period.
+          {isMonthlyRebalance ? " Use the Monthly Rebalance Intelligence panel above for selected-month drilldown." : ""}
         </p>
         <RiskReturnScatter rows={report.comparison} />
       </section>
 
-      <section className="resultPanel">
-        <h3>Cumulative return comparison</h3>
-        <p className="panelNote">
-          All lines start at 0% before the first realized month, then compound forward from the selected decision month.
-          {report.simulatorMode === "monthly_rebalance"
-            ? " Model-based rows reselect and rebalance at each plotted month."
-            : " Model-based rows keep the start-month selection and weights."}
-          The x-axis labels show the month and calendar days since the previous plotted point.
-        </p>
-        <ReturnChart
-          points={report.monthlyReturns}
-          intervals={report.chartIntervals}
-          comparison={report.comparison}
-          showOptimizer={true}
-        />
-        <ReturnTable
-          points={report.monthlyReturns}
-          intervals={report.chartIntervals}
-          comparison={report.comparison}
-          showOptimizer={true}
-        />
-      </section>
+      {!isMonthlyRebalance && (
+        <section className="resultPanel">
+          <h3>Cumulative return comparison</h3>
+          <p className="panelNote">
+            All lines start at 0% before the first realized month, then compound forward from the selected decision month.
+            Model-based rows keep the start-month selection and weights.
+            The x-axis labels show the month and calendar days since the previous plotted point.
+          </p>
+          <ReturnChart
+            points={report.monthlyReturns}
+            intervals={report.chartIntervals}
+            comparison={report.comparison}
+            showOptimizer={true}
+          />
+          <ReturnTable
+            points={report.monthlyReturns}
+            intervals={report.chartIntervals}
+            comparison={report.comparison}
+            showOptimizer={true}
+          />
+        </section>
+      )}
     </section>
   );
 }

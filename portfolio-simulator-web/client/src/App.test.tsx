@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
@@ -257,6 +257,8 @@ vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
   });
 
   it("renders the simulation workflow", async () => {
@@ -268,6 +270,17 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Monthly rebalance/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Single allocation/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Run simulation")).toBeInTheDocument();
+  });
+
+  it("toggles and persists dark mode", async () => {
+    render(<App />);
+    const toggle = await screen.findByRole("button", { name: /Switch to dark mode/i });
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
+    expect(window.localStorage.getItem("portfolio-simulator-theme")).toBe("dark");
+    expect(screen.getByRole("button", { name: /Switch to light mode/i })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("runs fast mode with single allocation and renders only public report fields", async () => {
@@ -302,10 +315,36 @@ describe("App", () => {
     fireEvent.click(await screen.findByText("Low"));
     fireEvent.click(screen.getByText("Run simulation"));
 
-    expect(await screen.findByText("Monthly rebalance timeline")).toBeInTheDocument();
+    expect(await screen.findByText("Monthly Rebalance Intelligence")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.queryByText("Pipeline replay")).not.toBeInTheDocument();
     expect(screen.getAllByText("Monthly rebalanced filtered universe with optimized weights").length).toBeGreaterThan(0);
+  });
+
+  it("updates selected-month intelligence when a rebalance month is clicked", async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByText("Fast select"));
+    fireEvent.click(screen.getByText("Run simulation"));
+
+    const intelligence = await screen.findByLabelText("Monthly Rebalance Intelligence");
+    expect(within(intelligence).getByText("2025-03-01")).toBeInTheDocument();
+
+    fireEvent.click(within(intelligence).getAllByRole("button", { name: /2025-04/i })[0]);
+
+    expect(within(intelligence).getByText("2025-04-01")).toBeInTheDocument();
+    expect(within(intelligence).getAllByText("-0.5%").length).toBeGreaterThan(0);
+  });
+
+  it("shows selected-month allocations and benchmark deltas", async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByText("Fast select"));
+    fireEvent.click(screen.getByText("Run simulation"));
+
+    const intelligence = await screen.findByLabelText("Monthly Rebalance Intelligence");
+    expect(within(intelligence).getByText("Benchmark delta")).toBeInTheDocument();
+    expect(within(intelligence).getByText("Top allocations")).toBeInTheDocument();
+    expect(within(intelligence).getAllByText("BETA").length).toBeGreaterThan(0);
+    expect(within(intelligence).getByText("vs EGX30")).toBeInTheDocument();
   });
 
   it("runs questionnaire simulation and displays inferred label", async () => {
