@@ -1,0 +1,40 @@
+{
+  "tier": "low",
+  "target_month": "2025-08",
+  "decision_date": "2025-07-31",
+  "lookback_window": 63,
+  "asset_weights": [
+    {
+      "asset": "TBills",
+      "weight": 0.29999999999999993
+    },
+    {
+      "asset": "Commercial_Int_Bank",
+      "weight": 0.21146211505874146
+    },
+    {
+      "asset": "Edita_Food",
+      "weight": 0.19629506108663422
+    },
+    {
+      "asset": "Gold",
+      "weight": 0.18425227374014164
+    },
+    {
+      "asset": "Eastern_Tobacco",
+      "weight": 0.10799055011448268
+    }
+  ],
+  "cash_position": 0.0,
+  "sum_check": 0.9999999999999999,
+  "constraints_applied": {
+    "max_weight": 0.3,
+    "min_weight": 0.0,
+    "dirichlet_prior": 0.2,
+    "long_only": true,
+    "leverage": false,
+    "sum_to_one": true
+  },
+  "model_version": "setbased_seed42",
+  "package_version": "0.1.0"
+}

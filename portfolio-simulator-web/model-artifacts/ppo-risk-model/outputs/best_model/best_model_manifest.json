@@ -1,0 +1,14 @@
+{
+  "additive_feature_id": "downside_tail_ratio_3m",
+  "destination_dir": "outputs/best_model",
+  "feature_profile_id": "full_current_v1",
+  "framework_id": "pit_3m_flat_context",
+  "input_feature_set_id": "shadow_add_downside_tail_ratio_3m",
+  "model_id": "downside_tail_ratio_3m_refined50",
+  "promoted_at_utc": "2026-04-30T13:11:03Z",
+  "seed": 13,
+  "selection_rule": "tail_aware_validation_high_risk_overlap_with_reward_spearman_guardrails",
+  "setup_id": "TAIL-REFINED50-DOWNSIDE_TAIL_RATIO_3M-S13",
+  "source_artifact_dir": "outputs/generated/runs/tail_candidates/refined50/TAIL-REFINED50-DOWNSIDE_TAIL_RATIO_3M-S13",
+  "tuned_ppo_id": "refined50"
+}

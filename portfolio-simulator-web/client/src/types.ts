@@ -1,5 +1,8 @@
 export type RiskLevel = "low" | "medium" | "high";
 
+export type SimulationMode = "questionnaire" | "fast";
+export type SimulatorMode = "single" | "monthly_rebalance";
+
 export interface MonthOption {
   month: string;
   split: "validation" | "test";
@@ -14,28 +17,42 @@ export interface RiskLevelDefinition {
   description: string;
 }
 
-export interface SelectedAsset {
-  assetId: string;
-  assetName: string;
-  assetGroup: string;
-  predictedRankPct: number;
-  realizedVol?: number | null;
-  realizedDownsideDev?: number | null;
-  realizedMaxDrawdown?: number | null;
-  weight?: number;
+export interface HealthResponse {
+  status: "ok" | "degraded";
+  ppoRootExists: boolean;
+  predictionsAvailable: boolean;
+  dailyMarketAvailable: boolean;
+  monthlyPanelAvailable: boolean;
+  questionnaireModelAvailable: boolean;
+  optimizerMode: "external_model" | "unavailable";
+  optimizerRuntimeAvailable: boolean;
 }
 
-export interface RealizedRiskComponents {
-  realizedVol: number;
-  realizedDownsideDev: number;
-  realizedMaxDrawdown: number;
+export interface QuestionnaireInput {
+  gender: "Male" | "Female";
+  age: number;
+  Duration: "Less than 1 year" | "1-3 years" | "3-5 years" | "More than 5 years";
+  Invest_Monitor: "Monthly" | "Weekly" | "Daily";
+  Expect: "10%-20%" | "20%-30%" | "30%-40%";
+  Objective: "Risk" | "Returns" | "Growth" | "Income";
+  Purpose: "Wealth Creation" | "Savings for Future" | "Returns" | "Income";
+  "What are your savings objectives?": "Health Care" | "Retirement Plan" | "Education";
+}
+
+export interface QuestionnaireInference {
+  riskClass: 0 | 1 | 2;
+  riskLabel: "Conservative" | "Moderate" | "Aggressive";
+  riskLevel: RiskLevel;
+  probabilities: Partial<Record<"Conservative" | "Moderate" | "Aggressive", number>>;
+  riskScore: number;
 }
 
 export interface MonthlyReturnPoint {
   month: string;
-  optimizedPortfolio?: number;
+  split: "validation" | "test";
+  optimizedPortfolio: number;
+  mvoFullUniverse: number;
   assignedRiskBucket: number;
-  allEqualWeight: number;
   egx30: number;
 }
 
@@ -54,34 +71,47 @@ export interface PerformanceMetrics {
 }
 
 export interface ComparisonRow {
-  id: "optimizedPortfolio" | "assignedRiskBucket" | "allEqualWeight" | "egx30";
+  id: "optimizedPortfolio" | "mvoFullUniverse" | "assignedRiskBucket" | "egx30";
   label: string;
   metrics: PerformanceMetrics;
 }
 
-export interface RiskComponentRow {
-  id: "optimizedPortfolio" | "assignedRiskBucket" | "allEqualWeight" | "egx30";
-  label: string;
-  components: RealizedRiskComponents;
+export interface PipelineAsset {
+  assetId: string;
+  assetName: string;
+  assetGroup: string;
+  selectedByFilter: boolean;
+  equalWeight: number | null;
+  optimizedWeight: number | null;
 }
 
-export interface RawRiskComponents {
-  annualizedVolatility: number;
-  annualizedDownsideDeviation: number;
-  maxDrawdown: number;
-  observations: number;
+export interface SimulationPipeline {
+  activeUniverse: PipelineAsset[];
+  selectedAssets: PipelineAsset[];
+  activeUniverseCount: number;
+  selectedAssetCount: number;
+  optimizerWeightSum: number;
+  optimizerDecisionDate: string;
 }
 
-export interface RawRiskComponentRow {
-  id: "assignedRiskBucket" | "allEqualWeight" | "egx30";
-  label: string;
-  components: RawRiskComponents;
+export interface RebalanceTimelinePoint {
+  month: string;
+  split: "validation" | "test";
+  optimizerDecisionDate: string;
+  startingValue: number;
+  monthlyReturn: number;
+  endingValue: number;
+  activeUniverseCount: number;
+  selectedAssetCount: number;
+  optimizerWeightSum: number;
+  selectedAssets: PipelineAsset[];
 }
 
 export interface SimulationReport {
   simulationId: string;
   month: string;
   riskLevel: RiskLevel;
+  simulatorMode: SimulatorMode;
   split: "validation" | "test";
   durationMonths: number;
   requestedDurationMonths?: number | null;
@@ -90,15 +120,10 @@ export interface SimulationReport {
     daysSincePrevious: number;
   }>;
   thesisSafeSummary: string;
-  optimizerMode: "mock_equal_weight" | "external_model";
-  selectedAssets: SelectedAsset[];
+  optimizerMode: "external_model";
   monthlyReturns: MonthlyReturnPoint[];
   comparison: ComparisonRow[];
-  riskComponents: RiskComponentRow[];
-  rawRiskComponents: RawRiskComponentRow[];
-  assumptions: string[];
-  requiredExternalContracts: {
-    riskToleranceModel: string[];
-    weightOptimizerModel: string[];
-  };
+  pipeline: SimulationPipeline;
+  rebalanceTimeline: RebalanceTimelinePoint[];
+  questionnaireInference?: QuestionnaireInference | null;
 }

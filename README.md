@@ -16,11 +16,11 @@ cd ppo-risk-model
 
 ## Run The Web Simulator
 
-The first app version supports fast mode with direct risk-level selection. The questionnaire route is intentionally disabled until the risk-tolerance model contract is received. The optimizer uses a deterministic equal-weight mock adapter until the external PPO optimizer files are provided.
+The simulator supports direct risk-level selection and a questionnaire path gated by the checked risk-tolerance artifact contract under `portfolio-simulator-web/model-artifacts/questionnaire-risk-tolerance/contract.json`. The allocation stage uses the bundled external optimizer artifacts when they pass runtime checks; results are historical diagnostics, not performance guarantees.
 
 ```powershell
 cd portfolio-simulator-web
-..\ppo-risk-model\.venv\Scripts\python.exe -m pip install -r ml-service\requirements.txt
+..\ppo-risk-model\.venv\Scripts\python.exe -m pip install -r ml-service\requirements-dev.txt
 npm.cmd install
 npm.cmd run dev
 ```

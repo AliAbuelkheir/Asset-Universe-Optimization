@@ -5,6 +5,7 @@ coverage/
 .vite/
 .runtime-logs/
 *.tsbuildinfo
+portfolio-simulator-web/*.log
 
 # Python caches
 __pycache__/

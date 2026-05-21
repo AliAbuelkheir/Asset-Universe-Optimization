@@ -1,0 +1,31 @@
+{
+  "artifact": "risk_tolerance_rf_model.pkl",
+  "sha256": "dc684135050bd72c04630d2d37e5e4f4e0e3355a2557a7648446f80ab1142674",
+  "modelType": "sklearn.ensemble.RandomForestClassifier",
+  "trainedSklearnVersion": "1.6.1",
+  "featureNames": [
+    "age",
+    "Duration_Score",
+    "Expect_Score",
+    "Monitor_Score",
+    "gender_Male",
+    "Objective_Income",
+    "Objective_Growth",
+    "Purpose_Savings for Future",
+    "What are your savings objectives?_Health Care"
+  ],
+  "classMapping": {
+    "0": {
+      "riskLevel": "low",
+      "riskLabel": "Conservative"
+    },
+    "1": {
+      "riskLevel": "medium",
+      "riskLabel": "Moderate"
+    },
+    "2": {
+      "riskLevel": "high",
+      "riskLabel": "Aggressive"
+    }
+  }
+}

@@ -1,40 +1,22 @@
 import { percent } from "../format";
-import type { MonthlyReturnPoint, SimulationReport } from "../types";
-
-const SERIES = [
-  { key: "optimizedPortfolio", label: "Optimizer" },
-  { key: "assignedRiskBucket", label: "Risk bucket" },
-  { key: "allEqualWeight", label: "All equal" },
-  { key: "egx30", label: "EGX30" }
-] as const;
-
-type SeriesKey = (typeof SERIES)[number]["key"];
-
-function cumulativeRows(points: MonthlyReturnPoint[], key: SeriesKey) {
-  let current = 1;
-  return points.map((point) => {
-    const monthlyReturn = Number(point[key] ?? 0);
-    current *= 1 + monthlyReturn;
-    return {
-      monthlyReturn,
-      cumulativeReturn: current - 1
-    };
-  });
-}
+import { cumulativeReturns, visibleReturnSeries, type ReturnSeriesKey } from "../returnSeries";
+import type { ComparisonRow, MonthlyReturnPoint, SimulationReport } from "../types";
 
 export function ReturnTable({
   points,
   intervals,
+  comparison,
   showOptimizer
 }: {
   points: MonthlyReturnPoint[];
   intervals: SimulationReport["chartIntervals"];
+  comparison: ComparisonRow[];
   showOptimizer: boolean;
 }) {
-  const visibleSeries = SERIES.filter((series) => showOptimizer || series.key !== "optimizedPortfolio");
+  const visibleSeries = visibleReturnSeries(showOptimizer, comparison);
   const cumulativeByKey = Object.fromEntries(
-    visibleSeries.map((series) => [series.key, cumulativeRows(points, series.key)])
-  ) as Record<SeriesKey, Array<{ monthlyReturn: number; cumulativeReturn: number }>>;
+    visibleSeries.map((series) => [series.key, cumulativeReturns(points, series.key)])
+  ) as Record<ReturnSeriesKey, Array<{ monthlyReturn: number; cumulativeReturn: number }>>;
 
   return (
     <div className="tableScroller compactTable">
@@ -57,7 +39,7 @@ export function ReturnTable({
               <td>{point.month}</td>
               <td>{intervals[index + 1]?.daysSincePrevious ?? 0} days</td>
               {visibleSeries.map((series) => (
-                <td key={`${series.key}-${point.month}-monthly`}>{percent(point[series.key] ?? 0)}</td>
+                <td key={`${series.key}-${point.month}-monthly`}>{percent(point[series.key])}</td>
               ))}
               {visibleSeries.map((series) => (
                 <td key={`${series.key}-${point.month}-cumulative`}>

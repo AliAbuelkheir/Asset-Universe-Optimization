@@ -1,9 +1,451 @@
 \chapter{Methodology}
 \label{chap:method}
-Introduction to chapter text.
 
-\section{Section Title 1}
-Section text.
+This chapter defines the methodology used to construct investor-risk-oriented asset universes. The proposed method scores and ranks assets by predicted realized-risk suitability, then maps the ranked universe to conservative, balanced, and aggressive investor profiles.
 
-\section{Section Title 2}
-Section text.
+The core contribution is a pre-allocation universe construction framework. Portfolio diagnostics are used only as secondary checks of whether the selected universes behave coherently under historical simulation.
+
+\section{Methodological Scope and Objective}
+\label{sec:method_scope}
+
+The methodology addresses the gap identified in Chapter~\ref{chap:litreview}: risk is widely used inside portfolio optimization objectives, constraints, and evaluation metrics, but is less often treated as the main signal for investor-specific asset eligibility before allocation. The objective is to estimate which assets are suitable for conservative, balanced, and aggressive investors by learning a month-level asset risk ranking from point-in-time market information.
+
+The framework makes two methodological choices. First, asset suitability is represented through a constructed realized-risk target rather than through expected return alone. Second, model development uses strict chronological ordering so that every decision month is evaluated from information available before the relevant realized-risk target is observed.
+
+\section{Proposed Framework Overview}
+\label{sec:framework_overview}
+
+Figure~\ref{fig:methodology_pipeline} summarizes the end-to-end methodology. Historical daily and macroeconomic series are cleaned into a point-in-time monthly panel. The model predicts one bounded risk score per active asset in each decision month, ranks the active universe from low to high predicted risk, and maps ranked assets into overlapping investor risk buckets. Equal-weight portfolio diagnostics are then computed on the selected universes as an evaluation layer.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.9cm and 1.1cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.0cm, minimum height=0.9cm, font=\small},
+    data/.style={box, fill=blue!10},
+    construct/.style={box, fill=cyan!10},
+    learn/.style={box, fill=green!12},
+    decide/.style={box, fill=violet!10},
+    eval/.style={box, fill=gray!12},
+    group/.style={draw, rounded corners, dashed, inner sep=0.23cm},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[data] (raw) {Raw daily market\\and macro series};
+\node[construct, right=of raw] (panel) {Leakage-controlled\\monthly panel};
+\node[construct, above right=0.65cm and 1.15cm of panel] (features) {Point-in-time\\feature tensor};
+\node[construct, below right=0.65cm and 1.15cm of panel] (target) {Realized-risk\\training target};
+\node[learn, right=3.0cm of panel] (ppo) {Monthly PPO\\risk scorer};
+\node[decide, right=of ppo] (rank) {Predicted\\asset ranking};
+\node[decide, right=of rank] (bucket) {Overlapping\\risk buckets};
+\node[eval, right=of bucket] (diag) {Equal-weight\\diagnostics};
+\node[group, fit=(raw)] (g1) {};
+\node[font=\scriptsize, above=0.08cm of g1] {Data layer};
+\node[group, fit=(panel)(features)(target)] (g2) {};
+\node[font=\scriptsize, above=0.08cm of g2] {Construction layer};
+\node[group, fit=(ppo)] (g3) {};
+\node[font=\scriptsize, above=0.08cm of g3] {Learning layer};
+\node[group, fit=(rank)(bucket)] (g4) {};
+\node[font=\scriptsize, above=0.08cm of g4] {Decision layer};
+\node[group, fit=(diag)] (g5) {};
+\node[font=\scriptsize, above=0.08cm of g5] {Evaluation layer};
+\draw[arrow] (raw) -- (panel);
+\draw[arrow] (panel) -- (features);
+\draw[arrow] (panel) -- (target);
+\draw[arrow] (features) -- (ppo);
+\draw[arrow] (target) -- (ppo);
+\draw[arrow] (ppo) -- (rank);
+\draw[arrow] (rank) -- (bucket);
+\draw[arrow] (bucket) -- (diag);
+\end{tikzpicture}}
+\caption{Layered methodology pipeline for risk-tolerance-oriented universe construction.}
+\label{fig:methodology_pipeline}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.95cm and 1.15cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.1cm, minimum height=0.85cm, font=\small},
+    data/.style={box, fill=blue!10},
+    process/.style={box, fill=cyan!10},
+    feature/.style={box, fill=green!10},
+    target/.style={box, fill=gray!12},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[data] (sources) {Source series\\stocks, EGX30, bonds,\\T-bills, REIT, gold,\\USD/EGP, CPI};
+\node[process, right=of sources] (clean) {Clean and align\\parse prices/volume,\\convert yield proxies,\\align EGX calendar};
+\node[process, right=of clean] (panel) {Monthly long panel\\one active asset\\per month};
+\node[feature, above right=0.65cm and 1.2cm of panel] (features) {Feature branch\\trailing asset risk,\\momentum, liquidity,\\beta, macro context};
+\node[target, below right=0.65cm and 1.2cm of panel] (targets) {Target branch\\same-month realized\\volatility, downside,\\drawdown};
+\node[target, right=1.4cm of targets] (risk) {Composite\\realized-risk\\rank target};
+\draw[arrow] (sources) -- (clean);
+\draw[arrow] (clean) -- (panel);
+\draw[arrow] (panel) -- node[above, font=\scriptsize] {available state} (features);
+\draw[arrow] (panel) -- node[below, font=\scriptsize] {realization} (targets);
+\draw[arrow] (targets) -- (risk);
+\end{tikzpicture}}
+\caption{Data and target construction from raw source series to monthly feature and realized-risk branches.}
+\label{fig:data_target_construction}
+\end{figure}
+
+The pipeline depends on a constructed risk target rather than a fixed external risk label. The realized-risk target is built by combining realized volatility, downside deviation, and maximum drawdown after cross-sectional normalization. During development, alternative component weights such as equal weighting, \(40\)-\(40\)-\(20\), and variants that remove the drawdown component were evaluated before selecting the promoted target profile.
+
+\section{Composite Realized-Risk Target}
+\label{sec:composite_risk_target}
+
+The target variable is a composite realized-risk score. It combines realized volatility, downside deviation, and maximum drawdown. These components are chosen because each captures a different form of risk exposure: volatility measures overall return variation, downside deviation focuses on negative variation, and maximum drawdown captures peak-to-trough loss severity.
+
+The Sortino and Calmar ratios express return per unit of risk by changing the denominator: downside deviation for Sortino and maximum drawdown for Calmar. Since this thesis targets asset suitability by risk rather than return maximization, the methodology uses the denominator concepts directly instead of optimizing return-to-risk ratios.
+
+Each component is converted into a within-month cross-sectional rank so that assets are compared against the active universe available in the same month. A larger normalized rank means higher realized risk. The promoted target uses an equal contribution from the three ranked components. Alternative realized-risk profiles were also tested during development, including \(33\)-\(33\)-\(33\), \(40\)-\(40\)-\(20\), \(50\)-\(50\)-\(0\), and other variants that shifted emphasis between volatility, downside deviation, and drawdown. The equal-weight profile is the selected methodology profile.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.86\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.0cm, minimum height=0.85cm, font=\small},
+    input/.style={box, fill=blue!8},
+    mid/.style={box, fill=green!10},
+    outbox/.style={box, fill=gray!12},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[input] (vol) {Realized\\volatility};
+\node[input, below=of vol] (down) {Downside\\deviation};
+\node[input, below=of down] (mdd) {Maximum\\drawdown};
+\node[mid, right=2.2cm of down] (rank) {Cross-sectional\\rank normalization};
+\node[outbox, right=2.2cm of rank] (score) {Equal-weight\\realized-risk score};
+\draw[arrow] (vol.east) -- (rank.west);
+\draw[arrow] (down.east) -- (rank.west);
+\draw[arrow] (mdd.east) -- (rank.west);
+\draw[arrow] (rank) -- (score);
+\end{tikzpicture}}
+\caption{Composite realized-risk target construction.}
+\label{fig:composite_risk_target}
+\end{figure}
+
+\section{Dataset and Point-in-Time Feature Construction}
+\label{sec:dataset_features}
+
+The data engineering pipeline converts daily market and macroeconomic data into a monthly long panel. One row represents one active \((\mathrm{month}, \mathrm{asset})\) state.
+
+Raw market inputs follow an Investing.com-style CSV format. Files are reverse chronological, use \texttt{MM/DD/YYYY} dates, and contain fields such as price, open, high, low, volume, and quoted percentage change. Numeric fields are parsed after removing formatting characters; volume suffixes such as K, M, and B are converted into numeric values. The vendor change field is retained as a quality-control field, while authoritative returns are computed from cleaned prices. Money-market and bond series are quoted as yields, so fixed-maturity price proxies are used before returns and range-derived features are calculated.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Raw data sources used by the pipeline}
+\label{tab:raw_data_sources}
+\begin{tabularx}{\textwidth}{p{3.1cm}p{3.8cm}X}
+\toprule
+Series & Data type & Methodological role \\
+\midrule
+91-day treasury bills & Yield series & Low-risk money-market exposure; yield converted to price proxy for returns. \\
+5-year government bonds & Yield series & Government fixed-income exposure; yield converted to price proxy for returns. \\
+EGX30 index & Market index & Equity-market benchmark and beta reference. \\
+EGX30 constituents & Daily equity prices & Expanded equity universe; rows begin only when real history exists. \\
+REIT index & Real-estate proxy & Real-estate exposure proxy. \\
+Gold & Commodity price & Gold exposure in Egyptian pounds. \\
+USD exchange-rate series & Foreign-exchange series & Macro/foreign-exchange context after concatenation and deduplication. \\
+CPI & Inflation series & Inflation context; monthly file cleaned separately from daily market data. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Daily series are aligned to the Egyptian market calendar. Short forward filling is applied only to quoted level series where a missing observation reflects non-trading or publication timing rather than a missing asset history. The fill limit is capped at five trading days. Audit fields, range-price fields, volume, and vendor change values remain missing on synthetic forward-filled rows. Pre-listing history is never imputed; an absent row means the asset was unavailable for that month. This rule is central to handling assets with shorter histories.
+
+The feature families used by the model are shown in Table~\ref{tab:feature_families}. Asset-level features are normalized cross-sectionally within each month. Macro features repeat across active assets in the same month and are not cross-sectionally normalized.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Feature families used for point-in-time asset risk scoring}
+\label{tab:feature_families}
+\begin{tabularx}{\textwidth}{p{3.0cm}X}
+\toprule
+Feature family & Methodological role \\
+\midrule
+Volatility and risk & Captures recent realized variation, EGARCH volatility summaries, drawdown behavior, and downside variation. \\
+Downside and tail behavior & Captures harmful return asymmetry and recent downside-tail contribution. \\
+Liquidity & Represents trading activity through observed volume where available. \\
+Momentum and technical state & Captures relative price location, range behavior, momentum, and overbought/oversold state. \\
+Market beta & Measures recent co-movement with the EGX30 benchmark. \\
+Macro context & Represents foreign-exchange and inflation conditions shared across the active universe. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Promoted model feature and target fields}
+\label{tab:promoted_feature_list}
+\begin{tabularx}{\textwidth}{p{3.4cm}p{2.5cm}p{2.4cm}X}
+\toprule
+Field & Timing/window & Level & Role \\
+\midrule
+\texttt{egarch\_vol} & trailing 3 months & asset & Walk-forward EGARCH volatility summary, aggregated over the trailing 3-month feature window. \\
+\texttt{downside\_dev} & trailing 3 months & asset & Annualized downside deviation from recent daily returns. \\
+\texttt{max\_drawdown} & trailing 3 months & asset & Recent absolute peak-to-trough drawdown exposure. \\
+\texttt{volume} & trailing 3 months & asset & Sum of observed vendor volume, defaulting to zero when no vendor volume exists. \\
+\texttt{atr\_pct\_20} & trailing 20 observations & asset & Average true range over the last 20 observations, divided by the last observed close. \\
+\texttt{beta\_to\_egx30} & trailing 3 months & asset & Daily-return co-movement with the EGX30 benchmark. \\
+\texttt{price\_to\_sma20} & last state in month & asset & Last observed close relative to the 20-observation simple moving average. \\
+\texttt{rsi\_14} & last state in month & asset & Fourteen-observation Wilder RSI state. \\
+\texttt{distance\_to\_3m\_high} & trailing 3 months & asset & Last observed close relative to the recent 3-month high. \\
+\texttt{usd\_vol} & trailing 3 months & macro/context & Annualized USD/EGP return volatility, repeated across assets in the month. \\
+\texttt{cpi\_trajectory} & trailing 3 monthly observations & macro/context & Compounded CPI month-on-month inflation trajectory, repeated across assets in the month. \\
+\texttt{downside\_tail\_ratio\_3m} & trailing 3 months & asset & Additive feature measuring the share of absolute movement coming from the largest downside-tail losses. \\
+\texttt{realized\_vol} & target month & target-only & Within-month realized volatility component. \\
+\texttt{realized\_downside\_dev} & target month & target-only & Within-month realized downside-deviation component. \\
+\texttt{realized\_max\_drawdown} & target month & target-only & Within-month realized drawdown component. \\
+\texttt{realized\_risk} & target month & target-only & Equal-weight composite of ranked realized volatility, downside deviation, and maximum drawdown. \\
+\texttt{realized\_rank} & target month & target-only & Ascending within-month rank of \texttt{realized\_risk}, used for ranking evaluation. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Asset identifiers are retained only as metadata. The model-facing tensor excludes \texttt{AssetID}, \texttt{AssetName}, and \texttt{AssetGroup}. This prevents the PPO policy from memorizing ticker identities and forces the shared row scorer to learn market and risk patterns that can generalize across assets. Assets with shorter histories enter the panel only after real observations exist, and the shared scorer can still predict their risk once their point-in-time features are available.
+
+\section{Why Reinforcement Learning Was Used}
+\label{sec:why_reinforcement_learning}
+
+The asset-scoring task is not a single static classification problem. Each decision month contains a different active universe, a different market context, and a different cross-sectional risk ordering. The model must therefore score all currently available assets jointly and receive feedback at the month level after the full ranking is formed.
+
+Reinforcement learning was selected because it can optimize the scoring policy directly against a month-level ranking reward rather than treating every asset row as an independent supervised sample. This matches the methodological objective: the model is judged by how well its predicted ordering matches the realized-risk ordering of the active universe. Supervised tabular models were considered as alternatives, but the promoted design uses a policy-learning formulation with active-universe masking and rank-based feedback.
+
+\section{Reinforcement-Learning-Based Risk Scoring}
+\label{sec:rl_risk_scoring}
+
+The active implementation uses Proximal Policy Optimization (PPO). One PPO episode corresponds to one decision month. The framework acts as a monthly risk scorer: it receives a padded feature tensor and an active-asset mask, then outputs one score for each active asset. Padded rows are used only for fixed tensor shape and do not contribute to action sampling, log probability, entropy, loss terms, reward, or evaluation metrics.
+
+The action is one bounded continuous risk score per active asset. Assets are sorted from low to high predicted score to form the predicted risk ranking. The reward is computed once per month across the active universe:
+
+\begin{equation}
+R_t =
+0.7 \cdot \rho_s(\hat{r}_t, r_t)
++ 0.3 \cdot (1 - \mathrm{MSE}(\hat{s}_t, s_t)),
+\end{equation}
+
+where \(\rho_s\) is the Spearman rank correlation between predicted and realized ranks, \(\hat{s}_t\) is the predicted score vector, and \(s_t\) is the realized-risk target vector. Reward variants such as rank-only \(100\)-\(0\), balanced \(50\)-\(50\), and rank-dominant \(70\)-\(30\) were evaluated during development. The promoted reward profile uses \(70\%\) rank correlation and \(30\%\) score-level error.
+
+\section{Actor-Critic Architecture}
+\label{sec:actor_critic}
+
+The policy uses a masked actor-critic architecture with a shared asset-row scorer. The actor applies the same row encoder to every active asset row, combines row-level representations with pooled universe context, and outputs one risk-score distribution per asset. The critic uses a mask-aware pooled summary of the active universe and produces a scalar value estimate for the decision month.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.0cm,
+    box/.style={draw, rounded corners, align=center, minimum width=2.7cm, minimum height=0.85cm, font=\small},
+    input/.style={box, fill=blue!8},
+    proc/.style={box, fill=green!10},
+    outbox/.style={box, fill=gray!12},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[input] (rows) {Padded asset rows\\and active mask};
+\node[proc, right=1.3cm of rows] (encoder) {Shared\\row encoder};
+\node[proc, right=1.3cm of encoder] (pool) {Mask-aware\\pooled context};
+\node[outbox, above right=0.75cm and 1.35cm of pool] (actor) {Actor head\\risk scores};
+\node[outbox, below right=0.75cm and 1.35cm of pool] (critic) {Critic head\\month value};
+\node[outbox, right=1.3cm of actor] (rank) {Predicted\\risk ranking};
+\draw[arrow] (rows) -- (encoder);
+\draw[arrow] (encoder) -- (pool);
+\draw[arrow] (pool) -- (actor);
+\draw[arrow] (pool) -- (critic);
+\draw[arrow] (actor) -- (rank);
+\end{tikzpicture}}
+\caption{Masked PPO actor-critic architecture for variable active universes.}
+\label{fig:actor_critic}
+\end{figure}
+
+Daily-input variants were evaluated during development. In the daily-flat variant, recent daily observations were zero-padded, masked, flattened, and concatenated into the row scorer. In the daily-strip CNN variant, recent daily observations were arranged as a short temporal strip with channels such as relative close, daily return, transformed volume, and a volume-observed indicator; convolutional filters were then used to summarize local daily patterns before scoring. The promoted thesis model uses monthly feature rows with pooled context rather than a daily-input encoder.
+
+\section{Method Selection and Alternative Model Families}
+\label{sec:model_selection}
+
+Random forests and XGBoost were considered as supervised tabular alternatives. They are useful for independent-row prediction, but the promoted thesis method optimizes a month-level ranking policy over a variable active universe with masking and rank-based feedback.
+
+Transformer and attention-first models were considered as sequence or cross-asset attention alternatives. They were not promoted because the implemented development path focused on monthly PPO scoring, pooled context, and daily-input CNN/flat comparisons. Attention remains a possible extension, but no attention model is claimed as part of the implemented methodology.
+
+No NLP encoder is used in the asset-risk scorer because the model inputs are numerical market and macroeconomic series. The web-application questionnaire contains textual option labels, but those labels are converted through deterministic categorical mappings into numeric tabular features; this is not a news/text NLP pipeline and does not feed the PPO asset-risk scorer.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Compared model families and thesis-safe methodological decision}
+\label{tab:model_family_decisions}
+\begin{tabularx}{\textwidth}{p{3.1cm}p{4.0cm}X}
+\toprule
+Model family & Role considered & Methodological decision \\
+\midrule
+PPO actor-critic & Sequential month-level risk ranking over variable active universes & Promoted asset-risk scorer. \\
+Random forest / XGBoost & Supervised tabular prediction or classification & Considered as supervised alternatives, but not used as the main asset-risk scorer. \\
+Daily-flat encoder & Flattened recent daily paths added to the scorer & Evaluated as a daily-input candidate. \\
+Daily-strip CNN encoder & Convolutional encoding of short daily-return strips & Evaluated as a daily-input candidate. \\
+Transformers / attention & Sequence or cross-asset attention modeling & Considered as a future extension, not part of the implemented method. \\
+Questionnaire categorical encoding & Textual option labels mapped to numeric fields in the application & Used only for application-side investor-profile input handling, not as NLP for asset-risk scoring. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Investor Risk Profile Mapping and Bucketing}
+\label{sec:bucket_mapping}
+
+After PPO inference, active assets are ranked from low to high predicted risk. The ranked universe is then mapped to investor profiles using overlapping rank-percentile bands. These percentiles describe the share of assets after sorting, not the raw predicted-risk score. Several bucket methods were evaluated, including non-overlapping terciles, broad \(40\%\) tail overlaps, wider \(50\%\) overlaps, and the promoted \texttt{tail\_30\_overlap} method. In the promoted method, low risk uses the \(0.00\)--\(0.30\) asset-rank percentile range, medium risk uses \(0.20\)--\(0.80\), and high risk uses \(0.70\)--\(1.00\).
+
+\begin{table}[H]
+\centering
+\caption{Investor profile bucket definitions}
+\label{tab:bucket_definitions}
+\begin{tabularx}{\textwidth}{p{3.0cm}p{4.0cm}X}
+\toprule
+Investor profile & Asset-rank percentile band & Interpretation \\
+\midrule
+Conservative & \(0.00\)--\(0.30\) & Selective low-risk universe. \\
+Balanced & \(0.20\)--\(0.80\) & Broad middle universe with shared boundary assets. \\
+Aggressive & \(0.70\)--\(1.00\) & Selective high-risk universe. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The overlap is intentional. In practical portfolio management, suitability is not always mutually exclusive. A relatively stable asset can be acceptable for both conservative and balanced investors, while an upper-middle-risk asset can be acceptable for balanced and aggressive investors.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    axis/.style={-{Latex[length=3mm]}, thick},
+    band/.style={rounded corners, minimum height=0.65cm, align=center, font=\small},
+    arrow/.style={<->, thick}
+]
+\draw[axis] (0,0) -- (10.6,0) node[right] {Higher asset-rank percentile};
+\foreach \x/\lab in {0/0.00,2/0.20,3/0.30,7/0.70,8/0.80,10/1.00}
+  \draw (\x,0.12) -- (\x,-0.12) node[below=0.15cm] {\lab};
+\node[band, draw, fill=blue!12, minimum width=3cm] at (1.5,1.2) {Low};
+\node[band, draw, fill=green!12, minimum width=6cm] at (5,2.0) {Medium};
+\node[band, draw, fill=red!10, minimum width=3cm] at (8.5,1.2) {High};
+\draw[arrow, blue!70!black] (0,0.65) -- (3,0.65);
+\draw[arrow, green!50!black] (2,1.45) -- (8,1.45);
+\draw[arrow, red!70!black] (7,0.65) -- (10,0.65);
+\node[font=\small, align=center] at (2.5,2.75) {Low--medium\\overlap};
+\node[font=\small, align=center] at (7.5,2.75) {Medium--high\\overlap};
+\draw[-{Latex[length=2mm]}, thick] (2.5,2.45) -- (2.5,1.65);
+\draw[-{Latex[length=2mm]}, thick] (7.5,2.45) -- (7.5,1.65);
+\end{tikzpicture}}
+\caption{Overlapping investor risk buckets on the predicted-risk asset ranking.}
+\label{fig:bucket_mapping}
+\end{figure}
+
+\section{Training and Experimental Protocol}
+\label{sec:training_protocol}
+
+The development protocol was sequential. The data architecture was fixed first to protect point-in-time construction and leakage control. Framework and input architecture comparisons were then run over monthly features without context, monthly features with pooled context, daily-flat inputs, and daily-return CNN inputs. Feature testing followed through leave-one-out checks, replacement variants such as SMA, ATR, RSI, and window changes, and additive tail/ratio candidates. PPO hyperparameters were tuned with Optuna after the framework was locked. Final candidate reruns and bucket-method evaluation were performed after model selection.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Experimental protocol summary}
+\label{tab:experimental_protocol}
+\begin{tabularx}{\textwidth}{p{3.2cm}X}
+\toprule
+Phase & Purpose \\
+\midrule
+Data architecture & Build the daily reference file and monthly point-in-time panel. \\
+Framework comparison & Compare monthly features without context, monthly features with pooled context, daily-flat inputs, and daily-return CNN inputs. \\
+Feature testing & Run leave-one-out checks, replacement variants, and additive tail/ratio candidates. \\
+PPO tuning & Use Optuna with validation reward and Spearman guardrails. \\
+Final reruns & Confirm selected candidates across seeds and promote the final artifact. \\
+Bucket evaluation & Compare overlapping and non-overlapping percentile bucket methods. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The active panel covers October 2010 to January 2026. Decision-month training and evaluation use chronological splits. Training uses January 2011 to December 2022. Validation uses January 2023 to February 2025. Test reporting uses March 2025 to January 2026. The test period is not used for framework, feature, hyperparameter, or bucket selection.
+
+\begin{table}[H]
+\centering
+\caption{Promoted PPO hyperparameter configuration}
+\label{tab:ppo_hyperparameters}
+\begin{tabular}{ll}
+\toprule
+Hyperparameter & Value \\
+\midrule
+Learning rate & \(2.49 \times 10^{-4}\) \\
+\texttt{n\_steps} & \(256\) \\
+\texttt{batch\_size} & \(256\) \\
+\texttt{n\_epochs} & \(10\) \\
+\(\gamma\) & \(1.0\) \\
+GAE \(\lambda\) & \(1.0\) \\
+Clip range & \(0.299\) \\
+Entropy coefficient & \(0.00235\) \\
+Value-function coefficient & \(0.902\) \\
+Maximum gradient norm & \(0.3\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners, align=center, minimum width=2.8cm, minimum height=0.85cm, font=\small},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[box, fill=gray!10] (warm) {Warm-up\\2010-08 onward};
+\node[box, fill=blue!8, right=0.8cm of warm] (panel) {Panel coverage\\2010-10--2026-01};
+\node[box, fill=green!10, right=0.8cm of panel] (train) {Train\\2011-01--2022-12};
+\node[box, fill=green!18, right=0.8cm of train] (val) {Validation\\2023-01--2025-02};
+\node[box, fill=gray!12, right=0.8cm of val] (test) {Test reporting\\2025-03--2026-01};
+\draw[arrow] (warm) -- (panel);
+\draw[arrow] (panel) -- (train);
+\draw[arrow] (train) -- (val);
+\draw[arrow] (val) -- (test);
+\end{tikzpicture}}
+\caption{Chronological training, validation, and test reporting protocol.}
+\label{fig:training_timeline}
+\end{figure}
+
+\section{Evaluation Protocol}
+\label{sec:evaluation_protocol}
+
+Evaluation focuses first on model ranking quality. The primary model check compares the predicted asset ranking against the realized-risk ranking for the same decision month. Secondary portfolio diagnostics compare an equal-weight full-universe portfolio against equal-weight filtered universes for conservative, balanced, and aggressive profiles. The diagnostic metrics include return, volatility, Sharpe ratio, Sortino ratio, and maximum drawdown.
+
+The evaluation therefore has two layers. The model layer tests whether PPO scores produce a useful realized-risk ordering. The portfolio layer tests whether the selected risk-profile universes behave differently from the full universe under the same equal-weight rule.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.05cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.4cm, minimum height=0.85cm, font=\small},
+    base/.style={box, fill=blue!8},
+    eval/.style={box, fill=green!10},
+    outbox/.style={box, fill=gray!12},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[base] (scores) {PPO predicted\\risk scores};
+\node[eval, right=1.8cm of scores] (rank) {Predicted ranks\\vs. realized ranks};
+\node[outbox, right=1.8cm of rank] (model) {Model ranking\\performance};
+\node[base, below=1.25cm of scores] (full) {Equal-weight\\full universe};
+\node[base, below=of full] (filtered) {Equal-weight\\filtered universes\\low, medium, high};
+\node[eval, right=1.8cm of full] (metrics) {Return and risk\\diagnostic metrics};
+\node[outbox, right=1.8cm of metrics] (portfolio) {Profile-level\\portfolio diagnostics};
+\draw[arrow] (scores) -- (rank);
+\draw[arrow] (rank) -- (model);
+\draw[arrow] (full) -- (metrics);
+\draw[arrow] (filtered) -- (metrics);
+\draw[arrow] (metrics) -- (portfolio);
+\end{tikzpicture}}
+\caption{Evaluation logic for ranking performance and equal-weight portfolio diagnostics.}
+\label{fig:evaluation_logic}
+\end{figure}
+
+\section{Chapter Summary}
+\label{sec:method_summary}
+
+This chapter presented a risk-tolerance-oriented methodology for asset-universe construction. Market and macro data are transformed into leakage-controlled monthly asset states; a PPO actor-critic model scores active assets by predicted risk; ranked assets are mapped into overlapping conservative, balanced, and aggressive buckets; and equal-weight diagnostics compare the filtered universes with the full active universe.
