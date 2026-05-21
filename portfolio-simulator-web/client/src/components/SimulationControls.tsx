@@ -9,6 +9,7 @@ interface SimulationControlsProps {
   mode: SimulationMode;
   riskLevel: RiskLevel;
   questionnaire: QuestionnaireInput;
+  questionnaireAvailable: boolean;
   onModeChange: (mode: SimulationMode) => void;
   onRiskLevelChange: (riskLevel: RiskLevel) => void;
   onQuestionnaireChange: <K extends keyof QuestionnaireInput>(field: K, value: QuestionnaireInput[K]) => void;
@@ -19,6 +20,7 @@ export function SimulationControls({
   mode,
   riskLevel,
   questionnaire,
+  questionnaireAvailable,
   onModeChange,
   onRiskLevelChange,
   onQuestionnaireChange
@@ -38,16 +40,17 @@ export function SimulationControls({
         <span>Only one mode runs at a time</span>
       </div>
 
-      <div className="modeCards" role="tablist" aria-label="Simulation mode">
+      <div className="modeCards" role="group" aria-label="Simulation mode">
         <button
           type="button"
           className={mode === "questionnaire" ? "modeCard selected" : "modeCard"}
           aria-pressed={mode === "questionnaire"}
+          disabled={!questionnaireAvailable}
           onClick={() => onModeChange("questionnaire")}
         >
           <UserCheck size={24} />
           <strong>Questionnaire</strong>
-          <span>Estimate risk level from answers</span>
+          <span>{questionnaireAvailable ? "Infer risk level from the contracted model" : "Unavailable in this deployment"}</span>
         </button>
         <button
           type="button"
@@ -61,7 +64,7 @@ export function SimulationControls({
         </button>
       </div>
 
-      {mode === "questionnaire" ? (
+      {mode === "questionnaire" && questionnaireAvailable ? (
         <QuestionnaireForm questionnaire={questionnaire} onChange={onQuestionnaireChange} />
       ) : (
         <section className="activeModePanel fastModePanel" aria-label="Fast select input">

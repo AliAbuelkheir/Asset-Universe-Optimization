@@ -5,8 +5,8 @@ import {
   Sun,
   SlidersHorizontal
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { fetchMonths, fetchRiskLevels, runFastSimulation, runQuestionnaireSimulation } from "./api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchHealth, fetchMonths, fetchRiskLevels, runFastSimulation, runQuestionnaireSimulation } from "./api";
 import { MonthlyRebalanceIntelligence } from "./components/MonthlyRebalanceIntelligence";
 import { PipelinePlayback } from "./components/PipelinePlayback";
 import { ReportView } from "./components/ReportView";
@@ -42,6 +42,7 @@ function initialTheme(): ThemeMode {
 function App() {
   const [months, setMonths] = useState<MonthOption[]>([]);
   const [levels, setLevels] = useState<RiskLevelDefinition[]>([]);
+  const [questionnaireAvailable, setQuestionnaireAvailable] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [month, setMonth] = useState("2025-03");
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium");
@@ -53,17 +54,25 @@ function App() {
   const [report, setReport] = useState<SimulationReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const runRequestId = useRef(0);
 
   useEffect(() => {
-    Promise.all([fetchMonths(), fetchRiskLevels()])
-      .then(([monthPayload, levelPayload]) => {
+    Promise.all([fetchMonths(), fetchRiskLevels(), fetchHealth()])
+      .then(([monthPayload, levelPayload, healthPayload]) => {
         setMonths(monthPayload);
         setLevels(levelPayload);
+        setQuestionnaireAvailable(healthPayload.questionnaireModelAvailable);
+        if (!healthPayload.questionnaireModelAvailable) {
+          setSimulationMode("fast");
+        }
         if (monthPayload.length > 0 && !monthPayload.some((candidate) => candidate.month === month)) {
           setMonth(monthPayload[0].month);
         }
       })
-      .catch((cause: Error) => setError(cause.message));
+      .catch((cause: Error) => {
+        setSimulationMode("fast");
+        setError(cause.message);
+      });
   }, []);
 
   useEffect(() => {
@@ -97,21 +106,34 @@ function App() {
   }, [report?.simulationId]);
 
   async function handleRunSimulation() {
+    if (simulationMode === "questionnaire" && !questionnaireAvailable) {
+      setError("Questionnaire inference is unavailable for this deployment. Use fast select.");
+      return;
+    }
+    const requestId = runRequestId.current + 1;
+    runRequestId.current = requestId;
     setLoading(true);
     setError(null);
     try {
       const nextReport = simulationMode === "questionnaire"
         ? await runQuestionnaireSimulation(month, questionnaire, durationMonths, simulatorMode)
         : await runFastSimulation(month, riskLevel, durationMonths, simulatorMode);
+      if (requestId !== runRequestId.current) {
+        return;
+      }
       if (simulationMode === "questionnaire") {
         setRiskLevel(nextReport.riskLevel);
       }
       setLastRun({ mode: simulationMode, questionnaireKey: simulationMode === "questionnaire" ? questionnaireKey : undefined });
       setReport(nextReport);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      if (requestId === runRequestId.current) {
+        setError(cause instanceof Error ? cause.message : String(cause));
+      }
     } finally {
-      setLoading(false);
+      if (requestId === runRequestId.current) {
+        setLoading(false);
+      }
     }
   }
 
@@ -156,6 +178,7 @@ function App() {
             mode={simulationMode}
             riskLevel={riskLevel}
             questionnaire={questionnaire}
+            questionnaireAvailable={questionnaireAvailable}
             onModeChange={setSimulationMode}
             onRiskLevelChange={setRiskLevel}
             onQuestionnaireChange={updateQuestionnaire}

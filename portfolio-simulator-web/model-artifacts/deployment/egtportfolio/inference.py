@@ -148,7 +148,7 @@ def predict(
     macro_dir: Path | None = None,
     model_dir: Path | None = None,
 ) -> InferenceResponse:
-    """Run a single inference and return the recommended weights for target_month.
+    """Run a single inference and return model-generated weights for target_month.
 
     Args:
         request: InferenceRequest object OR a dict that will be coerced.

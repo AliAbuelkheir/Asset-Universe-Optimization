@@ -38,9 +38,9 @@ function topAllocations(snapshot: RebalanceTimelinePoint, limit = 8) {
 
 function compactLabel(row: ComparisonRow) {
   const compactLabels: Record<ComparisonRow["id"], string> = {
-    optimizedPortfolio: "Optimized portfolio",
+    optimizedPortfolio: "Selected external weights",
     assignedRiskBucket: "Equal-weight bucket",
-    optimizedRawUniverse: "Full universe",
+    mvoFullUniverse: "Full-universe MVO",
     egx30: "EGX30"
   };
   if (row.label.toLowerCase().includes("monthly")) {
@@ -127,7 +127,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
   const sortedMonthly = [...monthlyBenchmarkRows].sort((left, right) => right.monthlyReturn - left.monthlyReturn);
   const leader = sortedMonthly[0];
   const portfolioRank = sortedMonthly.findIndex((row) => row.key === "optimizedPortfolio") + 1;
-  const outperformed = monthlyBenchmarkRows.filter(
+  const higherReturnCount = monthlyBenchmarkRows.filter(
     (row) => row.key !== "optimizedPortfolio" && Number(selectedPoint?.optimizedPortfolio ?? 0) > row.monthlyReturn
   ).length;
   const allocations = topAllocations(selectedSnapshot);
@@ -354,7 +354,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
                 <h3>Benchmark delta</h3>
               </div>
               <div className="leaderCard">
-                <span>Leader</span>
+                <span>Highest realized return</span>
                 <strong>{leader?.row ? compactLabel(leader.row) : leader?.label}</strong>
                 <em>{signedPercent(leader?.monthlyReturn ?? 0)}</em>
               </div>
@@ -367,7 +367,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
                 </div>
               ))}
               <p>
-                Outperformed {outperformed} of {Math.max(0, monthlyBenchmarkRows.length - 1)} benchmarks
+                Had a higher realized return than {higherReturnCount} of {Math.max(0, monthlyBenchmarkRows.length - 1)} benchmarks
                 {portfolioRank > 0 ? `, rank ${portfolioRank} of ${monthlyBenchmarkRows.length}.` : "."}
               </p>
             </section>

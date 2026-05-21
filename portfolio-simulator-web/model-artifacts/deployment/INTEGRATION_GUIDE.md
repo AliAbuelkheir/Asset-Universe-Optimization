@@ -2,7 +2,7 @@
 
 **Package**: `egtportfolio` v0.1.0
 **Models**: PPO with set-based architecture, 3 tiers (low / medium / high)
-**Purpose**: Given a list of assets and recent OHLCV history, return a recommended monthly portfolio allocation.
+**Purpose**: Given a list of assets and recent OHLCV history, return model-generated monthly weights for historical simulation diagnostics.
 
 ---
 
@@ -217,20 +217,17 @@ for w in result.asset_weights:
 - **Training**: daily resolution (each PPO step = 1 trading day)
 - **Deployment**: **monthly** (the model produces one set of weights for the entire target month)
 
-### Recommended call pattern
+### Diagnostic call pattern
 - Call `predict()` **once per month**, on the **last trading day of the previous month**
 - Use `target_month='YYYY-MM'` to specify the month the weights apply to
-- The returned `asset_weights` are intended to be held for the full target month
-- The model was specifically trained to be evaluated this way — daily rebalancing inflates turnover by ~3× without improving Sharpe
+- In this repository, the returned `asset_weights` are used as historical simulation inputs for the plotted target month
+- The model was trained around this monthly evaluation pattern; any turnover or Sharpe comparison must be treated as a historical diagnostic
 
 ### What happens within the month
-The package does NOT simulate weight drift. The returned weights are the **target** allocation at the start of the month. In production:
-- Day 1 of target_month: allocate exactly per the returned weights (after your platform's slippage and TC)
-- Days 2-N of target_month: weights drift naturally with prices (you do nothing)
-- Last day of target_month: call `predict()` again with `target_month=next_month` for the next rebalance
+The package does NOT simulate weight drift. In this repository, the returned weights are applied to realized historical monthly returns for diagnostics only.
 
-### Forward-looking horizon
-The model is optimized for **1-month forward Sharpe ratio** with mean-variance regularization. It does not target longer or shorter holding periods. Holding weights for > 1 month without rebalance degrades performance roughly linearly.
+### Training horizon caveat
+The model was trained around a one-month target horizon with mean-variance regularization. Longer or shorter holding-period behavior must be reported as a historical diagnostic, not a forward-looking claim.
 
 ---
 

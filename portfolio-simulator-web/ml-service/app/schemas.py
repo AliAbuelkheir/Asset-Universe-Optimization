@@ -6,12 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 RiskLevel = Literal["low", "medium", "high"]
 SimulatorMode = Literal["single", "monthly_rebalance"]
+MAX_DURATION_MONTHS = 48
 
 
 class FastSimulationRequest(BaseModel):
     month: str = Field(pattern=r"^\d{4}-\d{2}$")
     riskLevel: RiskLevel
-    durationMonths: int | None = Field(default=None, ge=1)
+    durationMonths: int | None = Field(default=None, ge=1, le=MAX_DURATION_MONTHS)
     simulatorMode: SimulatorMode = "single"
 
 
@@ -32,7 +33,7 @@ class QuestionnaireInput(BaseModel):
 
 class QuestionnaireSimulationRequest(BaseModel):
     month: str = Field(pattern=r"^\d{4}-\d{2}$")
-    durationMonths: int | None = Field(default=None, ge=1)
+    durationMonths: int | None = Field(default=None, ge=1, le=MAX_DURATION_MONTHS)
     simulatorMode: SimulatorMode = "single"
     questionnaire: QuestionnaireInput
 
@@ -59,6 +60,7 @@ class HealthResponse(BaseModel):
     monthlyPanelAvailable: bool
     questionnaireModelAvailable: bool
     optimizerMode: Literal["external_model", "unavailable"]
+    optimizerRuntimeAvailable: bool
 
 
 class QuestionnaireInference(BaseModel):
@@ -78,7 +80,7 @@ class MonthlyReturnPoint(BaseModel):
     month: str
     split: Literal["validation", "test"]
     optimizedPortfolio: float
-    optimizedRawUniverse: float
+    mvoFullUniverse: float
     assignedRiskBucket: float
     egx30: float
 
@@ -100,7 +102,7 @@ class PerformanceMetrics(BaseModel):
 
 
 class ComparisonRow(BaseModel):
-    id: Literal["optimizedPortfolio", "optimizedRawUniverse", "assignedRiskBucket", "egx30"]
+    id: Literal["optimizedPortfolio", "mvoFullUniverse", "assignedRiskBucket", "egx30"]
     label: str
     metrics: PerformanceMetrics
 

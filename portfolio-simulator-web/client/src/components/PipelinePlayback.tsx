@@ -151,9 +151,9 @@ export function PipelinePlayback({ report, isStale }: PipelinePlaybackProps) {
 
         <aside className="weightAssignmentCard">
           <div>
-            <h3>Final selected-asset weights</h3>
+            <h3>Selected-asset external weights</h3>
             <p>
-              These are the final allocations for the selected universe. Equal-weight baselines below skip this stage.
+              These are model-generated weights for the selected universe. Equal-weight baselines below skip this stage.
             </p>
           </div>
           <div className="weightRows">

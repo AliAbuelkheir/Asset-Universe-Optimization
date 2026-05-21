@@ -4,6 +4,7 @@ import os
 import sys
 from dataclasses import dataclass
 from functools import lru_cache
+import math
 from pathlib import Path
 from typing import Any, Literal
 
@@ -23,6 +24,7 @@ MACRO_DIR = DEPLOYMENT_ROOT / "data"
 
 TRAINING_ASSET_COUNTS = {"low": 10, "medium": 12, "high": 16}
 MIN_HISTORY_DAYS = 123
+WEIGHT_SUM_TOLERANCE = 1e-4
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,10 @@ class OptimizerRun:
     decision_date: str
     constraints_applied: dict[str, Any]
     diagnostics: dict[str, Any]
+
+
+class OptimizerContractError(RuntimeError):
+    pass
 
 
 def optimizer_available() -> bool:
@@ -47,6 +53,18 @@ def optimizer_available() -> bool:
             ]
         )
     return all(path.exists() for path in required)
+
+
+def optimizer_runtime_available() -> bool:
+    if not optimizer_available():
+        return False
+    if not any(MACRO_DIR.glob("*.xlsx")):
+        return False
+    try:
+        _import_package()
+    except (ImportError, ModuleNotFoundError, RuntimeError):
+        return False
+    return True
 
 
 def _import_package():
@@ -77,6 +95,7 @@ def _series_for_asset(daily_market: pd.DataFrame, asset_id: str, target_month: s
         daily_market["AssetID"].astype(str).eq(asset_id)
         & daily_market["Date"].lt(target_first)
         & daily_market["Date"].ge(history_start)
+        & daily_market["IsObserved"].eq(1)
     ].sort_values("Date")
 
     if len(frame) < MIN_HISTORY_DAYS:
@@ -95,6 +114,37 @@ def _series_for_asset(daily_market: pd.DataFrame, asset_id: str, target_month: s
         "low": frame["LowPriceForRange"].fillna(close).astype(float).tolist(),
         "volume": frame["Volume"].fillna(0.0).astype(float).tolist(),
     }
+
+
+def _validate_optimizer_weights(
+    *,
+    requested_asset_ids: list[str],
+    weights: dict[str, float],
+    sum_check: float,
+    target_month: str,
+) -> None:
+    requested = [str(asset_id) for asset_id in requested_asset_ids]
+    requested_set = set(requested)
+    actual_set = set(weights)
+    missing = sorted(requested_set.difference(actual_set))
+    extra = sorted(actual_set.difference(requested_set))
+    if missing or extra:
+        raise OptimizerContractError(
+            f"Weight optimizer returned an asset mismatch for {target_month}; missing={missing}, extra={extra}."
+        )
+    values = [float(weights[asset_id]) for asset_id in requested]
+    if not values or not all(math.isfinite(value) for value in values):
+        raise OptimizerContractError(f"Weight optimizer returned non-finite weights for {target_month}.")
+    if any(value < -1e-12 for value in values):
+        raise OptimizerContractError(f"Weight optimizer returned negative weights for {target_month}.")
+    total = float(sum(values))
+    reported_total = float(sum_check)
+    if not math.isfinite(reported_total):
+        raise OptimizerContractError(f"Weight optimizer returned a non-finite sum_check for {target_month}.")
+    if abs(total - 1.0) > WEIGHT_SUM_TOLERANCE or abs(reported_total - 1.0) > WEIGHT_SUM_TOLERANCE:
+        raise OptimizerContractError(
+            f"Weight optimizer weights for {target_month} must sum to 1.0; got total={total:.8f}, sum_check={reported_total:.8f}."
+        )
 
 
 def run_weight_optimizer(
@@ -124,13 +174,28 @@ def run_weight_optimizer(
         macro_dir=MACRO_DIR,
         model_dir=MODEL_DIR,
     )
-    asset_weights = result.to_dict()["asset_weights"]
-    weights = {str(row["asset"]): float(row["weight"]) for row in asset_weights}
+    try:
+        asset_weights = result.to_dict()["asset_weights"]
+        if not isinstance(asset_weights, list):
+            raise TypeError("asset_weights must be a list")
+        asset_ids_from_result = [str(row["asset"]) for row in asset_weights]
+        if len(asset_ids_from_result) != len(set(asset_ids_from_result)):
+            raise ValueError("asset_weights contains duplicate assets")
+        weights = {str(row["asset"]): float(row["weight"]) for row in asset_weights}
+        sum_check = float(result.sum_check)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise OptimizerContractError(f"Weight optimizer returned malformed output for {target_month}: {exc}") from exc
+    _validate_optimizer_weights(
+        requested_asset_ids=asset_ids,
+        weights=weights,
+        sum_check=sum_check,
+        target_month=target_month,
+    )
     training_n = TRAINING_ASSET_COUNTS[tier]
     return OptimizerRun(
         weights=weights,
         asset_weights=asset_weights,
-        sum_check=float(result.sum_check),
+        sum_check=sum_check,
         decision_date=str(result.decision_date),
         constraints_applied=dict(result.constraints_applied),
         diagnostics={
@@ -138,7 +203,7 @@ def run_weight_optimizer(
             "assetCount": len(asset_ids),
             "trainingAssetCount": training_n,
             "usesIdentityVecNormalizeFallback": len(asset_ids) != training_n,
-            "modelVersion": str(result.model_version),
-            "packageVersion": str(result.package_version),
+            "modelVersion": str(getattr(result, "model_version", "unknown")),
+            "packageVersion": str(getattr(result, "package_version", "unknown")),
         },
     )

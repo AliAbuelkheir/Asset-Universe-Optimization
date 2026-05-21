@@ -17,6 +17,17 @@ export interface RiskLevelDefinition {
   description: string;
 }
 
+export interface HealthResponse {
+  status: "ok" | "degraded";
+  ppoRootExists: boolean;
+  predictionsAvailable: boolean;
+  dailyMarketAvailable: boolean;
+  monthlyPanelAvailable: boolean;
+  questionnaireModelAvailable: boolean;
+  optimizerMode: "external_model" | "unavailable";
+  optimizerRuntimeAvailable: boolean;
+}
+
 export interface QuestionnaireInput {
   gender: "Male" | "Female";
   age: number;
@@ -40,7 +51,7 @@ export interface MonthlyReturnPoint {
   month: string;
   split: "validation" | "test";
   optimizedPortfolio: number;
-  optimizedRawUniverse: number;
+  mvoFullUniverse: number;
   assignedRiskBucket: number;
   egx30: number;
 }
@@ -60,7 +71,7 @@ export interface PerformanceMetrics {
 }
 
 export interface ComparisonRow {
-  id: "optimizedPortfolio" | "optimizedRawUniverse" | "assignedRiskBucket" | "egx30";
+  id: "optimizedPortfolio" | "mvoFullUniverse" | "assignedRiskBucket" | "egx30";
   label: string;
   metrics: PerformanceMetrics;
 }

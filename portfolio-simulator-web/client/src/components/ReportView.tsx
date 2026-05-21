@@ -26,6 +26,7 @@ export function ReportView({ report, isStale }: ReportViewProps) {
     ? `${report.durationMonths} plotted months from ${report.requestedDurationMonths} requested`
     : `${report.durationMonths} plotted months`;
   const simulatorLabel = report.simulatorMode === "monthly_rebalance" ? "Monthly rebalance" : "Single allocation";
+  const splitLabel = report.split === "validation" ? "Validation diagnostic" : "Test diagnostic";
   const isMonthlyRebalance = report.simulatorMode === "monthly_rebalance";
 
   return (
@@ -39,6 +40,7 @@ export function ReportView({ report, isStale }: ReportViewProps) {
           <span>{report.month}</span>
           <span>{durationResultLabel}</span>
           <span>{simulatorLabel}</span>
+          <span>{splitLabel}</span>
           <span>{labelRisk(report.riskLevel)}</span>
           {report.questionnaireInference && <span>{report.questionnaireInference.riskLabel} questionnaire</span>}
         </div>

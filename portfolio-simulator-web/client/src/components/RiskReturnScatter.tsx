@@ -14,7 +14,7 @@ import {
 
 const COLORS: Record<string, string> = {
   optimizedPortfolio: "#2563EB",
-  optimizedRawUniverse: "#F97316",
+  mvoFullUniverse: "#F97316",
   assignedRiskBucket: "#7C3AED",
   egx30: "#0891B2"
 };
@@ -88,7 +88,7 @@ export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {
           </span>
         ))}
       </div>
-      <p className="chartHint">Upper-left is better for return per volatility; this remains a secondary diagnostic.</p>
+      <p className="chartHint">Upper-left indicates higher realized return with lower volatility in this diagnostic.</p>
     </div>
   );
 }

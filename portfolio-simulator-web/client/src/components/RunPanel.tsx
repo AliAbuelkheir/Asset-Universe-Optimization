@@ -44,6 +44,7 @@ export function RunPanel({
   onRun
 }: RunPanelProps) {
   const selectedMonth = months.find((candidate) => candidate.month === month);
+  const splitLabel = selectedMonth?.split === "validation" ? "Validation diagnostic" : "Test diagnostic";
   const durationRequestLabel = durationMonths === null
     ? "max available"
     : `${durationMonths} month${durationMonths === 1 ? "" : "s"}`;
@@ -60,7 +61,7 @@ export function RunPanel({
         <select value={month} onChange={(event) => onMonthChange(event.target.value)}>
           {months.map((candidate) => (
             <option value={candidate.month} key={candidate.month}>
-              {candidate.month} - {candidate.assetCount} assets
+              {candidate.month} - {candidate.split} - {candidate.assetCount} assets
             </option>
           ))}
         </select>
@@ -117,7 +118,7 @@ export function RunPanel({
       </button>
       <p className="runNote">
         {selectedMonth
-          ? `${selectedMonth.assetCount} active assets, ${durationRequestLabel} requested.`
+          ? `${splitLabel}: ${selectedMonth.assetCount} active assets, ${durationRequestLabel} requested.`
           : "Loading months."}
       </p>
     </aside>

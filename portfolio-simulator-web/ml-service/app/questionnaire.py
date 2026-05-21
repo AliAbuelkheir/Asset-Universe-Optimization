@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +11,7 @@ import numpy as np
 from .paths import MODEL_ARTIFACTS_ROOT
 
 MODEL_PATH = MODEL_ARTIFACTS_ROOT / "questionnaire-risk-tolerance" / "risk_tolerance_rf_model.pkl"
+CONTRACT_PATH = MODEL_ARTIFACTS_ROOT / "questionnaire-risk-tolerance" / "contract.json"
 
 FEATURE_NAMES = [
     "age",
@@ -35,10 +38,56 @@ LABEL_NAMES = {0: "Conservative", 1: "Moderate", 2: "Aggressive"}
 RISK_LEVELS = {0: "low", 1: "medium", 2: "high"}
 
 _MODEL: Any | None = None
+_CONTRACT: dict[str, Any] | None = None
+
+
+class QuestionnaireContractError(RuntimeError):
+    pass
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load_contract() -> dict[str, Any]:
+    global _CONTRACT
+    if _CONTRACT is not None:
+        return _CONTRACT
+    if not CONTRACT_PATH.exists():
+        raise QuestionnaireContractError(f"Missing questionnaire contract at {CONTRACT_PATH}")
+    contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    if contract.get("featureNames") != FEATURE_NAMES:
+        raise QuestionnaireContractError("Questionnaire contract feature order does not match runtime feature order.")
+    class_mapping = contract.get("classMapping")
+    if not isinstance(class_mapping, dict) or set(class_mapping) != {"0", "1", "2"}:
+        raise QuestionnaireContractError("Questionnaire contract must define classes 0, 1, and 2.")
+    expected_hash = str(contract.get("sha256", "")).lower()
+    if not expected_hash:
+        raise QuestionnaireContractError("Questionnaire contract is missing a sha256 checksum.")
+    _CONTRACT = contract
+    return contract
+
+
+def validate_questionnaire_contract() -> None:
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"Missing risk-tolerance model at {MODEL_PATH}")
+    contract = _load_contract()
+    expected_hash = str(contract["sha256"]).lower()
+    actual_hash = _file_sha256(MODEL_PATH)
+    if actual_hash != expected_hash:
+        raise QuestionnaireContractError("Questionnaire model checksum does not match contract.json.")
 
 
 def questionnaire_model_available() -> bool:
-    return MODEL_PATH.exists()
+    try:
+        validate_questionnaire_contract()
+    except (FileNotFoundError, QuestionnaireContractError, json.JSONDecodeError):
+        return False
+    return True
 
 
 def build_feature_vector(questionnaire: dict[str, Any]) -> list[float]:
@@ -78,8 +127,7 @@ def _load_model() -> Any:
     global _MODEL
     if _MODEL is not None:
         return _MODEL
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(f"Missing risk-tolerance model at {MODEL_PATH}")
+    validate_questionnaire_contract()
     _MODEL = joblib.load(MODEL_PATH)
     return _MODEL
 

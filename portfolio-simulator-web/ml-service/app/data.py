@@ -53,6 +53,27 @@ def read_predictions() -> pd.DataFrame:
     predictions["Split"] = predictions["Split"].astype(str)
     predictions["PredictedRisk"] = pd.to_numeric(predictions["PredictedRisk"], errors="coerce")
     predictions["PredictedRankPct"] = pd.to_numeric(predictions["PredictedRankPct"], errors="coerce")
+    known_splits = {"train", "inner_validation", *VALID_SPLITS}
+    invalid_splits = sorted(set(predictions["Split"].dropna()).difference(known_splits))
+    if invalid_splits:
+        raise ValueError(f"ranked_predictions.csv contains unsupported splits: {invalid_splits}")
+    if predictions[["Date", "AssetID", "Split"]].isna().any().any():
+        raise ValueError("ranked_predictions.csv contains missing Date, AssetID, or Split values.")
+    if not np.isfinite(predictions["PredictedRisk"]).all():
+        raise ValueError("ranked_predictions.csv contains non-finite PredictedRisk values.")
+    if not np.isfinite(predictions["PredictedRankPct"]).all():
+        raise ValueError("ranked_predictions.csv contains non-finite PredictedRankPct values.")
+    if not predictions["PredictedRankPct"].between(0.0, 1.0, inclusive="both").all():
+        raise ValueError("ranked_predictions.csv contains PredictedRankPct values outside [0, 1].")
+    duplicate_rows = predictions.duplicated(subset=["Date", "Split", "AssetID"], keep=False)
+    if duplicate_rows.any():
+        duplicates = predictions.loc[duplicate_rows, ["Date", "Split", "AssetID"]].head(5).to_dict(orient="records")
+        raise ValueError(f"ranked_predictions.csv contains duplicate month/split/asset rows: {duplicates}")
+    split_counts = predictions.groupby("Date")["Split"].nunique()
+    multi_split_months = split_counts[split_counts > 1]
+    if not multi_split_months.empty:
+        sample = ", ".join(str(month) for month in multi_split_months.index[:5])
+        raise ValueError(f"ranked_predictions.csv contains multiple split labels for month(s): {sample}")
     return predictions
 
 
@@ -85,9 +106,13 @@ def read_daily_market() -> pd.DataFrame:
             "HighPriceForRange",
             "LowPriceForRange",
             "Volume",
+            "ReturnFromPrice",
+            "IsObserved",
         ],
     )
     daily["Date"] = pd.to_datetime(daily["Date"], errors="coerce")
+    daily["IsObserved"] = pd.to_numeric(daily["IsObserved"], errors="coerce").fillna(0).astype(int)
+    daily["ReturnFromPrice"] = pd.to_numeric(daily["ReturnFromPrice"], errors="coerce")
     return daily.dropna(subset=["Date", "AssetID", "PriceForReturn"]).copy()
 
 

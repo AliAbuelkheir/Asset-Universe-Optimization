@@ -109,7 +109,7 @@ const baseReport = {
       month: "2025-03",
       split: "test",
       optimizedPortfolio: 0.015,
-      optimizedRawUniverse: 0.012,
+      mvoFullUniverse: 0.012,
       assignedRiskBucket: 0.01,
       egx30: 0.03
     },
@@ -117,7 +117,7 @@ const baseReport = {
       month: "2025-04",
       split: "test",
       optimizedPortfolio: -0.005,
-      optimizedRawUniverse: -0.008,
+      mvoFullUniverse: -0.008,
       assignedRiskBucket: -0.01,
       egx30: 0.02
     }
@@ -125,7 +125,7 @@ const baseReport = {
   comparison: [
     {
       id: "optimizedPortfolio",
-      label: "FULL pipeline",
+      label: "Selected bucket with external weights",
       metrics: {
         cumulativeReturn: 0.01,
         annualizedVolatility: 0.08,
@@ -138,8 +138,8 @@ const baseReport = {
       }
     },
     {
-      id: "optimizedRawUniverse",
-      label: "MVO on FULL Asset universe",
+      id: "mvoFullUniverse",
+      label: "Full-universe MVO",
       metrics: {
         cumulativeReturn: 0.004,
         annualizedVolatility: 0.09,
@@ -199,8 +199,8 @@ function reportForMode(simulatorMode: "single" | "monthly_rebalance") {
   const comparison = simulatorMode === "monthly_rebalance"
     ? baseReport.comparison.map((row) => row.id === "optimizedPortfolio"
       ? { ...row, label: "Monthly rebalanced filtered universe with optimized weights" }
-      : row.id === "optimizedRawUniverse"
-        ? { ...row, label: "Monthly rebalanced full universe with optimized weights" }
+      : row.id === "mvoFullUniverse"
+        ? { ...row, label: "Full-universe MVO" }
         : row.id === "assignedRiskBucket"
           ? { ...row, label: "Monthly reselected filtered universe with equal weights" }
           : row)
@@ -216,6 +216,21 @@ function latestSimulationRequest() {
 const fetchMock = vi.fn((url: string, init?: RequestInit) => {
   const body = init?.body ? JSON.parse(String(init.body)) : {};
   const simulatorMode = body.simulatorMode === "single" ? "single" : "monthly_rebalance";
+  if (url.endsWith("/api/health")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        status: "ok",
+        ppoRootExists: true,
+        predictionsAvailable: true,
+        dailyMarketAvailable: true,
+        monthlyPanelAvailable: true,
+        questionnaireModelAvailable: true,
+        optimizerMode: "external_model",
+        optimizerRuntimeAvailable: true
+      })
+    });
+  }
   if (url.endsWith("/api/months")) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve(monthOptions) });
   }
@@ -294,17 +309,18 @@ describe("App", () => {
     expect(latestSimulationRequest().simulatorMode).toBe("single");
     expect(screen.getByText("Pipeline replay")).toBeInTheDocument();
     expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
-    expect(screen.getByText("Final selected-asset weights")).toBeInTheDocument();
+    expect(screen.getByText("Selected-asset external weights")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Optimized portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Selected bucket + external weights").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Equal-weight selected assets").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Full-universe optimized").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full-universe MVO").length).toBeGreaterThan(0);
     expect(screen.getAllByText("EGX30").length).toBeGreaterThan(0);
     expect(screen.queryByText("Full Universe with equal weights")).not.toBeInTheDocument();
+    expect(screen.queryByText("Full-universe optimized")).not.toBeInTheDocument();
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
     expect(screen.queryByText("Component-risk separation across the test period")).not.toBeInTheDocument();
     expect(screen.queryByText("Asset-universe filter impact")).not.toBeInTheDocument();
-    expect(screen.queryByText(/split/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Test diagnostic").length).toBeGreaterThan(0);
     expect(screen.queryByText(/decision date/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/PPO/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Relative risk-rank components/)).not.toBeInTheDocument();
@@ -321,7 +337,7 @@ describe("App", () => {
     expect(await screen.findByText("Monthly Rebalance Intelligence")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.queryByText("Pipeline replay")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Optimized portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Selected bucket + external weights").length).toBeGreaterThan(0);
   });
 
   it("updates selected-month intelligence when a rebalance month is clicked", async () => {
@@ -331,7 +347,7 @@ describe("App", () => {
 
     const intelligence = await screen.findByLabelText("Monthly Rebalance Intelligence");
     expect(within(intelligence).getAllByText("2025-03").length).toBeGreaterThan(0);
-    expect(within(intelligence).queryByText(/split/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Test diagnostic").length).toBeGreaterThan(0);
     expect(within(intelligence).queryByText(/Decision date/i)).not.toBeInTheDocument();
 
     fireEvent.click(within(intelligence).getAllByRole("button", { name: /2025-04/i })[0]);

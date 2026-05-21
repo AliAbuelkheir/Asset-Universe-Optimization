@@ -6,10 +6,29 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+WEIGHT_SUM_TOLERANCE = 1e-4
+
 
 def equal_weights(asset_ids: list[str]) -> dict[str, float]:
+    if not asset_ids:
+        raise ValueError("Cannot build equal weights for an empty asset list.")
     weight = 1.0 / len(asset_ids)
     return {asset_id: weight for asset_id in asset_ids}
+
+
+def validate_portfolio_weights(weights: dict[str, float], *, context: str) -> None:
+    if not weights:
+        raise ValueError(f"Portfolio weights for {context} cannot be empty.")
+    values = np.asarray(list(weights.values()), dtype=float)
+    if not np.isfinite(values).all():
+        raise ValueError(f"Portfolio weights for {context} contain non-finite values.")
+    if (values < -1e-12).any():
+        raise ValueError(f"Portfolio weights for {context} must be non-negative.")
+    total_weight = float(values.sum())
+    if abs(total_weight - 1.0) > WEIGHT_SUM_TOLERANCE:
+        raise ValueError(
+            f"Portfolio weights for {context} must sum to 1.0 within {WEIGHT_SUM_TOLERANCE:g}; got {total_weight:.8f}."
+        )
 
 
 def portfolio_monthly_returns(
@@ -26,10 +45,8 @@ def portfolio_monthly_returns(
             raise ValueError(
                 f"Missing monthly returns for {len(missing)} weighted asset(s) in {month}: {', '.join(missing)}"
             )
-        total_weight = sum(weights.values())
-        if total_weight <= 0:
-            raise ValueError(f"Portfolio weights for {month} must sum to a positive value.")
-        rows.append(float(sum((weight / total_weight) * returns[asset_id] for asset_id, weight in weights.items())))
+        validate_portfolio_weights(weights, context=month)
+        rows.append(float(sum(weight * returns[asset_id] for asset_id, weight in weights.items())))
     return rows
 
 
@@ -87,7 +104,7 @@ def performance_metrics(returns: list[float]) -> dict[str, Any]:
 
 
 def resolve_forward_months(all_months: list[str], start_month: str, duration_months: int | None) -> list[str]:
-    available = [candidate for candidate in all_months if start_month <= candidate <= "2026-01"]
+    available = [candidate for candidate in all_months if start_month <= candidate]
     if duration_months is None:
         return available
     if duration_months < 1:

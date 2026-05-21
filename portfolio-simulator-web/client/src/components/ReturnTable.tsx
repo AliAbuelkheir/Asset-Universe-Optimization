@@ -39,7 +39,7 @@ export function ReturnTable({
               <td>{point.month}</td>
               <td>{intervals[index + 1]?.daysSincePrevious ?? 0} days</td>
               {visibleSeries.map((series) => (
-                <td key={`${series.key}-${point.month}-monthly`}>{percent(point[series.key] ?? 0)}</td>
+                <td key={`${series.key}-${point.month}-monthly`}>{percent(point[series.key])}</td>
               ))}
               {visibleSeries.map((series) => (
                 <td key={`${series.key}-${point.month}-cumulative`}>

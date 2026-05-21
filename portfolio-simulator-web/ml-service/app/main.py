@@ -7,6 +7,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .optimizer import OptimizerContractError
+from .questionnaire import QuestionnaireContractError
 from .data import available_months, risk_levels
 from .paths import APP_ROOT
 from .schemas import (
@@ -53,6 +55,8 @@ def post_fast_simulation(request: FastSimulationRequest) -> dict:
         return run_fast_simulation(request.month, request.riskLevel, request.durationMonths, request.simulatorMode)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ImportError, ModuleNotFoundError, RuntimeError, OptimizerContractError) as exc:
+        raise HTTPException(status_code=503, detail=f"Optimizer service unavailable: {exc}") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -68,6 +72,10 @@ def post_questionnaire_simulation(request: QuestionnaireSimulationRequest) -> di
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except QuestionnaireContractError as exc:
+        raise HTTPException(status_code=503, detail=f"Questionnaire inference unavailable: {exc}") from exc
+    except (ImportError, ModuleNotFoundError, RuntimeError, OptimizerContractError) as exc:
+        raise HTTPException(status_code=503, detail=f"Optimizer service unavailable: {exc}") from exc
     except (ValueError, KeyError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -80,7 +88,8 @@ if CLIENT_DIST.exists():
 
     @app.get("/{path:path}", include_in_schema=False)
     def serve_client(path: str) -> FileResponse:
-        requested = CLIENT_DIST / path
-        if path and requested.exists() and requested.is_file():
+        dist_root = CLIENT_DIST.resolve()
+        requested = (CLIENT_DIST / path).resolve()
+        if path and requested.is_relative_to(dist_root) and requested.exists() and requested.is_file():
             return FileResponse(requested)
         return FileResponse(CLIENT_DIST / "index.html")

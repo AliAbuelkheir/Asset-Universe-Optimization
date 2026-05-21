@@ -56,7 +56,7 @@ function ReturnTooltip({
       <div>
         {payload.map((item) => {
           const key = String(item.dataKey ?? "") as ReturnSeriesKey;
-          const monthly = Number(row?.[`${key}Monthly`] ?? 0);
+          const monthly = Number(row?.[`${key}Monthly`]);
           return (
             <p key={key}>
               <i style={{ background: item.color }} />
@@ -97,7 +97,7 @@ export function ReturnChart({
   const seriesValues = visibleSeries.map((series) => ({
     ...series,
     values: [0, ...cumulativeReturns(points, series.key).map((point) => point.cumulativeReturn)],
-    monthlyValues: [0, ...points.map((point) => Number(point[series.key] ?? 0))]
+    monthlyValues: [0, ...points.map((point) => Number(point[series.key]))]
   }));
   const values = seriesValues.flatMap((series) => series.values);
   const min = Math.min(-0.05, ...values);
@@ -176,7 +176,7 @@ export function ReturnChart({
               <ReferenceDot
                 key={`${series.key}-${selectedMonth}`}
                 x={selectedMonth}
-                y={Number(selectedRow[series.key] ?? 0)}
+                y={Number(selectedRow[series.key])}
                 r={series.key === "optimizedPortfolio" ? 7 : 4.5}
                 fill="var(--surface)"
                 stroke={series.color}
