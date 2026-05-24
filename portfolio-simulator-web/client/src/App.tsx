@@ -142,7 +142,7 @@ function App() {
           <h1>Egyptian market allocation review</h1>
         </div>
         <p>
-          Select an investor profile and review historical portfolio behavior across the plotted window.
+          Review historical portfolio diagnostics.
         </p>
       </section>
 
