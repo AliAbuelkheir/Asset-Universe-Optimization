@@ -5,7 +5,7 @@ dependency. The structure mirrors what a typical REST API would expect.
 """
 
 from dataclasses import dataclass, field, asdict
-from typing import Literal
+from typing import Any, Literal
 
 
 @dataclass
@@ -47,7 +47,7 @@ class ConstraintsOverride:
 class InferenceRequest:
     """The full input the deployment API expects."""
     tier: Literal['low', 'medium', 'high']
-    asset_data: list[AssetTimeSeries] | str  # list of asset series, or CSV path
+    asset_data: list[AssetTimeSeries] | str | dict[str, Any]  # list of asset series, CSV path, or in-memory frames
     target_month: str                        # 'YYYY-MM'
     input_kind: Literal['raw_ohlcv', 'precomputed_features'] | None = None  # auto-detect if None
     constraints_override: ConstraintsOverride | None = None

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -41,10 +43,22 @@ RISK_BUCKETS: dict[str, dict[str, Any]] = {
 }
 
 
-def read_predictions() -> pd.DataFrame:
-    if not PREDICTIONS_PATH.exists():
-        raise FileNotFoundError(f"Missing PPO ranked predictions at {PREDICTIONS_PATH}")
-    predictions = pd.read_csv(PREDICTIONS_PATH)
+@dataclass(frozen=True)
+class DailyMarketIndex:
+    by_asset: dict[str, pd.DataFrame]
+    version: tuple[str, int, int] | None = None
+
+
+def _file_signature(path: Path) -> tuple[str, int, int]:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    stat = path.stat()
+    return (str(path), stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=4)
+def _read_predictions_cached(path: str, _mtime_ns: int, _size: int) -> pd.DataFrame:
+    predictions = pd.read_csv(path)
     required = {"Date", "Split", "AssetID", "AssetName", "AssetGroup", "PredictedRisk", "PredictedRankPct"}
     missing = sorted(required.difference(predictions.columns))
     if missing:
@@ -83,10 +97,17 @@ def read_predictions() -> pd.DataFrame:
     return predictions
 
 
-def read_monthly_returns() -> pd.DataFrame:
-    if not DAILY_MARKET_PATH.exists():
-        raise FileNotFoundError(f"Missing daily market series at {DAILY_MARKET_PATH}")
-    daily = pd.read_csv(DAILY_MARKET_PATH, usecols=["Date", "AssetID", "ReturnFromPrice"])
+def read_predictions() -> pd.DataFrame:
+    try:
+        signature = _file_signature(PREDICTIONS_PATH)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Missing PPO ranked predictions at {PREDICTIONS_PATH}") from exc
+    return _read_predictions_cached(*signature).copy()
+
+
+@lru_cache(maxsize=4)
+def _read_monthly_returns_cached(path: str, _mtime_ns: int, _size: int) -> pd.DataFrame:
+    daily = pd.read_csv(path, usecols=["Date", "AssetID", "ReturnFromPrice"])
     daily["Date"] = pd.to_datetime(daily["Date"], errors="coerce")
     daily["ReturnFromPrice"] = pd.to_numeric(daily["ReturnFromPrice"], errors="coerce")
     daily = daily.dropna(subset=["Date", "AssetID", "ReturnFromPrice"]).copy()
@@ -100,10 +121,25 @@ def read_monthly_returns() -> pd.DataFrame:
 
 
 def read_daily_market() -> pd.DataFrame:
-    if not DAILY_MARKET_PATH.exists():
-        raise FileNotFoundError(f"Missing daily market series at {DAILY_MARKET_PATH}")
+    try:
+        signature = _file_signature(DAILY_MARKET_PATH)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Missing daily market series at {DAILY_MARKET_PATH}") from exc
+    return _read_daily_market_cached(*signature).copy()
+
+
+def read_monthly_returns() -> pd.DataFrame:
+    try:
+        signature = _file_signature(DAILY_MARKET_PATH)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Missing daily market series at {DAILY_MARKET_PATH}") from exc
+    return _read_monthly_returns_cached(*signature).copy()
+
+
+@lru_cache(maxsize=4)
+def _read_daily_market_cached(path: str, _mtime_ns: int, _size: int) -> pd.DataFrame:
     daily = pd.read_csv(
-        DAILY_MARKET_PATH,
+        path,
         usecols=[
             "Date",
             "AssetID",
@@ -122,6 +158,28 @@ def read_daily_market() -> pd.DataFrame:
     return daily.dropna(subset=["Date", "AssetID", "PriceForReturn"]).copy()
 
 
+def build_daily_asset_index(
+    daily_market: pd.DataFrame,
+    *,
+    version: tuple[str, int, int] | None = None,
+) -> DailyMarketIndex:
+    daily = daily_market.copy()
+    daily["AssetID"] = daily["AssetID"].astype(str)
+    by_asset = {
+        str(asset_id): frame.sort_values("Date").reset_index(drop=True)
+        for asset_id, frame in daily.groupby("AssetID", sort=False)
+    }
+    return DailyMarketIndex(by_asset=by_asset, version=version)
+
+
+def read_daily_market_index() -> DailyMarketIndex:
+    try:
+        signature = _file_signature(DAILY_MARKET_PATH)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Missing daily market series at {DAILY_MARKET_PATH}") from exc
+    return build_daily_asset_index(read_daily_market(), version=signature)
+
+
 def available_months() -> list[dict[str, Any]]:
     predictions = read_predictions()
     subset = predictions.loc[predictions["Split"].isin(VALID_SPLITS)].copy()
@@ -138,10 +196,11 @@ def risk_levels() -> list[dict[str, Any]]:
     return [RISK_BUCKETS[key] for key in ("low", "medium", "high")]
 
 
-def select_assets(month: str, risk_level: str) -> pd.DataFrame:
+def select_assets(month: str, risk_level: str, predictions: pd.DataFrame | None = None) -> pd.DataFrame:
     if risk_level not in RISK_BUCKETS:
         raise ValueError(f"Unknown risk level: {risk_level}")
-    predictions = read_predictions()
+    if predictions is None:
+        predictions = read_predictions()
     month_frame = predictions.loc[predictions["Date"].eq(month) & predictions["Split"].isin(VALID_SPLITS)].copy()
     if month_frame.empty:
         raise ValueError(f"No reportable predictions found for month {month}")

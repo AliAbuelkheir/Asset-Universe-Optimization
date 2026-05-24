@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from typing import Any
 
 import numpy as np
@@ -31,28 +32,44 @@ def validate_portfolio_weights(weights: dict[str, float], *, context: str) -> No
         )
 
 
+def index_monthly_returns(monthly_returns: pd.DataFrame) -> dict[tuple[str, str], float]:
+    frame = monthly_returns.loc[:, ["Date", "AssetID", "MonthlyReturn"]].copy()
+    frame["Date"] = frame["Date"].astype(str)
+    frame["AssetID"] = frame["AssetID"].astype(str)
+    return {
+        (str(row.Date), str(row.AssetID)): float(row.MonthlyReturn)
+        for row in frame.itertuples(index=False)
+    }
+
+
 def portfolio_monthly_returns(
-    monthly_returns: pd.DataFrame,
+    monthly_returns: pd.DataFrame | Mapping[tuple[str, str], float],
     months: list[str],
     weights: dict[str, float],
 ) -> list[float]:
     rows: list[float] = []
     for month in months:
-        frame = monthly_returns.loc[monthly_returns["Date"].eq(month)]
-        returns = frame.set_index("AssetID")["MonthlyReturn"].to_dict()
-        missing = sorted(asset_id for asset_id in weights if asset_id not in returns)
+        if isinstance(monthly_returns, Mapping):
+            returns = {asset_id: monthly_returns.get((month, asset_id)) for asset_id in weights}
+        else:
+            frame = monthly_returns.loc[monthly_returns["Date"].eq(month)]
+            returns = frame.set_index("AssetID")["MonthlyReturn"].to_dict()
+        missing = sorted(asset_id for asset_id in weights if returns.get(asset_id) is None)
         if missing:
             raise ValueError(
                 f"Missing monthly returns for {len(missing)} weighted asset(s) in {month}: {', '.join(missing)}"
             )
         validate_portfolio_weights(weights, context=month)
-        rows.append(float(sum(weight * returns[asset_id] for asset_id, weight in weights.items())))
+        rows.append(float(sum(weight * float(returns[asset_id]) for asset_id, weight in weights.items())))
     return rows
 
 
-def egx30_returns(monthly_returns: pd.DataFrame, months: list[str]) -> list[float]:
-    egx = monthly_returns.loc[monthly_returns["AssetID"].eq("EGX30")].set_index("Date")["MonthlyReturn"].to_dict()
-    missing = [month for month in months if month not in egx]
+def egx30_returns(monthly_returns: pd.DataFrame | Mapping[tuple[str, str], float], months: list[str]) -> list[float]:
+    if isinstance(monthly_returns, Mapping):
+        egx = {month: monthly_returns.get((month, "EGX30")) for month in months}
+    else:
+        egx = monthly_returns.loc[monthly_returns["AssetID"].eq("EGX30")].set_index("Date")["MonthlyReturn"].to_dict()
+    missing = [month for month in months if egx.get(month) is None]
     if missing:
         raise ValueError(f"Missing EGX30 monthly returns for: {', '.join(missing)}")
     return [float(egx[month]) for month in months]

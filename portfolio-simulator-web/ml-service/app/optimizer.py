@@ -3,12 +3,16 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass
+import importlib.util
+from collections import OrderedDict
+from collections.abc import Mapping
 from functools import lru_cache
 import math
 from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
+import numpy as np
 
 from .paths import MODEL_ARTIFACTS_ROOT
 
@@ -25,6 +29,31 @@ MACRO_DIR = DEPLOYMENT_ROOT / "data"
 TRAINING_ASSET_COUNTS = {"low": 10, "medium": 12, "high": 16}
 MIN_HISTORY_DAYS = 123
 WEIGHT_SUM_TOLERANCE = 1e-4
+OPTIMIZER_RUNTIME_MODULES = (
+    "egtportfolio",
+    "torch",
+    "stable_baselines3",
+    "gymnasium",
+    "openpyxl",
+    "sklearn",
+    "scipy",
+)
+
+
+def _non_negative_int_env(name: str, default: int) -> int:
+    raw_value = os.getenv(name, str(default))
+    try:
+        return max(0, int(raw_value))
+    except ValueError:
+        return default
+
+
+def _optimizer_bundle_cache_size() -> int:
+    return _non_negative_int_env("OPTIMIZER_BUNDLE_CACHE_SIZE", 2)
+
+
+OPTIMIZER_BUNDLE_CACHE_SIZE = _optimizer_bundle_cache_size()
+OPTIMIZER_FEATURE_CACHE_SIZE = _non_negative_int_env("OPTIMIZER_FEATURE_CACHE_SIZE", 256)
 
 
 @dataclass(frozen=True)
@@ -60,11 +89,12 @@ def optimizer_runtime_available() -> bool:
         return False
     if not any(MACRO_DIR.glob("*.xlsx")):
         return False
-    try:
-        _import_package()
-    except (ImportError, ModuleNotFoundError, RuntimeError):
-        return False
-    return True
+    if str(DEPLOYMENT_ROOT) not in sys.path:
+        sys.path.insert(0, str(DEPLOYMENT_ROOT))
+    return all(
+        importlib.util.find_spec(module_name) is not None
+        for module_name in OPTIMIZER_RUNTIME_MODULES
+    )
 
 
 def _import_package():
@@ -77,33 +107,65 @@ def _import_package():
         torch.set_num_interop_threads(1)
     except RuntimeError:
         pass
-    from egtportfolio import load_model, predict, request_from_dict
+    from egtportfolio import InferenceRequest, load_model, predict, request_from_dict
 
-    return load_model, predict, request_from_dict
+    return load_model, predict, request_from_dict, InferenceRequest
 
 
-@lru_cache(maxsize=16)
+@lru_cache(maxsize=OPTIMIZER_BUNDLE_CACHE_SIZE)
 def _load_bundle(tier: Literal["low", "medium", "high"], n_assets: int):
-    load_model, _predict, _request_from_dict = _import_package()
+    load_model, _predict, _request_from_dict, _inference_request = _import_package()
     return load_model(tier=tier, n_assets=n_assets, model_dir=MODEL_DIR)
 
 
-def _series_for_asset(daily_market: pd.DataFrame, asset_id: str, target_month: str) -> dict[str, Any]:
+_FEATURE_FRAME_CACHE: OrderedDict[tuple[Any, str, str], pd.DataFrame] = OrderedDict()
+
+
+def _daily_rows_for_asset(
+    daily_market: Any,
+    asset_id: str,
+) -> pd.DataFrame:
+    if hasattr(daily_market, "by_asset"):
+        return daily_market.by_asset.get(str(asset_id), pd.DataFrame())
+    if isinstance(daily_market, Mapping):
+        return daily_market.get(str(asset_id), pd.DataFrame())
+    return daily_market.loc[daily_market["AssetID"].astype(str).eq(str(asset_id))].sort_values("Date")
+
+
+def _market_cache_identity(daily_market: Any) -> Any:
+    version = getattr(daily_market, "version", None)
+    if version is not None:
+        return version
+    return ("object", id(daily_market))
+
+
+def _history_frame_for_asset(daily_market: Any, asset_id: str, target_month: str) -> pd.DataFrame:
     target_first = pd.Timestamp(f"{target_month}-01")
     history_start = target_first - pd.DateOffset(months=9)
-    frame = daily_market.loc[
-        daily_market["AssetID"].astype(str).eq(asset_id)
-        & daily_market["Date"].lt(target_first)
-        & daily_market["Date"].ge(history_start)
-        & daily_market["IsObserved"].eq(1)
-    ].sort_values("Date")
+    asset_rows = _daily_rows_for_asset(daily_market, asset_id)
+    if asset_rows.empty:
+        frame = asset_rows
+    else:
+        frame = asset_rows.loc[
+            asset_rows["Date"].lt(target_first)
+            & asset_rows["Date"].ge(history_start)
+            & asset_rows["IsObserved"].eq(1)
+        ]
 
     if len(frame) < MIN_HISTORY_DAYS:
         raise ValueError(
             f"Weight optimizer needs at least {MIN_HISTORY_DAYS} daily rows before {target_month} "
             f"for {asset_id}, but found {len(frame)}."
         )
+    return frame
 
+
+def _series_for_asset(
+    daily_market: Any,
+    asset_id: str,
+    target_month: str,
+) -> dict[str, Any]:
+    frame = _history_frame_for_asset(daily_market, asset_id, target_month)
     close = frame["PriceForReturn"].astype(float)
     return {
         "asset": asset_id,
@@ -114,6 +176,63 @@ def _series_for_asset(daily_market: pd.DataFrame, asset_id: str, target_month: s
         "low": frame["LowPriceForRange"].fillna(close).astype(float).tolist(),
         "volume": frame["Volume"].fillna(0.0).astype(float).tolist(),
     }
+
+
+def _raw_ohlcv_frame_for_asset(daily_market: Any, asset_id: str, target_month: str) -> pd.DataFrame:
+    frame = _history_frame_for_asset(daily_market, asset_id, target_month)
+    close = frame["PriceForReturn"].astype(float)
+    raw = pd.DataFrame(
+        {
+            "Close": close.to_numpy(dtype=float),
+            "Open": frame["OpenPriceForRange"].fillna(close).astype(float).to_numpy(),
+            "High": frame["HighPriceForRange"].fillna(close).astype(float).to_numpy(),
+            "Low": frame["LowPriceForRange"].fillna(close).astype(float).to_numpy(),
+            "Volume": frame["Volume"].fillna(0.0).astype(float).to_numpy(),
+        },
+        index=pd.DatetimeIndex(frame["Date"]),
+    )
+    return raw.sort_index()
+
+
+def _cache_feature_frame(key: tuple[Any, str, str], frame: pd.DataFrame) -> None:
+    if OPTIMIZER_FEATURE_CACHE_SIZE <= 0:
+        return
+    _FEATURE_FRAME_CACHE[key] = frame
+    _FEATURE_FRAME_CACHE.move_to_end(key)
+    while len(_FEATURE_FRAME_CACHE) > OPTIMIZER_FEATURE_CACHE_SIZE:
+        _FEATURE_FRAME_CACHE.popitem(last=False)
+
+
+def _cached_feature_frame(key: tuple[Any, str, str]) -> pd.DataFrame | None:
+    frame = _FEATURE_FRAME_CACHE.get(key)
+    if frame is not None:
+        _FEATURE_FRAME_CACHE.move_to_end(key)
+    return frame
+
+
+def _feature_frames_for_assets(
+    daily_market: Any,
+    asset_ids: list[str],
+    target_month: str,
+) -> dict[str, pd.DataFrame]:
+    from egtportfolio.features import compute_features_one_asset
+
+    market_identity = _market_cache_identity(daily_market)
+    egx30 = _raw_ohlcv_frame_for_asset(daily_market, "EGX30", target_month)
+    egx30_log_returns = np.log(egx30["Close"] / egx30["Close"].shift(1)).clip(-0.5, 0.5)
+    frames: dict[str, pd.DataFrame] = {}
+    for asset_id in asset_ids:
+        asset_key = str(asset_id)
+        cache_key = (market_identity, target_month, asset_key)
+        cached = _cached_feature_frame(cache_key)
+        if cached is not None:
+            frames[asset_key] = cached
+            continue
+        raw = _raw_ohlcv_frame_for_asset(daily_market, asset_key, target_month)
+        featured = compute_features_one_asset(raw, egx30_log_returns)
+        _cache_feature_frame(cache_key, featured)
+        frames[asset_key] = featured
+    return frames
 
 
 def _validate_optimizer_weights(
@@ -152,24 +271,23 @@ def run_weight_optimizer(
     tier: Literal["low", "medium", "high"],
     target_month: str,
     asset_ids: list[str],
-    daily_market: pd.DataFrame,
+    daily_market: Any,
 ) -> OptimizerRun:
     if not asset_ids:
         raise ValueError("Weight optimizer received an empty asset universe.")
     if not optimizer_available():
         raise FileNotFoundError(f"Missing weight optimizer deployment artifacts under {DEPLOYMENT_ROOT}")
 
-    _load_model, predict, request_from_dict = _import_package()
-    request_dict = {
-        "tier": tier,
-        "target_month": target_month,
-        "input_kind": "raw_ohlcv",
-        "asset_data": [_series_for_asset(daily_market, asset_id, target_month) for asset_id in asset_ids],
-        "egx30_ohlcv": _series_for_asset(daily_market, "EGX30", target_month),
-    }
+    _load_model, predict, _request_from_dict, inference_request = _import_package()
+    request = inference_request(
+        tier=tier,
+        target_month=target_month,
+        input_kind="precomputed_features",
+        asset_data=_feature_frames_for_assets(daily_market, asset_ids, target_month),
+    )
     bundle = _load_bundle(tier, len(asset_ids))
     result = predict(
-        request_from_dict(request_dict),
+        request,
         model_bundle=bundle,
         macro_dir=MACRO_DIR,
         model_dir=MODEL_DIR,

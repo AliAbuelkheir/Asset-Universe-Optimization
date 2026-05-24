@@ -11,6 +11,7 @@ from .data import (
     PREDICTIONS_PATH,
     VALID_SPLITS,
     read_daily_market,
+    read_daily_market_index,
     read_monthly_returns,
     read_predictions,
     select_assets,
@@ -18,6 +19,7 @@ from .data import (
 from .metrics import (
     egx30_returns,
     equal_weights,
+    index_monthly_returns,
     month_interval_days,
     performance_metrics,
     portfolio_monthly_returns,
@@ -105,7 +107,7 @@ def _build_decision_context(
     daily_market: Any,
 ) -> DecisionContext:
     try:
-        selected = select_assets(month, risk_level)
+        selected = select_assets(month, risk_level, predictions=predictions)
     except ValueError as exc:
         raise ValueError(f"{exc} while building simulator decision for {month}") from exc
 
@@ -461,7 +463,8 @@ def run_fast_simulation(
 
     predictions = read_predictions()
     monthly_returns = read_monthly_returns()
-    daily_market = read_daily_market()
+    monthly_return_index = index_monthly_returns(monthly_returns)
+    daily_market = read_daily_market_index()
     reporting_months = sorted(
         set(monthly_returns["Date"].astype(str)).intersection(
             predictions.loc[predictions["Split"].isin(VALID_SPLITS), "Date"].astype(str)
@@ -478,7 +481,7 @@ def run_fast_simulation(
             duration_months=duration_months,
             forward_months=forward_months,
             predictions=predictions,
-            monthly_returns=monthly_returns,
+            monthly_returns=monthly_return_index,
             daily_market=daily_market,
         )
 
@@ -488,6 +491,6 @@ def run_fast_simulation(
         duration_months=duration_months,
         forward_months=forward_months,
         predictions=predictions,
-        monthly_returns=monthly_returns,
+        monthly_returns=monthly_return_index,
         daily_market=daily_market,
     )

@@ -6,19 +6,13 @@ files with fresh exports from the central bank.
 """
 
 from pathlib import Path
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
 
 
-def load_macro_features(data_dir: Path) -> pd.DataFrame:
-    """Read inflation + interest rate Excel files, return monthly DataFrame.
-
-    Returns:
-        DataFrame indexed by month-start Timestamp with columns:
-          headline_inflation_mom, core_inflation_mom,
-          deposit_rate_short, lending_rate_corporate
-    """
+def _macro_signature(data_dir: Path):
     inf_path = data_dir / 'Inflations Historical.xlsx'
     int_path = data_dir / 'Monthly Interest Rates Historical.xlsx'
 
@@ -33,6 +27,23 @@ def load_macro_features(data_dir: Path) -> pd.DataFrame:
             "The deployment package needs the bundled Excel files."
         )
 
+    inf_stat = inf_path.stat()
+    int_stat = int_path.stat()
+    return (
+        str(inf_path), inf_stat.st_mtime_ns, inf_stat.st_size,
+        str(int_path), int_stat.st_mtime_ns, int_stat.st_size,
+    )
+
+
+@lru_cache(maxsize=2)
+def _load_macro_features_cached(
+    inf_path: str,
+    _inf_mtime_ns: int,
+    _inf_size: int,
+    int_path: str,
+    _int_mtime_ns: int,
+    _int_size: int,
+) -> pd.DataFrame:
     # Inflation
     inf_df = pd.read_excel(
         inf_path, sheet_name='Inflation Rates', skiprows=1,
@@ -66,6 +77,17 @@ def load_macro_features(data_dir: Path) -> pd.DataFrame:
 
     macro = inf_df.join(int_df, how='outer').ffill().bfill()
     return macro
+
+
+def load_macro_features(data_dir: Path) -> pd.DataFrame:
+    """Read inflation + interest rate Excel files, return monthly DataFrame.
+
+    Returns:
+        DataFrame indexed by month-start Timestamp with columns:
+          headline_inflation_mom, core_inflation_mom,
+          deposit_rate_short, lending_rate_corporate
+    """
+    return _load_macro_features_cached(*_macro_signature(Path(data_dir))).copy()
 
 
 def build_macro_tensor(

@@ -63,6 +63,8 @@ def _detect_input_kind(asset_data) -> Literal['raw_ohlcv', 'precomputed_features
     """
     if isinstance(asset_data, list):  # list of AssetTimeSeries (always raw)
         return 'raw_ohlcv'
+    if isinstance(asset_data, dict):  # in-memory DataFrames
+        return 'precomputed_features'
     if isinstance(asset_data, str):  # path to CSV; need to peek
         df = pd.read_csv(asset_data, nrows=1)
         if all(f in df.columns for f in RL_FEATURE_NAMES):
@@ -93,6 +95,12 @@ def _build_feature_tensor(
     if isinstance(asset_data, list):
         asset_dfs = {a.asset: _asset_series_to_df(a) for a in asset_data}
         asset_names = [a.asset for a in asset_data]
+    elif isinstance(asset_data, dict):
+        asset_dfs = {
+            str(asset): df.copy().sort_index()
+            for asset, df in asset_data.items()
+        }
+        asset_names = [str(asset) for asset in asset_data.keys()]
     else:
         # Pre-computed CSV path
         full_df = pd.read_csv(asset_data, parse_dates=['Date'])

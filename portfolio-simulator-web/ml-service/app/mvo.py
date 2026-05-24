@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
@@ -30,19 +31,46 @@ class MvoRun:
 
 def _trailing_returns(
     *,
-    daily_market: pd.DataFrame,
+    daily_market: pd.DataFrame | Mapping[str, pd.DataFrame],
     asset_ids: list[str],
     target_month: str,
 ) -> pd.DataFrame:
     target_first = pd.Timestamp(f"{target_month}-01")
     history_start = target_first - pd.DateOffset(months=LOOKBACK_MONTHS)
     requested_ids = [str(asset_id) for asset_id in asset_ids]
-    frame = daily_market.loc[
-        daily_market["AssetID"].astype(str).isin(requested_ids)
-        & daily_market["Date"].lt(target_first)
-        & daily_market["Date"].ge(history_start),
-        ["Date", "AssetID", "ReturnFromPrice", "IsObserved"],
-    ].copy()
+    columns = ["Date", "AssetID", "ReturnFromPrice", "IsObserved"]
+    if hasattr(daily_market, "by_asset"):
+        by_asset = daily_market.by_asset
+        parts = [
+            by_asset[asset_id].loc[:, columns]
+            for asset_id in requested_ids
+            if asset_id in by_asset
+        ]
+        frame = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=columns)
+        frame = frame.loc[
+            frame["Date"].lt(target_first)
+            & frame["Date"].ge(history_start),
+            columns,
+        ].copy()
+    elif isinstance(daily_market, Mapping):
+        parts = [
+            daily_market[asset_id].loc[:, columns]
+            for asset_id in requested_ids
+            if asset_id in daily_market
+        ]
+        frame = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=columns)
+        frame = frame.loc[
+            frame["Date"].lt(target_first)
+            & frame["Date"].ge(history_start),
+            columns,
+        ].copy()
+    else:
+        frame = daily_market.loc[
+            daily_market["AssetID"].astype(str).isin(requested_ids)
+            & daily_market["Date"].lt(target_first)
+            & daily_market["Date"].ge(history_start),
+            columns,
+        ].copy()
     if frame.empty:
         raise ValueError(f"MVO needs trailing return history before {target_month}, but found no rows.")
 
@@ -79,7 +107,7 @@ def run_mvo_allocation(
     risk_level: RiskLevel,
     target_month: str,
     asset_ids: list[str],
-    daily_market: pd.DataFrame,
+    daily_market: pd.DataFrame | Mapping[str, pd.DataFrame],
 ) -> MvoRun:
     if not asset_ids:
         raise ValueError("MVO received an empty asset universe.")
@@ -137,7 +165,7 @@ def run_mvo_full_universe(
     risk_level: RiskLevel,
     target_month: str,
     asset_ids: list[str],
-    daily_market: pd.DataFrame,
+    daily_market: pd.DataFrame | Mapping[str, pd.DataFrame],
 ) -> MvoRun:
     return run_mvo_allocation(
         risk_level=risk_level,
