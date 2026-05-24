@@ -131,8 +131,9 @@ svg {
 .brandMark img {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  background: #000000;
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .brandMark span,
@@ -310,6 +311,17 @@ svg {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
+}
+
+.intelligenceSummary span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .runPanel,
@@ -640,6 +652,7 @@ select {
 .pipelinePanel,
 .rebalanceIntelligence {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   padding: 12px;
   scroll-margin-top: 12px;
@@ -649,6 +662,24 @@ select {
 .pipelineHeader,
 .intelligenceHeader {
   align-items: flex-start;
+}
+
+.intelligenceHeader {
+  flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.intelligenceHeader > div:first-child {
+  flex: 1 1 420px;
+  min-width: min(100%, 320px);
+}
+
+.intelligenceSummary {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .reportHeader h2,
