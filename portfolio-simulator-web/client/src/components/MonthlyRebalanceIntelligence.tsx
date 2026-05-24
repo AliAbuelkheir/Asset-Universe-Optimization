@@ -38,20 +38,12 @@ function topAllocations(snapshot: RebalanceTimelinePoint, limit = 8) {
 
 function compactLabel(row: ComparisonRow) {
   const compactLabels: Record<ComparisonRow["id"], string> = {
-    optimizedPortfolio: "Selected external weights",
-    assignedRiskBucket: "Equal-weight bucket",
-    mvoFullUniverse: "Full-universe MVO",
+    optimizedPortfolio: "Robin portfolio",
+    assignedRiskBucket: "Profile equal-weight benchmark",
+    mvoFullUniverse: "Full-universe benchmark",
     egx30: "EGX30"
   };
-  if (row.label.toLowerCase().includes("monthly")) {
-    return compactLabels[row.id];
-  }
-  const label = row.label || comparisonLabels[row.id];
-  return label
-    .replace("Monthly rebalanced ", "")
-    .replace("Monthly reselected ", "")
-    .replace(" with optimized weights", "")
-    .replace(" with equal weights", "");
+  return compactLabels[row.id] || comparisonLabels[row.id] || row.label;
 }
 
 function heatCellColor(value: number) {
@@ -73,7 +65,6 @@ function reportSeriesRows(report: SimulationReport, enabledSeries: ReturnSeriesK
 export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalanceIntelligenceProps) {
   const timeline = report?.simulatorMode === "monthly_rebalance" ? report.rebalanceTimeline : [];
   const months = useMemo(() => timeline.map((snapshot) => snapshot.month), [timeline]);
-  const timelineByMonth = useMemo(() => new Map(timeline.map((snapshot) => [snapshot.month, snapshot])), [timeline]);
   const [selectedMonth, setSelectedMonth] = useState(months[0] ?? "");
   const selectedMonthButtonRef = useRef<HTMLButtonElement | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>("snapshot");
@@ -153,35 +144,35 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
     <section
       className={isStale ? "rebalanceIntelligence stale" : "rebalanceIntelligence"}
       id="rebalance-timeline"
-      aria-label="Monthly Rebalance Intelligence"
+      aria-label="Monthly Allocation Review"
     >
       <div className="intelligenceHeader">
         <div>
-          <span className="diagnosticLabel"><Sparkles size={15} />Historical diagnostic</span>
-          <h2>Monthly Rebalance Intelligence</h2>
+          <span className="diagnosticLabel"><Sparkles size={15} />Monthly review</span>
+          <h2>Monthly allocation review</h2>
           <p>
-            Select a realized month to inspect the portfolio snapshot, benchmark deltas, and allocation diagnostics.
+            Select a realized month to inspect the portfolio snapshot, benchmark deltas, and holdings.
           </p>
         </div>
         <div className="intelligenceSummary">
-          <span>{timeline.length} rebalance months</span>
           <span>{number(finalValue)} final value</span>
           <span>{percent(finalValue - 1)} cumulative</span>
+          <span>{report.durationMonths} month{report.durationMonths === 1 ? "" : "s"}</span>
         </div>
       </div>
 
       {isStale && (
         <div className="pipelineStaleNote">
           <Sparkles size={16} />
-          This intelligence view belongs to the last generated report. Run again to refresh it with the current controls.
+          This review belongs to the last generated report. Run again to refresh it with the current controls.
         </div>
       )}
 
       <div className="intelligenceChartPanel">
         <div className="chartPanelHeader">
           <div>
-            <span>Cumulative return</span>
-            <h3>Click a month on the chart or rail</h3>
+            <span>Return path</span>
+            <h3>Select a month</h3>
           </div>
           <div className="seriesToggles" aria-label="Benchmark series toggles">
             {seriesRows.map((series) => (
@@ -237,7 +228,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
                 onClick={() => setSelectedMonth(point.month)}
               >
                 <strong>{point.month}</strong>
-                <span>{timelineByMonth.get(point.month)?.selectedAssetCount ?? 0} selected assets</span>
+                <span>Portfolio return</span>
                 <em className={positive ? "positive" : "negative"}>
                   <TrendIcon size={13} />
                   {signedPercent(point.optimizedPortfolio)}
@@ -295,9 +286,6 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
                 <div><dt>Cumulative return</dt><dd>{percent(selectedCumulative)}</dd></div>
                 <div><dt>Starting value</dt><dd>{number(selectedSnapshot.startingValue)}</dd></div>
                 <div><dt>Ending value</dt><dd>{number(selectedSnapshot.endingValue)}</dd></div>
-                <div><dt>Active universe count</dt><dd>{selectedSnapshot.activeUniverseCount}</dd></div>
-                <div><dt>Selected asset count</dt><dd>{selectedSnapshot.selectedAssetCount}</dd></div>
-                <div><dt>Weight sum</dt><dd>{percent(selectedSnapshot.optimizerWeightSum)}</dd></div>
               </dl>
             </section>
 
@@ -437,8 +425,7 @@ export function MonthlyRebalanceIntelligence({ report, isStale }: MonthlyRebalan
           <section className="holdingsDetail">
             <div className="detailSectionHeader">
               <PieChart size={18} />
-              <h3>Selected portfolio holdings</h3>
-              <span>{selectedSnapshot.selectedAssetCount} selected assets</span>
+              <h3>Portfolio holdings</h3>
             </div>
             <div className="holdingsGrid">
               {topAllocations(selectedSnapshot, selectedSnapshot.selectedAssets.length).map((asset) => {

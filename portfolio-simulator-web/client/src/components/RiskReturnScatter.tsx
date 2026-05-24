@@ -13,10 +13,10 @@ import {
 } from "recharts";
 
 const COLORS: Record<string, string> = {
-  optimizedPortfolio: "#2563EB",
-  mvoFullUniverse: "#F97316",
-  assignedRiskBucket: "#7C3AED",
-  egx30: "#0891B2"
+  optimizedPortfolio: "#31f30a",
+  mvoFullUniverse: "#7f7f7f",
+  assignedRiskBucket: "#292929",
+  egx30: "#b8b8b8"
 };
 
 export function RiskReturnScatter({ rows }: { rows: ComparisonRow[] }) {

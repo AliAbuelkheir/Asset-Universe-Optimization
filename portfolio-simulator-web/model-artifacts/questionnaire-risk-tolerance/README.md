@@ -40,7 +40,7 @@ historical simulation path. Portfolio results must remain described as
 historical diagnostics, not guaranteed performance.
 
 Note: the supplied pickle is missing the richer `feature_names` and `scaler`
-metadata described in `karmapart.pdf`. Controlled-profile validation showed the
+ metadata described in `karmapart.pdf`. Controlled-profile checks showed the
 raw model expects the two objective one-hot columns as `Objective_Income` then
 `Objective_Growth`; using the reverse order makes income-oriented conservative
 profiles classify as aggressive.

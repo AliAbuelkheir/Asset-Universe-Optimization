@@ -30,6 +30,26 @@ SAMPLE_QUESTIONNAIRE = {
     "What are your savings objectives?": "Health Care",
 }
 
+INTERNAL_SUMMARY_TERMS = (
+    "PPO",
+    "external optimizer",
+    "external weight optimizer",
+    "external weights",
+    "MVO",
+    "predicted rank",
+    "decision date",
+    "optimizer inference",
+    "model weights",
+)
+
+
+def assert_public_historical_summary(summary: str) -> None:
+    assert "historical" in summary
+    assert "realized" in summary
+    assert "guaranteed investment performance" in summary
+    for term in INTERNAL_SUMMARY_TERMS:
+        assert term.lower() not in summary.lower()
+
 
 def test_health_reports_real_artifact_availability() -> None:
     payload = health()
@@ -43,7 +63,7 @@ def test_health_reports_real_artifact_availability() -> None:
     assert payload["status"] == "ok"
 
 
-def test_available_months_include_validation_and_test() -> None:
+def test_available_months_include_reportable_months() -> None:
     months = available_months()
     month_labels = {row["month"] for row in months}
     assert "2023-01" in month_labels
@@ -58,8 +78,7 @@ def test_risk_level_contracts_are_exposed() -> None:
 
 
 def test_select_assets_returns_bucket_assets() -> None:
-    selected, split = select_assets("2025-03", "medium")
-    assert split == "test"
+    selected = select_assets("2025-03", "medium")
     assert not selected.empty
     assert selected["PredictedRankPct"].between(0.20, 0.80, inclusive="both").all()
 
@@ -94,14 +113,12 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
     assert len(report["monthlyReturns"]) == 3
     assert set(report["monthlyReturns"][0]) == {
         "month",
-        "split",
         "optimizedPortfolio",
         "mvoFullUniverse",
         "assignedRiskBucket",
         "egx30",
     }
     assert "optimizedRawUniverse" not in report["monthlyReturns"][0]
-    assert [row["split"] for row in report["monthlyReturns"]] == ["test", "test", "test"]
     assert [row["id"] for row in report["comparison"]] == [
         "optimizedPortfolio",
         "assignedRiskBucket",
@@ -131,6 +148,7 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
     assert "rawRiskComponents" not in report
     assert "optimizerDiagnostics" not in report
     assert "requiredExternalContracts" not in report
+    assert_public_historical_summary(report["thesisSafeSummary"])
 
 
 def test_explicit_single_simulation_mode_matches_single_contract() -> None:
@@ -154,9 +172,9 @@ def test_production_profile_exposes_core_benchmark_set(monkeypatch: pytest.Monke
         "egx30",
     ]
     assert [row["label"] for row in report["comparison"]] == [
-        "Selected bucket with external weights",
-        "Filtered universe equal weight",
-        "Full-universe MVO",
+        "Robin portfolio",
+        "Profile equal-weight benchmark",
+        "Full-universe benchmark",
         "EGX30",
     ]
 
@@ -293,21 +311,20 @@ def test_monthly_rebalance_recomputes_decisions_for_each_month(monkeypatch: pyte
         "2025-05",
     ]
     for index, month in enumerate(["2025-03", "2025-04", "2025-05"]):
-        selected, _split = select_assets(month, "medium")
+        selected = select_assets(month, "medium")
         expected_selected = tuple(selected["AssetID"].astype(str).tolist())
         assert calls[index] == (month, expected_selected)
     assert calls[0][1] != calls[1][1]
     assert report["rebalanceTimeline"][1]["startingValue"] == pytest.approx(
         report["rebalanceTimeline"][0]["endingValue"]
     )
-    assert [row["split"] for row in report["monthlyReturns"]] == ["test", "test", "test"]
     assert [row["id"] for row in report["comparison"]] == [
         "optimizedPortfolio",
         "assignedRiskBucket",
         "mvoFullUniverse",
         "egx30",
     ]
-    assert report["comparison"][0]["label"] == "Selected bucket with external weights"
+    assert report["comparison"][0]["label"] == "Robin portfolio"
 
 
 def test_fast_endpoint_serializes_multi_month_rebalance(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -345,13 +362,14 @@ def test_fast_endpoint_serializes_multi_month_rebalance(monkeypatch: pytest.Monk
     assert payload["simulatorMode"] == "monthly_rebalance"
     assert [row["month"] for row in payload["rebalanceTimeline"]] == ["2025-03", "2025-04", "2025-05"]
     assert [row["month"] for row in payload["monthlyReturns"]] == ["2025-03", "2025-04", "2025-05"]
-    assert [row["split"] for row in payload["monthlyReturns"]] == ["test", "test", "test"]
     assert "mvoFullUniverse" in payload["monthlyReturns"][0]
     assert "optimizedRawUniverse" not in payload["monthlyReturns"][0]
     assert payload["rebalanceTimeline"][1]["startingValue"] == pytest.approx(
         payload["rebalanceTimeline"][0]["endingValue"]
     )
-    assert "Long monthly rebalance windows" not in payload["thesisSafeSummary"]
+    assert "Long monthly review windows" not in payload["thesisSafeSummary"]
+    assert "historical monthly review diagnostic" in payload["thesisSafeSummary"]
+    assert_public_historical_summary(payload["thesisSafeSummary"])
 
 
 def test_long_monthly_rebalance_reports_runtime_warning(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -380,7 +398,8 @@ def test_long_monthly_rebalance_reports_runtime_warning(monkeypatch: pytest.Monk
         simulator_mode="monthly_rebalance",
     )
 
-    assert "Long monthly rebalance windows can take noticeably longer" in report["thesisSafeSummary"]
+    assert "Long monthly review windows can take noticeably longer" in report["thesisSafeSummary"]
+    assert_public_historical_summary(report["thesisSafeSummary"])
 
 
 def test_duration_reports_requested_and_available_months() -> None:

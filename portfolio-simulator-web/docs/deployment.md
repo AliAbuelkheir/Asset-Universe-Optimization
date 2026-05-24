@@ -28,7 +28,7 @@ Environment variables:
 | `PYTHONUNBUFFERED` | `1` |
 
 Do not set `VITE_API_BASE_URL` for the production build. The React app calls the same-origin FastAPI routes under `/api`.
-`SIMULATOR_PROFILE=production` and local development expose the same benchmark set: selected bucket with external weights, filtered-universe equal weight, full-universe MVO, and EGX30. The single-allocation and monthly-rebalance simulator modes remain available in both production and local environments.
+`SIMULATOR_PROFILE=production` and local development expose the same benchmark set: Robin portfolio, profile equal-weight benchmark, full-universe benchmark, and EGX30. The opening-allocation and monthly-review simulator modes remain available in both production and local environments.
 
 ## Runtime layout
 
@@ -45,7 +45,7 @@ The FastAPI service serves both `/api/*` and the built React app from `client/di
 
 1. Refresh runtime artifacts under `model-artifacts`.
 2. Run `npm.cmd run build`.
-3. Run `npm.cmd test`.
+3. Run the configured project check script.
 4. Commit and push.
 5. Render auto-deploys the pushed branch.
 

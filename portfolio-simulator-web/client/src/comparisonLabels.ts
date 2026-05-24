@@ -1,9 +1,9 @@
 import type { ComparisonRow } from "./types";
 
 export const comparisonLabels: Record<ComparisonRow["id"], string> = {
-  optimizedPortfolio: "Selected bucket + external weights",
-  assignedRiskBucket: "Equal-weight selected assets",
-  mvoFullUniverse: "Full-universe MVO",
+  optimizedPortfolio: "Robin portfolio",
+  assignedRiskBucket: "Profile equal-weight benchmark",
+  mvoFullUniverse: "Full-universe benchmark",
   egx30: "EGX30"
 };
 

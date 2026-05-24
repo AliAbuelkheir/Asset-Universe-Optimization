@@ -38,10 +38,10 @@ export function QuestionnaireForm({ questionnaire, onChange }: QuestionnaireForm
     <section className="activeModePanel" aria-label="Questionnaire input">
       <div className="activeModeHeader">
         <div>
+          <span>Questionnaire</span>
           <h3>Questionnaire</h3>
-          <p>Answers select the risk band, then run the same historical diagnostic.</p>
+          <p>Answers determine the profile used for the historical diagnostic.</p>
         </div>
-        <span>8 inputs</span>
       </div>
       <div className="questionnaireStack">
         <label className="questionItem">

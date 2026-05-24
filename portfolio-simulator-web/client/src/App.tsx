@@ -1,8 +1,9 @@
 import {
   AlertTriangle,
   BarChart3,
-  Moon,
-  Sun,
+  CalendarDays,
+  CheckCircle2,
+  LineChart,
   SlidersHorizontal
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -24,26 +25,10 @@ import type {
 } from "./types";
 import "./styles.css";
 
-type ThemeMode = "light" | "dark";
-
-function initialTheme(): ThemeMode {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-  const storedTheme = window.localStorage.getItem("portfolio-simulator-theme");
-  if (storedTheme === "light" || storedTheme === "dark") {
-    return storedTheme;
-  }
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
 function App() {
   const [months, setMonths] = useState<MonthOption[]>([]);
   const [levels, setLevels] = useState<RiskLevelDefinition[]>([]);
   const [questionnaireAvailable, setQuestionnaireAvailable] = useState(false);
-  const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [month, setMonth] = useState("2025-03");
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium");
   const [durationMonths, setDurationMonths] = useState<number | null>(6);
@@ -75,12 +60,6 @@ function App() {
       });
   }, []);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    window.localStorage.setItem("portfolio-simulator-theme", theme);
-  }, [theme]);
-
   const questionnaireKey = useMemo(() => JSON.stringify(questionnaire), [questionnaire]);
   const isReportStale =
     !!report &&
@@ -99,15 +78,14 @@ function App() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const motion = prefersReducedMotion ? "auto" : "smooth";
     const timer = window.setTimeout(() => {
-      const targetId = report.simulatorMode === "monthly_rebalance" ? "rebalance-timeline" : "pipeline-replay";
-      document.getElementById(targetId)?.scrollIntoView({ behavior: motion, block: "start" });
-    }, 120);
+      document.getElementById("report")?.scrollIntoView?.({ behavior: motion, block: "start" });
+    }, 100);
     return () => window.clearTimeout(timer);
   }, [report?.simulationId]);
 
   async function handleRunSimulation() {
     if (simulationMode === "questionnaire" && !questionnaireAvailable) {
-      setError("Questionnaire inference is unavailable for this deployment. Use fast select.");
+      setError("Questionnaire profile input is unavailable for this deployment. Use fast select.");
       return;
     }
     const requestId = runRequestId.current + 1;
@@ -143,46 +121,37 @@ function App() {
 
   return (
     <main className="appShell">
-      <section className="workspace">
-        <header className="topBar">
-          <div className="brandBlock">
-            <img src="/robin-logo.png" alt="Robin Solutions" />
-            <div>
-              <span>Robin Solutions</span>
-              <h1>Egyptian Market Portfolio Optimization Simulator</h1>
-              <p>Questionnaire-guided historical diagnostics.</p>
-            </div>
-          </div>
-          <div className="headerActions">
-            <nav className="topNav" aria-label="Page sections">
-              <a href="#simulation"><SlidersHorizontal size={16} />Simulation</a>
-              <a href="#report"><BarChart3 size={16} />Report</a>
-            </nav>
-            <button
-              type="button"
-              className="themeToggle"
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              aria-pressed={theme === "dark"}
-              onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-            >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-              <span>{theme === "dark" ? "Light" : "Dark"}</span>
-            </button>
-            {/* <div className="statusPill"><CheckCircle2 size={16} />Historical diagnostics</div> */}
-          </div>
-        </header>
+      <header className="nativeTopBar">
+        <a className="brandMark" href="#simulation" aria-label="Robin portfolio simulator">
+          <img src="/robin-logo.png" alt="" />
+          <span>Robin</span>
+        </a>
+        <nav className="topNav" aria-label="Workspace sections">
+          <a href="#simulation"><SlidersHorizontal size={14} />Setup</a>
+          <a href="#report"><BarChart3 size={14} />Report</a>
+        </nav>
+        <div className="topStatus" aria-label="Diagnostic mode">
+          <CheckCircle2 size={14} />
+          Historical diagnostics
+        </div>
+      </header>
 
-        <section className="simulationConsole" id="simulation">
-          <SimulationControls
-            levels={levels}
-            mode={simulationMode}
-            riskLevel={riskLevel}
-            questionnaire={questionnaire}
-            questionnaireAvailable={questionnaireAvailable}
-            onModeChange={setSimulationMode}
-            onRiskLevelChange={setRiskLevel}
-            onQuestionnaireChange={updateQuestionnaire}
-          />
+      <section className="productIntro" aria-label="Simulator overview">
+        <div>
+          <span>Portfolio simulator</span>
+          <h1>Egyptian market allocation review</h1>
+        </div>
+        <p>
+          Select an investor profile and review historical portfolio behavior across the plotted window.
+        </p>
+      </section>
+
+      <section className="simulatorFrame">
+        <aside className="setupRail" id="simulation" aria-label="Simulation setup">
+          <div className="railHeader">
+            <span>Setup</span>
+            <strong>{months.length > 0 ? "Ready" : "Loading"}</strong>
+          </div>
           <RunPanel
             months={months}
             levels={levels}
@@ -199,15 +168,37 @@ function App() {
             onDurationChange={setDurationMonths}
             onRun={handleRunSimulation}
           />
-        </section>
+          <SimulationControls
+            levels={levels}
+            mode={simulationMode}
+            riskLevel={riskLevel}
+            questionnaire={questionnaire}
+            questionnaireAvailable={questionnaireAvailable}
+            onModeChange={setSimulationMode}
+            onRiskLevelChange={setRiskLevel}
+            onQuestionnaireChange={updateQuestionnaire}
+          />
+        </aside>
 
-        {error && <div className="errorBanner"><AlertTriangle size={18} />{error}</div>}
-        {report?.simulatorMode === "monthly_rebalance" ? (
-          <MonthlyRebalanceIntelligence report={report} isStale={isReportStale} />
-        ) : (
-          <PipelinePlayback report={report} isStale={isReportStale} />
-        )}
-        <ReportView report={report} isStale={isReportStale} />
+        <section className="workspace" aria-label="Simulation results">
+          <div className="workspaceHeader">
+            <div>
+              <span>Review surface</span>
+              <h2>Historical diagnostics</h2>
+            </div>
+            <div className="workspaceMeta">
+              <span><CalendarDays size={13} />{month}</span>
+              <span><LineChart size={13} />{durationMonths === null ? "Max window" : `${durationMonths} month${durationMonths === 1 ? "" : "s"}`}</span>
+            </div>
+          </div>
+          {error && <div className="errorBanner"><AlertTriangle size={16} />{error}</div>}
+          <ReportView report={report} isStale={isReportStale} />
+          {report?.simulatorMode === "monthly_rebalance" ? (
+            <MonthlyRebalanceIntelligence report={report} isStale={isReportStale} />
+          ) : (
+            <PipelinePlayback report={report} isStale={isReportStale} />
+          )}
+        </section>
       </section>
     </main>
   );

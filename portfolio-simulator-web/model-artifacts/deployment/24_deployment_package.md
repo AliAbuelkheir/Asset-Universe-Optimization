@@ -14,7 +14,7 @@ deployment/
 ├── README.md                                  ← quickstart
 ├── INTEGRATION_GUIDE.md                       ← full developer manual (8 sections)
 ├── requirements.txt                           ← pinned versions
-├── test_inference.py                          ← end-to-end tests
+├── test_inference.py                          ← end-to-end checks
 │
 ├── models/
 │   ├── ppo_low_seed42_setbased.zip
@@ -69,7 +69,7 @@ Saves:
 - `models/ppo_<tier>_seed42_setbased.zip` + `vecnorm_*.pkl` (×3)
 
 ### Phase 3: Verification on subsets
-`src/test/verify_setbased.py` evaluates each trained model on:
+The subset-verification script evaluates each trained model on:
 1. Full tier universe (sanity)
 2. 5-asset defensive subset
 3. 5-asset stocks-only subset
@@ -99,7 +99,7 @@ Key design choices:
 7. Rebalance + holding-period assumption (monthly, train daily / deploy monthly)
 8. Sample input/output + runnable example
 
-### Phase 6: End-to-end testing
+### Phase 6: End-to-end checks
 `deployment/test_inference.py` asserts:
 - Output weights sum to 1.0 within 1e-5
 - All weights ≥ 0 and ≤ max_weight
@@ -124,7 +124,7 @@ Key design choices:
    cp models/ppo_<X>_seed42_setbased.* deployment/models/
    cp models/vecnorm_<X>_seed42_setbased.pkl deployment/models/
    ```
-3. Re-run `deployment/test_inference.py` to verify
+3. Re-run the deployment inference check script
 4. Re-run `deployment/examples/run_example.py` and commit the new `expected_output.json`
 
 ### Feature engineering
@@ -165,7 +165,7 @@ The set-based deployment numbers will be reported in `results/setbased_subset_co
 ### New code under `src/` (also part of training pipeline)
 - `src/feature_extractor_setbased.py`
 - `src/policy_setbased.py`
-- `src/test/verify_setbased.py`
+- subset verification script under `src/`
 - `src/train.py` (modified — added `--setbased` flag)
 
 ### New files under `deployment/`

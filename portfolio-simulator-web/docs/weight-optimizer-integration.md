@@ -22,8 +22,8 @@ These are historical simulation diagnostics only. They compare realized returns 
 | Selected-bucket inference | Passed |
 | Long-only weights | Passed |
 | Sum-to-one weights | Passed |
-| Tier caps respected | Passed in deployment tests |
-| JSON round trip | Passed in deployment tests |
+| Tier caps respected | Passed in deployment checks |
+| JSON round trip | Passed in deployment checks |
 
 Important caveat: when selected-bucket deployment `N` differs from the training count (`low=10`, `medium=12`, `high=16`), the optimizer package may fall back to identity VecNormalize observation normalization. The simplified public API keeps the report focused on displayed historical diagnostics, so advanced optimizer diagnostics are not returned to the client.
 

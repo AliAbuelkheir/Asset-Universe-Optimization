@@ -2,10 +2,10 @@ import { comparisonLabels, displayComparisonLabel } from "./comparisonLabels";
 import type { ComparisonRow, MonthlyReturnPoint } from "./types";
 
 export const returnSeries = [
-  { key: "optimizedPortfolio", label: comparisonLabels.optimizedPortfolio, color: "#2563EB" },
-  { key: "assignedRiskBucket", label: comparisonLabels.assignedRiskBucket, color: "#7C3AED" },
-  { key: "mvoFullUniverse", label: comparisonLabels.mvoFullUniverse, color: "#F97316" },
-  { key: "egx30", label: comparisonLabels.egx30, color: "#0891B2" }
+  { key: "optimizedPortfolio", label: comparisonLabels.optimizedPortfolio, color: "#31f30a" },
+  { key: "assignedRiskBucket", label: comparisonLabels.assignedRiskBucket, color: "#292929" },
+  { key: "mvoFullUniverse", label: comparisonLabels.mvoFullUniverse, color: "#7f7f7f" },
+  { key: "egx30", label: comparisonLabels.egx30, color: "#b8b8b8" }
 ] as const;
 
 export type ReturnSeriesKey = (typeof returnSeries)[number]["key"];

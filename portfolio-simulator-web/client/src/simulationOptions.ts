@@ -4,14 +4,14 @@ export const riskOrder: RiskLevel[] = ["low", "medium", "high"];
 
 export const simulatorModeOptions: Array<{ label: string; value: SimulatorMode; description: string }> = [
   {
-    label: "Monthly rebalance",
+    label: "Monthly review",
     value: "monthly_rebalance",
-    description: "Re-run selection and optimizer every plotted month."
+    description: "Refresh the allocation view for each plotted month."
   },
   {
-    label: "Single allocation",
+    label: "Opening allocation",
     value: "single",
-    description: "Use the start-month selection and weights for the full window."
+    description: "Keep the opening allocation through the full window."
   }
 ];
 

@@ -1,6 +1,6 @@
 """Input / output schemas for the deployment package.
 
-Using dataclasses + simple validation instead of Pydantic to avoid an extra
+Using dataclasses + simple checks instead of Pydantic to avoid an extra
 dependency. The structure mirrors what a typical REST API would expect.
 """
 

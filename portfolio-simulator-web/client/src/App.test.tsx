@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
-const monthOptions = [{ month: "2025-03", split: "test", assetCount: 36 }];
+const monthOptions = [{ month: "2025-03", assetCount: 36 }];
 const riskLevels = [
   { id: "low", label: "Low risk", minRankPct: 0, maxRankPct: 0.4, description: "Low band" },
   { id: "medium", label: "Medium risk", minRankPct: 0.25, maxRankPct: 0.75, description: "Medium band" },
@@ -10,10 +10,9 @@ const riskLevels = [
 ];
 
 const baseReport = {
-  simulationId: "test",
+  simulationId: "sim-fixture",
   month: "2025-03",
   simulatorMode: "single",
-  split: "test",
   durationMonths: 2,
   requestedDurationMonths: 3,
   chartIntervals: [
@@ -76,7 +75,6 @@ const baseReport = {
   rebalanceTimeline: [
     {
       month: "2025-03",
-      split: "test",
       optimizerDecisionDate: "2025-03-01",
       startingValue: 1,
       monthlyReturn: 0.015,
@@ -107,7 +105,6 @@ const baseReport = {
   monthlyReturns: [
     {
       month: "2025-03",
-      split: "test",
       optimizedPortfolio: 0.015,
       mvoFullUniverse: 0.012,
       assignedRiskBucket: 0.01,
@@ -115,7 +112,6 @@ const baseReport = {
     },
     {
       month: "2025-04",
-      split: "test",
       optimizedPortfolio: -0.005,
       mvoFullUniverse: -0.008,
       assignedRiskBucket: -0.01,
@@ -125,7 +121,7 @@ const baseReport = {
   comparison: [
     {
       id: "optimizedPortfolio",
-      label: "Selected bucket with external weights",
+      label: "Robin portfolio",
       metrics: {
         cumulativeReturn: 0.01,
         annualizedVolatility: 0.08,
@@ -139,7 +135,7 @@ const baseReport = {
     },
     {
       id: "mvoFullUniverse",
-      label: "Full-universe MVO",
+      label: "Full-universe benchmark",
       metrics: {
         cumulativeReturn: 0.004,
         annualizedVolatility: 0.09,
@@ -153,7 +149,7 @@ const baseReport = {
     },
     {
       id: "assignedRiskBucket",
-      label: "Filtered universe with equal weights",
+      label: "Profile equal-weight benchmark",
       metrics: {
         cumulativeReturn: 0,
         annualizedVolatility: 0.1,
@@ -198,11 +194,11 @@ function reportForMode(simulatorMode: "single" | "monthly_rebalance") {
     : baseReport.rebalanceTimeline;
   const comparison = simulatorMode === "monthly_rebalance"
     ? baseReport.comparison.map((row) => row.id === "optimizedPortfolio"
-      ? { ...row, label: "Monthly rebalanced filtered universe with optimized weights" }
+      ? { ...row, label: "Robin portfolio" }
       : row.id === "mvoFullUniverse"
-        ? { ...row, label: "Full-universe MVO" }
+        ? { ...row, label: "Full-universe benchmark" }
         : row.id === "assignedRiskBucket"
-          ? { ...row, label: "Monthly reselected filtered universe with equal weights" }
+          ? { ...row, label: "Profile equal-weight benchmark" }
           : row)
     : baseReport.comparison;
   return { ...baseReport, simulatorMode, rebalanceTimeline, comparison };
@@ -278,54 +274,57 @@ describe("App", () => {
 
   it("renders the simulation workflow", async () => {
     render(<App />);
-    expect(await screen.findByText("Egyptian Market Portfolio Optimization Simulator")).toBeInTheDocument();
-    expect(screen.getByText("Choose simulation mode")).toBeInTheDocument();
+    expect(await screen.findByText("Egyptian market allocation review")).toBeInTheDocument();
+    expect(screen.getByText("Risk input")).toBeInTheDocument();
     expect(screen.getAllByText("Questionnaire").length).toBeGreaterThan(0);
     expect(screen.getByText("Fast select")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Monthly rebalance/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /Single allocation/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /Monthly review/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Opening allocation/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Run simulation")).toBeInTheDocument();
   });
 
-  it("toggles and persists dark mode", async () => {
+  it("renders the native diagnostic header", async () => {
     render(<App />);
-    const toggle = await screen.findByRole("button", { name: /Switch to dark mode/i });
-
-    fireEvent.click(toggle);
-
-    await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
-    expect(window.localStorage.getItem("portfolio-simulator-theme")).toBe("dark");
-    expect(screen.getByRole("button", { name: /Switch to light mode/i })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByLabelText("Robin portfolio simulator")).toBeInTheDocument();
+    expect(screen.getAllByText("Historical diagnostics").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /Switch to dark mode/i })).not.toBeInTheDocument();
   });
 
   it("runs fast mode with single allocation and renders only public report fields", async () => {
     render(<App />);
     fireEvent.click(await screen.findByText("Fast select"));
     fireEvent.click(await screen.findByText("Low"));
-    fireEvent.click(screen.getByRole("button", { name: /Single allocation/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Opening allocation/ }));
     fireEvent.click(screen.getByText("Run simulation"));
 
     expect(await screen.findByText("Simulation report")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("single");
-    expect(screen.getByText("Pipeline replay")).toBeInTheDocument();
-    expect(screen.getByText("Asset universe selection")).toBeInTheDocument();
-    expect(screen.getByText("Selected-asset external weights")).toBeInTheDocument();
+    expect(screen.getAllByText("Allocation review").length).toBeGreaterThan(0);
+    expect(screen.getByText("Holdings")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Selected bucket + external weights").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Equal-weight selected assets").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Full-universe MVO").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Robin portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Profile equal-weight benchmark").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full-universe benchmark").length).toBeGreaterThan(0);
+    expect(screen.getByText("2 holdings from 3 available assets")).toBeInTheDocument();
+    expect(screen.getByText("n/a ratios:")).toBeInTheDocument();
+    expect(screen.getByText(/Some ratios need more return variation/)).toBeInTheDocument();
     expect(screen.getAllByText("EGX30").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Selected bucket + external weights")).not.toBeInTheDocument();
+    expect(screen.queryByText("Equal-weight selected assets")).not.toBeInTheDocument();
+    expect(screen.queryByText("Full-universe MVO")).not.toBeInTheDocument();
+    expect(screen.queryByText("Market benchmark")).not.toBeInTheDocument();
+    expect(screen.queryByText("Profile benchmark")).not.toBeInTheDocument();
     expect(screen.queryByText("Full Universe with equal weights")).not.toBeInTheDocument();
     expect(screen.queryByText("Full-universe optimized")).not.toBeInTheDocument();
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
-    expect(screen.queryByText("Component-risk separation across the test period")).not.toBeInTheDocument();
+    expect(screen.queryByText("Component-risk separation across the selected period")).not.toBeInTheDocument();
     expect(screen.queryByText("Asset-universe filter impact")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Test diagnostic").length).toBeGreaterThan(0);
     expect(screen.queryByText(/decision date/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/PPO/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Relative risk-rank components/)).not.toBeInTheDocument();
     expect(screen.queryByText("Selection rank")).not.toBeInTheDocument();
     expect(screen.queryByText("Predicted risk")).not.toBeInTheDocument();
+    expect(screen.queryByText(/external weights/i)).not.toBeInTheDocument();
   });
 
   it("runs fast mode with monthly rebalance by default", async () => {
@@ -334,10 +333,11 @@ describe("App", () => {
     fireEvent.click(await screen.findByText("Low"));
     fireEvent.click(screen.getByText("Run simulation"));
 
-    expect(await screen.findByText("Monthly Rebalance Intelligence")).toBeInTheDocument();
+    expect(await screen.findByText("Monthly allocation review")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.queryByText("Pipeline replay")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Selected bucket + external weights").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Active universe count")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Robin portfolio").length).toBeGreaterThan(0);
   });
 
   it("updates selected-month intelligence when a rebalance month is clicked", async () => {
@@ -345,9 +345,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByText("Fast select"));
     fireEvent.click(screen.getByText("Run simulation"));
 
-    const intelligence = await screen.findByLabelText("Monthly Rebalance Intelligence");
+    const intelligence = await screen.findByLabelText("Monthly Allocation Review");
     expect(within(intelligence).getAllByText("2025-03").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Test diagnostic").length).toBeGreaterThan(0);
     expect(within(intelligence).queryByText(/Decision date/i)).not.toBeInTheDocument();
 
     fireEvent.click(within(intelligence).getAllByRole("button", { name: /2025-04/i })[0]);
@@ -361,7 +360,7 @@ describe("App", () => {
     fireEvent.click(await screen.findByText("Fast select"));
     fireEvent.click(screen.getByText("Run simulation"));
 
-    const intelligence = await screen.findByLabelText("Monthly Rebalance Intelligence");
+    const intelligence = await screen.findByLabelText("Monthly Allocation Review");
     expect(within(intelligence).getByText("Benchmark delta")).toBeInTheDocument();
     expect(within(intelligence).getByText("Top allocations")).toBeInTheDocument();
     expect(within(intelligence).getAllByText("BETA").length).toBeGreaterThan(0);
@@ -372,9 +371,9 @@ describe("App", () => {
     render(<App />);
     fireEvent.click(await screen.findByText("Run simulation"));
 
-    expect(await screen.findByText("Moderate questionnaire")).toBeInTheDocument();
+    expect(await screen.findByText("Moderate profile")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
-    expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Moderate questionnaire")).not.toBeInTheDocument();
   });
 
   it("lets the age input be cleared before entering a new value", async () => {
@@ -391,9 +390,9 @@ describe("App", () => {
   it("marks a report stale when controls change after a run", async () => {
     render(<App />);
     fireEvent.click(await screen.findByText("Run simulation"));
-    expect(await screen.findByText("Moderate questionnaire")).toBeInTheDocument();
+    expect(await screen.findByText("Moderate profile")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Single allocation/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Opening allocation/ }));
     expect(screen.getByText("Controls changed after this report was generated. Run the simulation again to refresh the dashboard.")).toBeInTheDocument();
   });
 });

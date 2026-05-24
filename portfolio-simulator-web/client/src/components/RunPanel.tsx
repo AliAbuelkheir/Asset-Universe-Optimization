@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import { Play, RotateCw } from "lucide-react";
 import { labelRisk } from "../format";
 import { durationOptions, simulatorModeOptions } from "../simulationOptions";
 import type {
@@ -43,31 +43,38 @@ export function RunPanel({
   onDurationChange,
   onRun
 }: RunPanelProps) {
-  const selectedMonth = months.find((candidate) => candidate.month === month);
-  const splitLabel = selectedMonth?.split === "validation" ? "Validation diagnostic" : "Test diagnostic";
   const durationRequestLabel = durationMonths === null
-    ? "max available"
+    ? "Max window"
     : `${durationMonths} month${durationMonths === 1 ? "" : "s"}`;
+  const profileLabel = mode === "questionnaire" && report?.questionnaireInference && lastRunMode === "questionnaire"
+    ? report.questionnaireInference.riskLabel
+    : mode === "questionnaire"
+      ? "Pending"
+      : labelRisk(riskLevel);
+  const selectedLevel = levels.find((level) => level.id === riskLevel);
 
   return (
-    <aside className="runPanel">
-      <h2>Run configuration</h2>
-      <div className="runSummary">
-        <span>Mode</span>
-        <strong>{mode === "questionnaire" ? "Questionnaire" : "Fast select"}</strong>
+    <section className="runPanel">
+      <div className="sectionHeading">
+        <div>
+          <span>Simulation</span>
+          <h2>Run setup</h2>
+        </div>
       </div>
+
       <label>
-        <span>Month</span>
+        <span>Start month</span>
         <select value={month} onChange={(event) => onMonthChange(event.target.value)}>
           {months.map((candidate) => (
             <option value={candidate.month} key={candidate.month}>
-              {candidate.month} - {candidate.split} - {candidate.assetCount} assets
+              {candidate.month}
             </option>
           ))}
         </select>
       </label>
+
       <label>
-        <span>Duration</span>
+        <span>Window</span>
         <select
           value={durationMonths ?? "max"}
           onChange={(event) => onDurationChange(event.target.value === "max" ? null : Number(event.target.value))}
@@ -79,10 +86,11 @@ export function RunPanel({
           ))}
         </select>
       </label>
+
       {simulatorModeOptions.length > 1 && (
         <div className="runPanelGroup">
-          <span>Simulator type</span>
-          <div className="simulatorModeToggle" role="group" aria-label="Simulator type">
+          <span>Review style</span>
+          <div className="simulatorModeToggle" role="group" aria-label="Review style">
             {simulatorModeOptions.map((option) => (
               <button
                 key={option.value}
@@ -98,29 +106,18 @@ export function RunPanel({
           </div>
         </div>
       )}
+
       <div className="riskPreview">
-        <span>{mode === "questionnaire" ? "Estimated risk level" : "Selected risk level"}</span>
-        <strong>
-          {mode === "questionnaire" && report?.questionnaireInference && lastRunMode === "questionnaire"
-            ? report.questionnaireInference.riskLabel
-            : mode === "questionnaire"
-              ? "Pending"
-              : labelRisk(riskLevel)}
-        </strong>
-        <p>
-          {mode === "questionnaire"
-            ? "Questionnaire risk is confirmed when the simulation runs."
-            : levels.find((level) => level.id === riskLevel)?.label ?? "Manual risk band"}
-        </p>
+        <span>{mode === "questionnaire" ? "Profile from answers" : "Selected profile"}</span>
+        <strong>{profileLabel}</strong>
+        <p>{mode === "questionnaire" ? "Confirmed after running." : selectedLevel?.label ?? "Manual profile"}</p>
       </div>
+
       <button className="primaryButton" type="button" onClick={onRun} disabled={loading || months.length === 0}>
-        <Play size={18} />{loading ? "Running..." : "Run simulation"}
+        {loading ? <RotateCw size={16} /> : <Play size={16} />}
+        {loading ? "Running" : "Run simulation"}
       </button>
-      <p className="runNote">
-        {selectedMonth
-          ? `${splitLabel}: ${selectedMonth.assetCount} active assets, ${durationRequestLabel} requested.`
-          : "Loading months."}
-      </p>
-    </aside>
+      <p className="runNote">{durationRequestLabel} historical diagnostic.</p>
+    </section>
   );
 }

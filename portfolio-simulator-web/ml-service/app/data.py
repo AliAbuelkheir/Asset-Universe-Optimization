@@ -48,7 +48,8 @@ def read_predictions() -> pd.DataFrame:
     required = {"Date", "Split", "AssetID", "AssetName", "AssetGroup", "PredictedRisk", "PredictedRankPct"}
     missing = sorted(required.difference(predictions.columns))
     if missing:
-        raise ValueError(f"ranked_predictions.csv is missing required columns: {missing}")
+        display_missing = ["dataset partition" if column == "Split" else column for column in missing]
+        raise ValueError(f"ranked_predictions.csv is missing required fields: {display_missing}")
     predictions["Date"] = predictions["Date"].astype(str)
     predictions["Split"] = predictions["Split"].astype(str)
     predictions["PredictedRisk"] = pd.to_numeric(predictions["PredictedRisk"], errors="coerce")
@@ -56,9 +57,9 @@ def read_predictions() -> pd.DataFrame:
     known_splits = {"train", "inner_validation", *VALID_SPLITS}
     invalid_splits = sorted(set(predictions["Split"].dropna()).difference(known_splits))
     if invalid_splits:
-        raise ValueError(f"ranked_predictions.csv contains unsupported splits: {invalid_splits}")
+        raise ValueError(f"ranked_predictions.csv contains unsupported dataset partitions: {invalid_splits}")
     if predictions[["Date", "AssetID", "Split"]].isna().any().any():
-        raise ValueError("ranked_predictions.csv contains missing Date, AssetID, or Split values.")
+        raise ValueError("ranked_predictions.csv contains missing Date, AssetID, or dataset partition values.")
     if not np.isfinite(predictions["PredictedRisk"]).all():
         raise ValueError("ranked_predictions.csv contains non-finite PredictedRisk values.")
     if not np.isfinite(predictions["PredictedRankPct"]).all():
@@ -67,13 +68,18 @@ def read_predictions() -> pd.DataFrame:
         raise ValueError("ranked_predictions.csv contains PredictedRankPct values outside [0, 1].")
     duplicate_rows = predictions.duplicated(subset=["Date", "Split", "AssetID"], keep=False)
     if duplicate_rows.any():
-        duplicates = predictions.loc[duplicate_rows, ["Date", "Split", "AssetID"]].head(5).to_dict(orient="records")
-        raise ValueError(f"ranked_predictions.csv contains duplicate month/split/asset rows: {duplicates}")
+        duplicates = (
+            predictions.loc[duplicate_rows, ["Date", "Split", "AssetID"]]
+            .rename(columns={"Split": "Partition"})
+            .head(5)
+            .to_dict(orient="records")
+        )
+        raise ValueError(f"ranked_predictions.csv contains duplicate month/partition/asset rows: {duplicates}")
     split_counts = predictions.groupby("Date")["Split"].nunique()
     multi_split_months = split_counts[split_counts > 1]
     if not multi_split_months.empty:
         sample = ", ".join(str(month) for month in multi_split_months.index[:5])
-        raise ValueError(f"ranked_predictions.csv contains multiple split labels for month(s): {sample}")
+        raise ValueError(f"ranked_predictions.csv contains multiple dataset partitions for month(s): {sample}")
     return predictions
 
 
@@ -120,10 +126,10 @@ def available_months() -> list[dict[str, Any]]:
     predictions = read_predictions()
     subset = predictions.loc[predictions["Split"].isin(VALID_SPLITS)].copy()
     grouped = (
-        subset.groupby(["Date", "Split"], sort=True)["AssetID"]
+        subset.groupby("Date", sort=True)["AssetID"]
         .count()
         .reset_index()
-        .rename(columns={"Date": "month", "Split": "split", "AssetID": "assetCount"})
+        .rename(columns={"Date": "month", "AssetID": "assetCount"})
     )
     return grouped.to_dict(orient="records")
 
@@ -132,13 +138,13 @@ def risk_levels() -> list[dict[str, Any]]:
     return [RISK_BUCKETS[key] for key in ("low", "medium", "high")]
 
 
-def select_assets(month: str, risk_level: str) -> tuple[pd.DataFrame, str]:
+def select_assets(month: str, risk_level: str) -> pd.DataFrame:
     if risk_level not in RISK_BUCKETS:
         raise ValueError(f"Unknown risk level: {risk_level}")
     predictions = read_predictions()
     month_frame = predictions.loc[predictions["Date"].eq(month) & predictions["Split"].isin(VALID_SPLITS)].copy()
     if month_frame.empty:
-        raise ValueError(f"No validation/test predictions found for month {month}")
+        raise ValueError(f"No reportable predictions found for month {month}")
     bucket = RISK_BUCKETS[risk_level]
     selected = month_frame.loc[
         month_frame["PredictedRankPct"].between(bucket["minRankPct"], bucket["maxRankPct"], inclusive="both")
@@ -146,4 +152,4 @@ def select_assets(month: str, risk_level: str) -> tuple[pd.DataFrame, str]:
     if selected.empty:
         raise ValueError(f"No selected assets for month {month} and risk level {risk_level}")
     selected = selected.sort_values(["PredictedRankPct", "PredictedRisk", "AssetID"]).reset_index(drop=True)
-    return selected, str(month_frame["Split"].iloc[0])
+    return selected

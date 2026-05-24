@@ -47,7 +47,7 @@ def main():
         bar = '#' * int(w.weight * 30)
         print(f"  {w.asset:<25s} {w.weight:>7.1%}  {bar}")
 
-    # Save expected output for regression testing
+    # Save expected output for regression checks
     if not expected_path.exists():
         expected_path.write_text(json.dumps(response.to_dict(), indent=2))
         print(f"\nSaved expected output -> {expected_path}")

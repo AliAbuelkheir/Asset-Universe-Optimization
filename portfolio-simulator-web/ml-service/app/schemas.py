@@ -40,7 +40,6 @@ class QuestionnaireSimulationRequest(BaseModel):
 
 class MonthOption(BaseModel):
     month: str
-    split: Literal["validation", "test"]
     assetCount: int
 
 
@@ -78,7 +77,6 @@ class ChartInterval(BaseModel):
 
 class MonthlyReturnPoint(BaseModel):
     month: str
-    split: Literal["validation", "test"]
     optimizedPortfolio: float
     mvoFullUniverse: float
     assignedRiskBucket: float
@@ -127,7 +125,6 @@ class SimulationPipeline(BaseModel):
 
 class RebalanceTimelinePoint(BaseModel):
     month: str
-    split: Literal["validation", "test"]
     optimizerDecisionDate: str
     startingValue: float
     monthlyReturn: float
@@ -143,7 +140,6 @@ class SimulationReport(BaseModel):
     month: str
     riskLevel: RiskLevel
     simulatorMode: SimulatorMode
-    split: Literal["validation", "test"]
     durationMonths: int
     requestedDurationMonths: int | None
     chartIntervals: list[ChartInterval]

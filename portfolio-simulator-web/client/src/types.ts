@@ -5,7 +5,6 @@ export type SimulatorMode = "single" | "monthly_rebalance";
 
 export interface MonthOption {
   month: string;
-  split: "validation" | "test";
   assetCount: number;
 }
 
@@ -49,7 +48,6 @@ export interface QuestionnaireInference {
 
 export interface MonthlyReturnPoint {
   month: string;
-  split: "validation" | "test";
   optimizedPortfolio: number;
   mvoFullUniverse: number;
   assignedRiskBucket: number;
@@ -96,7 +94,6 @@ export interface SimulationPipeline {
 
 export interface RebalanceTimelinePoint {
   month: string;
-  split: "validation" | "test";
   optimizerDecisionDate: string;
   startingValue: number;
   monthlyReturn: number;
@@ -112,7 +109,6 @@ export interface SimulationReport {
   month: string;
   riskLevel: RiskLevel;
   simulatorMode: SimulatorMode;
-  split: "validation" | "test";
   durationMonths: number;
   requestedDurationMonths?: number | null;
   chartIntervals: Array<{

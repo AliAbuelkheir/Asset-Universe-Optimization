@@ -19,9 +19,9 @@ const metrics: ComparisonRow["metrics"] = {
 describe("visibleReturnSeries", () => {
   it("uses API comparison rows as the visible benchmark order", () => {
     const comparison: ComparisonRow[] = [
-      { id: "optimizedPortfolio", label: "Selected bucket with external weights", metrics },
-      { id: "assignedRiskBucket", label: "Filtered universe equal weight", metrics },
-      { id: "mvoFullUniverse", label: "Full-universe MVO", metrics },
+      { id: "optimizedPortfolio", label: "Robin portfolio", metrics },
+      { id: "assignedRiskBucket", label: "Profile equal-weight benchmark", metrics },
+      { id: "mvoFullUniverse", label: "Full-universe benchmark", metrics },
       { id: "egx30", label: "EGX30", metrics }
     ];
 

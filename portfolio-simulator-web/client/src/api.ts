@@ -31,9 +31,6 @@ function assertMonthlyReturnPoint(value: unknown): asserts value is SimulationRe
     throw new Error("Invalid API response: monthly return point must be an object.");
   }
   assertString(value.month, "monthlyReturns[].month");
-  if (value.split !== "validation" && value.split !== "test") {
-    throw new Error("Invalid API response: monthlyReturns[].split must be validation or test.");
-  }
   assertFiniteNumber(value.optimizedPortfolio, "monthlyReturns[].optimizedPortfolio");
   assertFiniteNumber(value.mvoFullUniverse, "monthlyReturns[].mvoFullUniverse");
   assertFiniteNumber(value.assignedRiskBucket, "monthlyReturns[].assignedRiskBucket");

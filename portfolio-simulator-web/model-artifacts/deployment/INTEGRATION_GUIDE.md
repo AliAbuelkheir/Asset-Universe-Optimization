@@ -55,7 +55,7 @@ The loader handles a SB3 quirk where `PPO.load(env=...)` strictly checks observa
 
 | Package | Version | Required for |
 |---|---|---|
-| Python | 3.11 - 3.13 (tested on 3.13.3) | All |
+| Python | 3.11 - 3.13 (confirmed on 3.13.3) | All |
 | torch | ≥ 2.6.0, < 3.0 | PPO inference |
 | stable-baselines3 | ≥ 2.5.0, < 3.0 | PPO API |
 | gymnasium | ≥ 1.0.0, < 2.0 | env API |
@@ -286,7 +286,7 @@ result_json = json.dumps(result.to_dict())
 ## Error handling
 
 The package raises:
-- `ValueError` — input validation (bad tier, dates length mismatch, < 123 days of history)
+- `ValueError` — input checks (bad tier, dates length mismatch, < 123 days of history)
 - `FileNotFoundError` — missing model files or bundled macro Excel files
 - `RuntimeError` — torch / SB3 issues (rare; usually a version mismatch)
 

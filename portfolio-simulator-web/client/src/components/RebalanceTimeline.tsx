@@ -25,17 +25,16 @@ export function RebalanceTimeline({ report, isStale }: RebalanceTimelineProps) {
     <section
       className={isStale ? "rebalancePanel stale" : "rebalancePanel"}
       id="rebalance-timeline"
-      aria-label="Monthly rebalance timeline"
+      aria-label="Monthly allocation timeline"
     >
       <div className="pipelineHeader">
         <div>
-          <h2>Monthly rebalance timeline</h2>
+          <h2>Monthly allocation timeline</h2>
           <p>
-            Each month refreshes the selected universe and target allocation before compounding realized returns.
+            Each month shows the allocation view used before compounding realized returns.
           </p>
         </div>
         <div className="pipelineSummary">
-          <span>{timeline.length} rebalance months</span>
           <span>{number(finalValue)} final value</span>
           <span>{percent(finalValue - 1)} cumulative</span>
         </div>
@@ -56,16 +55,13 @@ export function RebalanceTimeline({ report, isStale }: RebalanceTimelineProps) {
               <div className="rebalanceCardHeader">
                 <div>
                   <h3>{snapshot.month}</h3>
-                  <p>{snapshot.activeUniverseCount} active assets, {snapshot.selectedAssetCount} selected</p>
+                  <p>Portfolio return {signedPercent(snapshot.monthlyReturn)}</p>
                 </div>
                 <span>{signedPercent(snapshot.monthlyReturn)}</span>
               </div>
               <dl className="rebalanceStats">
                 <div><dt>Start value</dt><dd>{number(snapshot.startingValue)}</dd></div>
                 <div><dt>End value</dt><dd>{number(snapshot.endingValue)}</dd></div>
-                <div><dt>Active</dt><dd>{snapshot.activeUniverseCount}</dd></div>
-                <div><dt>Selected</dt><dd>{snapshot.selectedAssetCount}</dd></div>
-                <div><dt>Weight sum</dt><dd>{percent(snapshot.optimizerWeightSum)}</dd></div>
               </dl>
               <div className="rebalanceAllocations">
                 <span>Top allocations</span>

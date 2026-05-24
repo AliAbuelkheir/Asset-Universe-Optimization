@@ -33,7 +33,6 @@ SimulatorMode = Literal["single", "monthly_rebalance"]
 @dataclass(frozen=True)
 class DecisionContext:
     month: str
-    split: str
     active_assets: list[dict[str, Any]]
     selected_assets: list[dict[str, Any]]
     selected_equal_weights: dict[str, float]
@@ -104,7 +103,7 @@ def _build_decision_context(
     daily_market: Any,
 ) -> DecisionContext:
     try:
-        selected, split = select_assets(month, risk_level)
+        selected = select_assets(month, risk_level)
     except ValueError as exc:
         raise ValueError(f"{exc} while building simulator decision for {month}") from exc
 
@@ -115,7 +114,7 @@ def _build_decision_context(
         predictions["Date"].eq(month) & predictions["Split"].isin(VALID_SPLITS)
     ].copy()
     if same_month_universe.empty:
-        raise ValueError(f"No validation/test predictions found for month {month}")
+        raise ValueError(f"No reportable predictions found for month {month}")
     all_universe_asset_ids = same_month_universe["AssetID"].astype(str).tolist()
 
     optimized_selected = run_weight_optimizer(
@@ -140,7 +139,6 @@ def _build_decision_context(
 
     return DecisionContext(
         month=month,
-        split=str(split),
         active_assets=active_assets,
         selected_assets=selected_assets,
         selected_equal_weights=selected_equal_weights,
@@ -155,19 +153,6 @@ def _portfolio_return_for_month(monthly_returns: Any, month: str, weights: dict[
     return portfolio_monthly_returns(monthly_returns, [month], weights)[0]
 
 
-def _splits_for_months(predictions: Any, months: list[str]) -> list[str]:
-    month_splits = (
-        predictions.loc[predictions["Split"].isin(VALID_SPLITS), ["Date", "Split"]]
-        .drop_duplicates()
-        .set_index("Date")["Split"]
-        .to_dict()
-    )
-    missing = [month for month in months if month not in month_splits]
-    if missing:
-        raise ValueError(f"No validation/test split metadata found for month(s): {', '.join(missing)}")
-    return [str(month_splits[month]) for month in months]
-
-
 def _timeline_point(
     context: DecisionContext,
     *,
@@ -177,7 +162,6 @@ def _timeline_point(
     ending_value = starting_value * (1.0 + monthly_return)
     return {
         "month": context.month,
-        "split": context.split,
         "optimizerDecisionDate": context.optimizer_decision_date,
         "startingValue": float(starting_value),
         "monthlyReturn": float(monthly_return),
@@ -202,7 +186,6 @@ def _pipeline_from_context(context: DecisionContext) -> dict[str, Any]:
 
 def _monthly_points(
     months: list[str],
-    splits: list[str],
     optimized_returns: list[float],
     mvo_full_universe_returns: list[float],
     bucket_returns: list[float],
@@ -211,7 +194,6 @@ def _monthly_points(
     return [
         {
             "month": months[index],
-            "split": splits[index],
             "optimizedPortfolio": optimized_returns[index],
             "mvoFullUniverse": mvo_full_universe_returns[index],
             "assignedRiskBucket": bucket_returns[index],
@@ -231,17 +213,17 @@ def _comparison_rows(
     return [
         {
             "id": "optimizedPortfolio",
-            "label": "Selected bucket with external weights",
+            "label": "Robin portfolio",
             "metrics": performance_metrics(optimized_returns),
         },
         {
             "id": "assignedRiskBucket",
-            "label": "Filtered universe equal weight",
+            "label": "Profile equal-weight benchmark",
             "metrics": performance_metrics(bucket_returns),
         },
         {
             "id": "mvoFullUniverse",
-            "label": "Full-universe MVO",
+            "label": "Full-universe benchmark",
             "metrics": performance_metrics(mvo_full_universe_returns),
         },
         {"id": "egx30", "label": "EGX30", "metrics": performance_metrics(egx_returns)},
@@ -251,17 +233,20 @@ def _comparison_rows(
 def _thesis_safe_summary(simulator_mode: SimulatorMode, duration_months: int) -> str:
     if simulator_mode == "monthly_rebalance":
         summary = (
-            "This report is a historical monthly rebalance diagnostic. It re-runs PPO risk-bucket selection "
-            "and the external weight optimizer at each plotted decision month, compounds realized monthly "
-            "outcomes, and should not be read as proof of guaranteed investment performance."
+            "This report is a historical monthly review diagnostic. It reapplies profile selection and "
+            "weighting at each plotted month, compounds realized monthly outcomes, and should not be read "
+            "as proof of guaranteed investment performance."
         )
         if duration_months >= 6:
-            summary += " Long monthly rebalance windows can take noticeably longer because optimizer inference runs each month."
+            summary += (
+                " Long monthly review windows can take noticeably longer because profile selection and "
+                "weighting are recomputed each month."
+            )
         return summary
     return (
-        "This report is a historical simulation diagnostic. It compares realized outcomes after a selected "
-        "decision month and should not be read as proof of guaranteed investment performance. "
-        "Optimizer rows show historical outcomes for model weights, not future performance guarantees."
+        "This report is a historical simulation diagnostic. It compares realized outcomes after profile "
+        "selection and weighting are applied for the requested month range and should not be read as proof "
+        "of guaranteed investment performance."
     )
 
 
@@ -270,7 +255,6 @@ def _build_report(
     month: str,
     risk_level: str,
     simulator_mode: SimulatorMode,
-    split: str,
     duration_months: int | None,
     forward_months: list[str],
     initial_context: DecisionContext,
@@ -283,7 +267,6 @@ def _build_report(
         "month": month,
         "riskLevel": risk_level,
         "simulatorMode": simulator_mode,
-        "split": split,
         "durationMonths": len(forward_months),
         "requestedDurationMonths": duration_months,
         "chartIntervals": month_interval_days(forward_months),
@@ -319,10 +302,8 @@ def _run_single_simulation(
     )
     bucket_returns = portfolio_monthly_returns(monthly_returns, forward_months, context.selected_equal_weights)
     egx_returns = egx30_returns(monthly_returns, forward_months)
-    monthly_splits = _splits_for_months(predictions, forward_months)
     monthly_points = _monthly_points(
         forward_months,
-        monthly_splits,
         optimized_returns,
         mvo_full_universe_returns,
         bucket_returns,
@@ -346,7 +327,6 @@ def _run_single_simulation(
         month=month,
         risk_level=risk_level,
         simulator_mode="single",
-        split=context.split,
         duration_months=duration_months,
         forward_months=forward_months,
         initial_context=context,
@@ -405,10 +385,8 @@ def _run_monthly_rebalance_simulation(
         raise ValueError(f"No forward return window is available for month {month}")
 
     egx_returns = egx30_returns(monthly_returns, forward_months)
-    monthly_splits = [row["split"] for row in rebalance_timeline]
     monthly_points = _monthly_points(
         forward_months,
-        monthly_splits,
         optimized_returns,
         mvo_full_universe_returns,
         bucket_returns,
@@ -425,7 +403,6 @@ def _run_monthly_rebalance_simulation(
         month=month,
         risk_level=risk_level,
         simulator_mode="monthly_rebalance",
-        split=initial_context.split,
         duration_months=duration_months,
         forward_months=forward_months,
         initial_context=initial_context,
