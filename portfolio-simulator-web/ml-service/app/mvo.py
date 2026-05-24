@@ -74,7 +74,7 @@ def _trailing_returns(
     return returns
 
 
-def run_mvo_full_universe(
+def run_mvo_allocation(
     *,
     risk_level: RiskLevel,
     target_month: str,
@@ -129,4 +129,19 @@ def run_mvo_full_universe(
         sum_check=float(weights.sum()),
         decision_date=str(returns.index.max().date()),
         ineligible_assets=sorted(set(str(asset_id) for asset_id in asset_ids).difference(ordered_assets)),
+    )
+
+
+def run_mvo_full_universe(
+    *,
+    risk_level: RiskLevel,
+    target_month: str,
+    asset_ids: list[str],
+    daily_market: pd.DataFrame,
+) -> MvoRun:
+    return run_mvo_allocation(
+        risk_level=risk_level,
+        target_month=target_month,
+        asset_ids=asset_ids,
+        daily_market=daily_market,
     )

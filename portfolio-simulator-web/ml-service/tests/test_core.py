@@ -42,6 +42,22 @@ INTERNAL_SUMMARY_TERMS = (
     "model weights",
 )
 
+BENCHMARK_IDS = [
+    "optimizedPortfolio",
+    "optimizerFullUniverse",
+    "mvoFilteredUniverse",
+    "mvoFullUniverse",
+    "egx30",
+]
+
+BENCHMARK_LABELS = [
+    "Profile optimizer portfolio",
+    "Full-universe optimizer benchmark",
+    "Profile MVO benchmark",
+    "Full-universe MVO benchmark",
+    "EGX30",
+]
+
 
 def assert_public_historical_summary(summary: str) -> None:
     assert "historical" in summary
@@ -114,17 +130,14 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
     assert set(report["monthlyReturns"][0]) == {
         "month",
         "optimizedPortfolio",
+        "optimizerFullUniverse",
+        "mvoFilteredUniverse",
         "mvoFullUniverse",
-        "assignedRiskBucket",
         "egx30",
     }
     assert "optimizedRawUniverse" not in report["monthlyReturns"][0]
-    assert [row["id"] for row in report["comparison"]] == [
-        "optimizedPortfolio",
-        "assignedRiskBucket",
-        "mvoFullUniverse",
-        "egx30",
-    ]
+    assert "assignedRiskBucket" not in report["monthlyReturns"][0]
+    assert [row["id"] for row in report["comparison"]] == BENCHMARK_IDS
     assert report["pipeline"]["activeUniverseCount"] >= report["pipeline"]["selectedAssetCount"] > 0
     assert len(report["pipeline"]["activeUniverse"]) == report["pipeline"]["activeUniverseCount"]
     assert len(report["pipeline"]["selectedAssets"]) == report["pipeline"]["selectedAssetCount"]
@@ -165,27 +178,12 @@ def test_production_profile_exposes_core_benchmark_set(monkeypatch: pytest.Monke
 
     report = run_fast_simulation("2025-03", "medium", duration_months=1, simulator_mode="single")
 
-    assert [row["id"] for row in report["comparison"]] == [
-        "optimizedPortfolio",
-        "assignedRiskBucket",
-        "mvoFullUniverse",
-        "egx30",
-    ]
-    assert [row["label"] for row in report["comparison"]] == [
-        "Robin portfolio",
-        "Profile equal-weight benchmark",
-        "Full-universe benchmark",
-        "EGX30",
-    ]
+    assert [row["id"] for row in report["comparison"]] == BENCHMARK_IDS
+    assert [row["label"] for row in report["comparison"]] == BENCHMARK_LABELS
 
     monthly_report = run_fast_simulation("2025-03", "medium", duration_months=1, simulator_mode="monthly_rebalance")
     assert monthly_report["simulatorMode"] == "monthly_rebalance"
-    assert [row["id"] for row in monthly_report["comparison"]] == [
-        "optimizedPortfolio",
-        "assignedRiskBucket",
-        "mvoFullUniverse",
-        "egx30",
-    ]
+    assert [row["id"] for row in monthly_report["comparison"]] == BENCHMARK_IDS
     assert len(monthly_report["rebalanceTimeline"]) == 1
 
 
@@ -195,12 +193,7 @@ def test_local_profile_exposes_same_core_benchmark_set(monkeypatch: pytest.Monke
 
     report = run_fast_simulation("2025-03", "medium", duration_months=1, simulator_mode="single")
 
-    assert [row["id"] for row in report["comparison"]] == [
-        "optimizedPortfolio",
-        "assignedRiskBucket",
-        "mvoFullUniverse",
-        "egx30",
-    ]
+    assert [row["id"] for row in report["comparison"]] == BENCHMARK_IDS
 
 
 def test_mvo_full_universe_weights_are_long_only_capped_and_historical() -> None:
@@ -293,7 +286,7 @@ def test_monthly_rebalance_recomputes_decisions_for_each_month(monkeypatch: pyte
         )
 
     monkeypatch.setattr(simulation_module, "run_weight_optimizer", fake_optimizer)
-    monkeypatch.setattr(simulation_module, "run_mvo_full_universe", fake_mvo)
+    monkeypatch.setattr(simulation_module, "run_mvo_allocation", fake_mvo)
     report = simulation_module.run_fast_simulation(
         "2025-03",
         "medium",
@@ -304,27 +297,26 @@ def test_monthly_rebalance_recomputes_decisions_for_each_month(monkeypatch: pyte
     assert report["simulatorMode"] == "monthly_rebalance"
     assert report["durationMonths"] == 3
     assert [row["month"] for row in report["rebalanceTimeline"]] == ["2025-03", "2025-04", "2025-05"]
-    assert len(calls) == 3
+    assert len(calls) == 6
     assert [month for month, _assets in calls] == [
         "2025-03",
+        "2025-03",
         "2025-04",
+        "2025-04",
+        "2025-05",
         "2025-05",
     ]
     for index, month in enumerate(["2025-03", "2025-04", "2025-05"]):
         selected = select_assets(month, "medium")
         expected_selected = tuple(selected["AssetID"].astype(str).tolist())
-        assert calls[index] == (month, expected_selected)
-    assert calls[0][1] != calls[1][1]
+        assert calls[index * 2] == (month, expected_selected)
+        assert len(calls[index * 2 + 1][1]) >= len(expected_selected)
+    assert calls[0][1] != calls[2][1]
     assert report["rebalanceTimeline"][1]["startingValue"] == pytest.approx(
         report["rebalanceTimeline"][0]["endingValue"]
     )
-    assert [row["id"] for row in report["comparison"]] == [
-        "optimizedPortfolio",
-        "assignedRiskBucket",
-        "mvoFullUniverse",
-        "egx30",
-    ]
-    assert report["comparison"][0]["label"] == "Robin portfolio"
+    assert [row["id"] for row in report["comparison"]] == BENCHMARK_IDS
+    assert report["comparison"][0]["label"] == "Profile optimizer portfolio"
 
 
 def test_fast_endpoint_serializes_multi_month_rebalance(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -345,7 +337,7 @@ def test_fast_endpoint_serializes_multi_month_rebalance(monkeypatch: pytest.Monk
         )
 
     monkeypatch.setattr(simulation_module, "run_weight_optimizer", fake_optimizer)
-    monkeypatch.setattr(simulation_module, "run_mvo_full_universe", fake_mvo)
+    monkeypatch.setattr(simulation_module, "run_mvo_allocation", fake_mvo)
     client = TestClient(app)
     response = client.post(
         "/api/simulations/fast",
@@ -362,7 +354,10 @@ def test_fast_endpoint_serializes_multi_month_rebalance(monkeypatch: pytest.Monk
     assert payload["simulatorMode"] == "monthly_rebalance"
     assert [row["month"] for row in payload["rebalanceTimeline"]] == ["2025-03", "2025-04", "2025-05"]
     assert [row["month"] for row in payload["monthlyReturns"]] == ["2025-03", "2025-04", "2025-05"]
+    assert "optimizerFullUniverse" in payload["monthlyReturns"][0]
+    assert "mvoFilteredUniverse" in payload["monthlyReturns"][0]
     assert "mvoFullUniverse" in payload["monthlyReturns"][0]
+    assert "assignedRiskBucket" not in payload["monthlyReturns"][0]
     assert "optimizedRawUniverse" not in payload["monthlyReturns"][0]
     assert payload["rebalanceTimeline"][1]["startingValue"] == pytest.approx(
         payload["rebalanceTimeline"][0]["endingValue"]
@@ -390,7 +385,7 @@ def test_long_monthly_rebalance_reports_runtime_warning(monkeypatch: pytest.Monk
         )
 
     monkeypatch.setattr(simulation_module, "run_weight_optimizer", fake_optimizer)
-    monkeypatch.setattr(simulation_module, "run_mvo_full_universe", fake_mvo)
+    monkeypatch.setattr(simulation_module, "run_mvo_allocation", fake_mvo)
     report = simulation_module.run_fast_simulation(
         "2025-03",
         "medium",

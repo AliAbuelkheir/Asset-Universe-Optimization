@@ -28,7 +28,7 @@ Environment variables:
 | `PYTHONUNBUFFERED` | `1` |
 
 Do not set `VITE_API_BASE_URL` for the production build. The React app calls the same-origin FastAPI routes under `/api`.
-`SIMULATOR_PROFILE=production` and local development expose the same benchmark set: Robin portfolio, profile equal-weight benchmark, full-universe benchmark, and EGX30. The opening-allocation and monthly-review simulator modes remain available in both production and local environments.
+`SIMULATOR_PROFILE=production` and local development expose the same benchmark set: profile optimizer portfolio, full-universe optimizer benchmark, profile MVO benchmark, full-universe MVO benchmark, and EGX30. The opening-allocation and monthly-review simulator modes remain available in both production and local environments.
 
 ## Runtime layout
 

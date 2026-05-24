@@ -23,7 +23,7 @@ from .metrics import (
     portfolio_monthly_returns,
     resolve_forward_months,
 )
-from .mvo import run_mvo_full_universe
+from .mvo import run_mvo_allocation
 from .optimizer import optimizer_available, optimizer_runtime_available, run_weight_optimizer
 from .questionnaire import predict_questionnaire_risk, questionnaire_model_available
 
@@ -37,7 +37,9 @@ class DecisionContext:
     selected_assets: list[dict[str, Any]]
     selected_equal_weights: dict[str, float]
     selected_optimizer_weights: dict[str, float]
-    mvo_full_universe_weights: dict[str, float]
+    full_universe_optimizer_weights: dict[str, float]
+    selected_mvo_weights: dict[str, float]
+    full_universe_mvo_weights: dict[str, float]
     optimizer_weight_sum: float
     optimizer_decision_date: str
 
@@ -123,7 +125,19 @@ def _build_decision_context(
         asset_ids=selected_asset_ids,
         daily_market=daily_market,
     )
-    mvo_full_universe = run_mvo_full_universe(
+    optimized_full_universe = run_weight_optimizer(
+        tier=risk_level,
+        target_month=month,
+        asset_ids=all_universe_asset_ids,
+        daily_market=daily_market,
+    )
+    mvo_selected = run_mvo_allocation(
+        risk_level=risk_level,
+        target_month=month,
+        asset_ids=selected_asset_ids,
+        daily_market=daily_market,
+    )
+    mvo_full_universe = run_mvo_allocation(
         risk_level=risk_level,
         target_month=month,
         asset_ids=all_universe_asset_ids,
@@ -143,7 +157,9 @@ def _build_decision_context(
         selected_assets=selected_assets,
         selected_equal_weights=selected_equal_weights,
         selected_optimizer_weights=optimized_selected.weights,
-        mvo_full_universe_weights=mvo_full_universe.weights,
+        full_universe_optimizer_weights=optimized_full_universe.weights,
+        selected_mvo_weights=mvo_selected.weights,
+        full_universe_mvo_weights=mvo_full_universe.weights,
         optimizer_weight_sum=optimized_selected.sum_check,
         optimizer_decision_date=optimized_selected.decision_date,
     )
@@ -187,16 +203,18 @@ def _pipeline_from_context(context: DecisionContext) -> dict[str, Any]:
 def _monthly_points(
     months: list[str],
     optimized_returns: list[float],
+    optimizer_full_universe_returns: list[float],
+    mvo_filtered_universe_returns: list[float],
     mvo_full_universe_returns: list[float],
-    bucket_returns: list[float],
     egx_returns: list[float],
 ) -> list[dict[str, Any]]:
     return [
         {
             "month": months[index],
             "optimizedPortfolio": optimized_returns[index],
+            "optimizerFullUniverse": optimizer_full_universe_returns[index],
+            "mvoFilteredUniverse": mvo_filtered_universe_returns[index],
             "mvoFullUniverse": mvo_full_universe_returns[index],
-            "assignedRiskBucket": bucket_returns[index],
             "egx30": egx_returns[index],
         }
         for index in range(len(months))
@@ -206,24 +224,30 @@ def _monthly_points(
 def _comparison_rows(
     *,
     optimized_returns: list[float],
+    optimizer_full_universe_returns: list[float],
+    mvo_filtered_universe_returns: list[float],
     mvo_full_universe_returns: list[float],
-    bucket_returns: list[float],
     egx_returns: list[float],
 ) -> list[dict[str, Any]]:
     return [
         {
             "id": "optimizedPortfolio",
-            "label": "Robin portfolio",
+            "label": "Profile optimizer portfolio",
             "metrics": performance_metrics(optimized_returns),
         },
         {
-            "id": "assignedRiskBucket",
-            "label": "Profile equal-weight benchmark",
-            "metrics": performance_metrics(bucket_returns),
+            "id": "optimizerFullUniverse",
+            "label": "Full-universe optimizer benchmark",
+            "metrics": performance_metrics(optimizer_full_universe_returns),
+        },
+        {
+            "id": "mvoFilteredUniverse",
+            "label": "Profile MVO benchmark",
+            "metrics": performance_metrics(mvo_filtered_universe_returns),
         },
         {
             "id": "mvoFullUniverse",
-            "label": "Full-universe benchmark",
+            "label": "Full-universe MVO benchmark",
             "metrics": performance_metrics(mvo_full_universe_returns),
         },
         {"id": "egx30", "label": "EGX30", "metrics": performance_metrics(egx_returns)},
@@ -297,22 +321,29 @@ def _run_single_simulation(
         daily_market=daily_market,
     )
     optimized_returns = portfolio_monthly_returns(monthly_returns, forward_months, context.selected_optimizer_weights)
-    mvo_full_universe_returns = portfolio_monthly_returns(
-        monthly_returns, forward_months, context.mvo_full_universe_weights
+    optimizer_full_universe_returns = portfolio_monthly_returns(
+        monthly_returns, forward_months, context.full_universe_optimizer_weights
     )
-    bucket_returns = portfolio_monthly_returns(monthly_returns, forward_months, context.selected_equal_weights)
+    mvo_filtered_universe_returns = portfolio_monthly_returns(
+        monthly_returns, forward_months, context.selected_mvo_weights
+    )
+    mvo_full_universe_returns = portfolio_monthly_returns(
+        monthly_returns, forward_months, context.full_universe_mvo_weights
+    )
     egx_returns = egx30_returns(monthly_returns, forward_months)
     monthly_points = _monthly_points(
         forward_months,
         optimized_returns,
+        optimizer_full_universe_returns,
+        mvo_filtered_universe_returns,
         mvo_full_universe_returns,
-        bucket_returns,
         egx_returns,
     )
     comparison = _comparison_rows(
         optimized_returns=optimized_returns,
+        optimizer_full_universe_returns=optimizer_full_universe_returns,
+        mvo_filtered_universe_returns=mvo_filtered_universe_returns,
         mvo_full_universe_returns=mvo_full_universe_returns,
-        bucket_returns=bucket_returns,
         egx_returns=egx_returns,
     )
     rebalance_timeline = [
@@ -348,8 +379,9 @@ def _run_monthly_rebalance_simulation(
 ) -> dict[str, Any]:
     initial_context: DecisionContext | None = None
     optimized_returns: list[float] = []
+    optimizer_full_universe_returns: list[float] = []
+    mvo_filtered_universe_returns: list[float] = []
     mvo_full_universe_returns: list[float] = []
-    bucket_returns: list[float] = []
     rebalance_timeline: list[dict[str, Any]] = []
     current_value = 1.0
 
@@ -366,16 +398,20 @@ def _run_monthly_rebalance_simulation(
         optimized_return = _portfolio_return_for_month(
             monthly_returns, decision_month, context.selected_optimizer_weights
         )
-        mvo_return = _portfolio_return_for_month(
-            monthly_returns, decision_month, context.mvo_full_universe_weights
+        optimizer_full_return = _portfolio_return_for_month(
+            monthly_returns, decision_month, context.full_universe_optimizer_weights
         )
-        bucket_return = _portfolio_return_for_month(
-            monthly_returns, decision_month, context.selected_equal_weights
+        mvo_filtered_return = _portfolio_return_for_month(
+            monthly_returns, decision_month, context.selected_mvo_weights
+        )
+        mvo_return = _portfolio_return_for_month(
+            monthly_returns, decision_month, context.full_universe_mvo_weights
         )
 
         optimized_returns.append(optimized_return)
+        optimizer_full_universe_returns.append(optimizer_full_return)
+        mvo_filtered_universe_returns.append(mvo_filtered_return)
         mvo_full_universe_returns.append(mvo_return)
-        bucket_returns.append(bucket_return)
         rebalance_timeline.append(
             _timeline_point(context, starting_value=current_value, monthly_return=optimized_return)
         )
@@ -388,14 +424,16 @@ def _run_monthly_rebalance_simulation(
     monthly_points = _monthly_points(
         forward_months,
         optimized_returns,
+        optimizer_full_universe_returns,
+        mvo_filtered_universe_returns,
         mvo_full_universe_returns,
-        bucket_returns,
         egx_returns,
     )
     comparison = _comparison_rows(
         optimized_returns=optimized_returns,
+        optimizer_full_universe_returns=optimizer_full_universe_returns,
+        mvo_filtered_universe_returns=mvo_filtered_universe_returns,
         mvo_full_universe_returns=mvo_full_universe_returns,
-        bucket_returns=bucket_returns,
         egx_returns=egx_returns,
     )
 

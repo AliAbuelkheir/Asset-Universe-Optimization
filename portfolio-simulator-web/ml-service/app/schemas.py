@@ -78,8 +78,9 @@ class ChartInterval(BaseModel):
 class MonthlyReturnPoint(BaseModel):
     month: str
     optimizedPortfolio: float
+    optimizerFullUniverse: float
+    mvoFilteredUniverse: float
     mvoFullUniverse: float
-    assignedRiskBucket: float
     egx30: float
 
 
@@ -100,7 +101,13 @@ class PerformanceMetrics(BaseModel):
 
 
 class ComparisonRow(BaseModel):
-    id: Literal["optimizedPortfolio", "mvoFullUniverse", "assignedRiskBucket", "egx30"]
+    id: Literal[
+        "optimizedPortfolio",
+        "optimizerFullUniverse",
+        "mvoFilteredUniverse",
+        "mvoFullUniverse",
+        "egx30",
+    ]
     label: str
     metrics: PerformanceMetrics
 

@@ -317,9 +317,10 @@ svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 34px;
   min-height: 34px;
   padding: 0 12px;
-  line-height: 1.25;
+  line-height: 1;
   text-align: center;
   white-space: nowrap;
 }
@@ -677,6 +678,7 @@ select {
 }
 
 .intelligenceSummary {
+  align-items: center;
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;

@@ -1,9 +1,10 @@
 import type { ComparisonRow } from "./types";
 
 export const comparisonLabels: Record<ComparisonRow["id"], string> = {
-  optimizedPortfolio: "Robin portfolio",
-  assignedRiskBucket: "Profile equal-weight benchmark",
-  mvoFullUniverse: "Full-universe benchmark",
+  optimizedPortfolio: "Profile optimizer portfolio",
+  optimizerFullUniverse: "Full-universe optimizer benchmark",
+  mvoFilteredUniverse: "Profile MVO benchmark",
+  mvoFullUniverse: "Full-universe MVO benchmark",
   egx30: "EGX30"
 };
 

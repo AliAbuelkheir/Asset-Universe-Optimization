@@ -3,7 +3,8 @@ import type { ComparisonRow, MonthlyReturnPoint } from "./types";
 
 export const returnSeries = [
   { key: "optimizedPortfolio", label: comparisonLabels.optimizedPortfolio, color: "#31f30a" },
-  { key: "assignedRiskBucket", label: comparisonLabels.assignedRiskBucket, color: "#292929" },
+  { key: "optimizerFullUniverse", label: comparisonLabels.optimizerFullUniverse, color: "#159947" },
+  { key: "mvoFilteredUniverse", label: comparisonLabels.mvoFilteredUniverse, color: "#292929" },
   { key: "mvoFullUniverse", label: comparisonLabels.mvoFullUniverse, color: "#7f7f7f" },
   { key: "egx30", label: comparisonLabels.egx30, color: "#b8b8b8" }
 ] as const;
@@ -20,7 +21,7 @@ export function visibleReturnSeries(showOptimizer: boolean, comparison?: Compari
     });
 
   return orderedSeries.filter(
-    (series) => showOptimizer || (series.key !== "optimizedPortfolio" && series.key !== "mvoFullUniverse")
+    (series) => showOptimizer || (series.key !== "optimizedPortfolio" && series.key !== "optimizerFullUniverse")
   );
 }
 

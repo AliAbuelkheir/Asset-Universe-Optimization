@@ -14,10 +14,11 @@ Full pipeline means:
 2. PPO risk-bucket filter
 3. external weight optimizer on the filtered universe
 
-The main row is `Selected bucket with external weights`. It should be compared against:
+The main row is `Profile optimizer portfolio`. It should be reviewed alongside:
 
-- `Filtered Universe with equal weights`
-- `Full-universe MVO`
+- `Full-universe optimizer benchmark`
+- `Profile MVO benchmark`
+- `Full-universe MVO benchmark`
 - `EGX30`
 
 ### Recommended Primary Demo

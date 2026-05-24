@@ -49,8 +49,9 @@ export interface QuestionnaireInference {
 export interface MonthlyReturnPoint {
   month: string;
   optimizedPortfolio: number;
+  optimizerFullUniverse: number;
+  mvoFilteredUniverse: number;
   mvoFullUniverse: number;
-  assignedRiskBucket: number;
   egx30: number;
 }
 
@@ -69,7 +70,7 @@ export interface PerformanceMetrics {
 }
 
 export interface ComparisonRow {
-  id: "optimizedPortfolio" | "mvoFullUniverse" | "assignedRiskBucket" | "egx30";
+  id: "optimizedPortfolio" | "optimizerFullUniverse" | "mvoFilteredUniverse" | "mvoFullUniverse" | "egx30";
   label: string;
   metrics: PerformanceMetrics;
 }

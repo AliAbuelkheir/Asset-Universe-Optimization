@@ -38,9 +38,10 @@ function topAllocations(snapshot: RebalanceTimelinePoint, limit = 8) {
 
 function compactLabel(row: ComparisonRow) {
   const compactLabels: Record<ComparisonRow["id"], string> = {
-    optimizedPortfolio: "Robin portfolio",
-    assignedRiskBucket: "Profile equal-weight benchmark",
-    mvoFullUniverse: "Full-universe benchmark",
+    optimizedPortfolio: "Profile optimizer",
+    optimizerFullUniverse: "Full-universe optimizer",
+    mvoFilteredUniverse: "Profile MVO",
+    mvoFullUniverse: "Full-universe MVO",
     egx30: "EGX30"
   };
   return compactLabels[row.id] || comparisonLabels[row.id] || row.label;

@@ -106,22 +106,24 @@ const baseReport = {
     {
       month: "2025-03",
       optimizedPortfolio: 0.015,
+      optimizerFullUniverse: 0.014,
+      mvoFilteredUniverse: 0.011,
       mvoFullUniverse: 0.012,
-      assignedRiskBucket: 0.01,
       egx30: 0.03
     },
     {
       month: "2025-04",
       optimizedPortfolio: -0.005,
+      optimizerFullUniverse: -0.006,
+      mvoFilteredUniverse: -0.009,
       mvoFullUniverse: -0.008,
-      assignedRiskBucket: -0.01,
       egx30: 0.02
     }
   ],
   comparison: [
     {
       id: "optimizedPortfolio",
-      label: "Robin portfolio",
+      label: "Profile optimizer portfolio",
       metrics: {
         cumulativeReturn: 0.01,
         annualizedVolatility: 0.08,
@@ -134,8 +136,36 @@ const baseReport = {
       }
     },
     {
+      id: "optimizerFullUniverse",
+      label: "Full-universe optimizer benchmark",
+      metrics: {
+        cumulativeReturn: 0.008,
+        annualizedVolatility: 0.085,
+        sharpe: 0.9,
+        sortino: null,
+        maxDrawdown: -0.006,
+        bestMonth: 0.014,
+        worstMonth: -0.006,
+        ratioNotes: { sharpe: "", sortino: "n/a" }
+      }
+    },
+    {
+      id: "mvoFilteredUniverse",
+      label: "Profile MVO benchmark",
+      metrics: {
+        cumulativeReturn: 0.002,
+        annualizedVolatility: 0.1,
+        sharpe: null,
+        sortino: null,
+        maxDrawdown: -0.009,
+        bestMonth: 0.011,
+        worstMonth: -0.009,
+        ratioNotes: { sharpe: "n/a", sortino: "n/a" }
+      }
+    },
+    {
       id: "mvoFullUniverse",
-      label: "Full-universe benchmark",
+      label: "Full-universe MVO benchmark",
       metrics: {
         cumulativeReturn: 0.004,
         annualizedVolatility: 0.09,
@@ -145,20 +175,6 @@ const baseReport = {
         bestMonth: 0.012,
         worstMonth: -0.008,
         ratioNotes: { sharpe: "", sortino: "n/a" }
-      }
-    },
-    {
-      id: "assignedRiskBucket",
-      label: "Profile equal-weight benchmark",
-      metrics: {
-        cumulativeReturn: 0,
-        annualizedVolatility: 0.1,
-        sharpe: null,
-        sortino: null,
-        maxDrawdown: -0.01,
-        bestMonth: 0.01,
-        worstMonth: -0.01,
-        ratioNotes: { sharpe: "n/a", sortino: "n/a" }
       }
     },
     {
@@ -194,11 +210,13 @@ function reportForMode(simulatorMode: "single" | "monthly_rebalance") {
     : baseReport.rebalanceTimeline;
   const comparison = simulatorMode === "monthly_rebalance"
     ? baseReport.comparison.map((row) => row.id === "optimizedPortfolio"
-      ? { ...row, label: "Robin portfolio" }
+      ? { ...row, label: "Profile optimizer portfolio" }
+      : row.id === "optimizerFullUniverse"
+        ? { ...row, label: "Full-universe optimizer benchmark" }
+        : row.id === "mvoFilteredUniverse"
+          ? { ...row, label: "Profile MVO benchmark" }
       : row.id === "mvoFullUniverse"
-        ? { ...row, label: "Full-universe benchmark" }
-        : row.id === "assignedRiskBucket"
-          ? { ...row, label: "Profile equal-weight benchmark" }
+        ? { ...row, label: "Full-universe MVO benchmark" }
           : row)
     : baseReport.comparison;
   return { ...baseReport, simulatorMode, rebalanceTimeline, comparison };
@@ -302,20 +320,19 @@ describe("App", () => {
     expect(screen.getAllByText("Allocation review").length).toBeGreaterThan(0);
     expect(screen.getByText("Holdings")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Robin portfolio").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Profile equal-weight benchmark").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Full-universe benchmark").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Profile optimizer portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full-universe optimizer benchmark").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Profile MVO benchmark").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full-universe MVO benchmark").length).toBeGreaterThan(0);
     expect(screen.getByText("2 holdings from 3 available assets")).toBeInTheDocument();
     expect(screen.getByText("n/a ratios:")).toBeInTheDocument();
     expect(screen.getByText(/Some ratios need more return variation/)).toBeInTheDocument();
     expect(screen.getAllByText("EGX30").length).toBeGreaterThan(0);
     expect(screen.queryByText("Selected bucket + external weights")).not.toBeInTheDocument();
     expect(screen.queryByText("Equal-weight selected assets")).not.toBeInTheDocument();
-    expect(screen.queryByText("Full-universe MVO")).not.toBeInTheDocument();
     expect(screen.queryByText("Market benchmark")).not.toBeInTheDocument();
     expect(screen.queryByText("Profile benchmark")).not.toBeInTheDocument();
     expect(screen.queryByText("Full Universe with equal weights")).not.toBeInTheDocument();
-    expect(screen.queryByText("Full-universe optimized")).not.toBeInTheDocument();
     expect(screen.getByText("Cumulative return comparison")).toBeInTheDocument();
     expect(screen.queryByText("Component-risk separation across the selected period")).not.toBeInTheDocument();
     expect(screen.queryByText("Asset-universe filter impact")).not.toBeInTheDocument();
@@ -337,7 +354,7 @@ describe("App", () => {
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.queryByText("Pipeline replay")).not.toBeInTheDocument();
     expect(screen.queryByText("Active universe count")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Robin portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Profile optimizer").length).toBeGreaterThan(0);
   });
 
   it("updates selected-month intelligence when a rebalance month is clicked", async () => {
