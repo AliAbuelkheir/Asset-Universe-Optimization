@@ -20,6 +20,8 @@
 \usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \usepackage{appendix}
 \usepackage{xcolor}
 \usepackage{tikz}
@@ -31,9 +33,9 @@
 \usepackage{ifpdf}
 \graphicspath{{./images/}}
 % \setlength{\parindent}{0pt}
-\newcommand{\submissionDay}{Day}
-\newcommand{\submissionMonth}{Month}
-\newcommand{\submissionYear}{Year}
+\newcommand{\submissionDay}{8}
+\newcommand{\submissionMonth}{June}
+\newcommand{\submissionYear}{2026}
 \newcommand{\submissionDate}{\submissionDay~\submissionMonth,~\submissionYear}
 \newcommand{\typeOfThesis}{Bachelor Thesis}
 
@@ -41,8 +43,8 @@
 
 \newcommand{\authorOfThesis}{Ali Ahmed Ezzat Aboelkheir}
 \newcommand{\uniID}{58-3693}
-\newcommand{\supervisorOne}{Supervisor Name}
-\newcommand{\supervisorTwo}{Supervisor Name}
+\newcommand{\supervisorOne}{Dr.\ Mervat Abuelkheir}
+\newcommand{\supervisorTwo}{}
 \newcommand{\supervisorThree}{}
 
 \newcommand{\includefig}[4]{
@@ -106,7 +108,6 @@
 
 
 \include{introduction}
-% \include{background}
 \include{literature_review}
 
 % add more chapters here

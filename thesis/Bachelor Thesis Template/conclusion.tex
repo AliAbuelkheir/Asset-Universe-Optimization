@@ -1,8 +1,30 @@
-\chapter{Conclusion \& Future Work}\label{chap:concl}
+\chapter{Conclusion \& Future Work}
+\label{chap:concl}
+
+This chapter concludes the thesis by summarizing the evidence for the research questions, clarifying the contribution of the proposed pre-allocation risk-ranking framework, and outlining the remaining limitations and future extensions. The discussion keeps the claim focused on historical risk-based universe selection rather than final portfolio optimization or guaranteed return improvement.
 
 \section{Conclusion}
-Section text.
+\label{sec:conclusion}
+
+This thesis studied asset-universe selection as a decision stage before final portfolio allocation. The central problem was that many allocation methods assume a fixed investable universe, even though the assets admitted into that universe can determine whether the final portfolio is suitable for a conservative, balanced, or aggressive investor. The thesis addressed this gap by building a point-in-time risk-ranking framework that predicts asset-level realized-risk behavior and maps the resulting ranking to investor-profile universes.
+
+For RQ1, the results show that AI/ML can support dynamic asset-universe selection when the task is framed as realized-risk ranking. The promoted PPO model produced positive validation and test ranking quality over a changing Egyptian mixed-asset universe. On the final test split, the ranking remained positive across all test months, and the aggregate test Spearman value indicated meaningful alignment between predicted and realized risk orderings. This supports using the model as an asset-risk ranker for pre-allocation universe selection.
+
+For RQ2, the selected universes aligned with the intended risk-profile interpretation in the historical evaluation. The conservative bucket had materially lower mean realized risk than the full active universe, while the aggressive bucket had higher mean realized risk. The balanced bucket acted as a broader middle universe with overlap into both adjacent profiles, which matches its intended role as a central participation group rather than a strict risk-minimization group. The bucket diagnostics therefore show that predicted ranks can create historically distinct realized-risk groups before allocation.
+
+For RQ3, the thesis used a filter-off full active universe as the empirical baseline. Under the same equal-weight diagnostic rule, the proposed risk-tolerance-based asset universes showed different historical risk characteristics: the conservative universe had lower realized risk than the full active universe, while the aggressive universe had higher realized risk and higher cumulative return in the short test window. This answers RQ3 as a baseline comparison between the full universe and the PPO-filtered risk-tolerance universes. The literature comparison remains important context, but it is not treated as a one-to-one empirical baseline because related methods usually filter by return prediction, price movement, Sharpe-like performance, efficiency, robustness, or final optimizer quality rather than direct realized-risk suitability.
+
+The main contribution is therefore a thesis-safe pre-allocation framework: a leakage-controlled data pipeline, a composite realized-risk target, a masked PPO actor-critic ranker for variable active universes, and an evaluation design that separates selection diagnostics from allocation claims. The contribution is not that the model guarantees better returns or solves final portfolio optimization. It is that the promoted model creates historically distinct realized-risk buckets from predicted ranks and provides evidence that risk-tolerance-oriented universe construction can be studied before final weighting.
+
+Several limitations define the scope of this conclusion. The evaluation is limited to the Egyptian market, so the findings should not be generalized automatically to other markets. Several non-equity exposures are also represented through benchmark or proxy series, including money-market exposure, government bonds, REIT exposure, and gold. The data used in the thesis ends in January 2026. Finally, the main objective is risk-suitability separation, especially reducing realized-risk exposure for the conservative universe, rather than increasing returns for the medium- or high-risk universes. These limitations keep the final claim narrow: the thesis demonstrates historical risk-ranking and selected-universe separation, not guaranteed outperformance.
 
 \section{Future Work}
+\label{sec:future_work}
 
-Section text.
+Future work can extend the thesis in four directions. First, the data pipeline can be connected to live market-data APIs so that daily prices are collected continuously and the model's monthly feature set is rebuilt as new data becomes available. This would allow the promoted risk-ranking framework to be monitored in a live forward-testing setting while preserving the point-in-time protocol used in the thesis.
+
+Second, future experiments can add suitability metrics for higher-risk investor universes. The current thesis ranks assets by realized-risk suitability, which is appropriate for separating conservative, balanced, and aggressive universes by risk exposure. A later extension can test whether the medium- and high-risk universes should include additional return-aware diagnostics after the risk bucket has been formed.
+
+Third, the selected universes can be connected to full downstream allocation experiments. For example, a later study could compare equal weighting with mean-variance optimization or another optimizer after the risk-tolerance bucket has already been formed. This should remain separate from the risk-ranking contribution so that future results do not mix universe selection with final weight optimization.
+
+Fourth, the framework can be evaluated in other markets and asset classes. Applying the same point-in-time risk-ranking protocol to larger markets, such as the American market, or to cryptocurrency universes would test whether the approach remains useful when liquidity, volatility, asset availability, and market structure differ from the Egyptian setting.

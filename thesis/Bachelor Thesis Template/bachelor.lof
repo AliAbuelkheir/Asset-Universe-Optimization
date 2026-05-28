@@ -1,13 +1,13 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces Layered methodology pipeline for risk-tolerance-oriented universe construction.}}{9}{figure.caption.5}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Data and target construction from raw source series to monthly feature and realized-risk branches.}}{9}{figure.caption.6}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Composite realized-risk target construction.}}{10}{figure.caption.7}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Masked PPO actor-critic architecture for variable active universes.}}{13}{figure.caption.8}%
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Overlapping investor risk buckets on the predicted-risk asset ranking.}}{15}{figure.caption.9}%
-\contentsline {figure}{\numberline {3.6}{\ignorespaces Chronological training, validation, and test reporting protocol.}}{16}{figure.caption.10}%
-\contentsline {figure}{\numberline {3.7}{\ignorespaces Evaluation logic for ranking performance and equal-weight portfolio diagnostics.}}{17}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Layered methodology pipeline}}{10}{figure.caption.5}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Data and target construction pipeline}}{11}{figure.caption.6}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Composite realized-risk target construction.}}{13}{figure.caption.7}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Masked PPO actor-critic architecture for variable active universes.}}{16}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Overlapping investor risk buckets on the predicted asset ranking.}}{19}{figure.caption.9}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Evaluation logic for ranking quality and selected-universe diagnostics before final allocation.}}{20}{figure.caption.10}%
 \addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Predicted rank percentile versus realized-risk rank percentile on the final test split.}}{25}{figure.caption.11}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
