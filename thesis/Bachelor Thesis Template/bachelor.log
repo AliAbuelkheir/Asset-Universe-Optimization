@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  21 MAY 2026 03:14
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  28 MAY 2026 03:19
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -749,24 +749,24 @@ duction.aux) (literature_review.aux) (methodology.aux) (results.aux)
 (conclusion.aux) (appendix.aux))
 \openout1 = `bachelor.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 85.
-LaTeX Font Info:    ... okay on input line 85.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 87.
+LaTeX Font Info:    ... okay on input line 87.
 
 (C:\Users\aliab\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
 ii
@@ -797,7 +797,7 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring ON on input line 85.
+Package hyperref Info: Link coloring ON on input line 87.
  (bachelor.out) (bachelor.out)
 \@outlinefile=\write4
 \openout4 = `bachelor.out'.
@@ -809,18 +809,18 @@ Package epstopdf Info: Source file: <GUC-logo-ss.eps>
 (epstopdf)                    date: 2026-03-22 13:46:23
 (epstopdf)                    size: 23913 bytes
 (epstopdf)             Output file: <GUC-logo-ss-eps-converted-to.pdf>
-(epstopdf)                    date: 2026-03-23 16:27:33
+(epstopdf)                    date: 2026-05-25 03:53:43
 (epstopdf)                    size: 7043 bytes
 (epstopdf)             Command: <miktex-epstopdf --outfile=GUC-logo-ss-eps-conv
 erted-to.pdf GUC-logo-ss.eps>
-(epstopdf)             \includegraphics on input line 37.
+(epstopdf)             \includegraphics on input line 74.
 Package epstopdf Info: Output file is already uptodate.
 <GUC-logo-ss-eps-converted-to.pdf, id=178, 271.0125pt x 259.97125pt>
 File: GUC-logo-ss-eps-converted-to.pdf Graphic file (type pdf)
 <use GUC-logo-ss-eps-converted-to.pdf>
-Package pdftex.def Info: GUC-logo-ss-eps-converted-to.pdf  used on input line 3
-7.
-(pdftex.def)             Requested size: 71.13188pt x 68.23355pt.
+Package pdftex.def Info: GUC-logo-ss-eps-converted-to.pdf  used on input line 7
+4.
+(pdftex.def)             Requested size: 60.80562pt x 58.32823pt.
  [1
 
 
@@ -862,7 +862,13 @@ Chapter 1.
 
 
 
-] [2]) [3]
+] [2]
+Overfull \hbox (2.2746pt too wide) in paragraph at lines 41--42
+[]\OT1/cmr/m/n/12 train and eval-u-ate a reinforcement-learning model that lear
+ns asset-level risk-ranking
+ []
+
+) [3]
 \openout2 = `literature_review.aux'.
 
  (literature_review.tex
@@ -872,143 +878,101 @@ Chapter 2.
 
 
 
-] [5] [6]) [7]
+] [5] [6] [7]) [8]
 \openout2 = `methodology.aux'.
 
  (methodology.tex
 Chapter 3.
-[8
+[9
 
 
 
 
-] [9]
-Underfull \hbox (badness 10000) in paragraph at lines 154--154
-[]|\OT1/cmr/m/n/8 5-year gov-ern-ment
+] [10] [11]
+Overfull \hbox (3.44693pt too wide) in paragraph at lines 158--159
+\OT1/cmr/m/n/12 walk-forward EGARCH sum-maries, fol-low-ing Nel-son's con-di-ti
+onal het-eroskedas-tic-ity spec-
  []
 
-[10]
-Underfull \hbox (badness 3492) in paragraph at lines 207--207
-[]|\OT1/cmr/m/n/8 Last ob-served close rel-a-tive to the 20-
- []
-
-
-Underfull \hbox (badness 2469) in paragraph at lines 207--207
-\OT1/cmr/m/n/8 tra-jec-tory, re-peated across as-sets in the
- []
-
-
-Underfull \hbox (badness 5908) in paragraph at lines 207--207
-[]|\OT1/cmr/m/n/8 Within-month re-al-ized downside-deviation
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 207--207
-[]|\OT1/cmr/m/n/8 Ascending within-month rank of
- []
-
-
-Underfull \hbox (badness 3657) in paragraph at lines 207--207
-\OT1/cmtt/m/n/8 realized[]risk\OT1/cmr/m/n/8 , used for rank-ing eval-u-a-
- []
-
-[11] [12] [13]
-Underfull \hbox (badness 10000) in paragraph at lines 293--293
-[]|\OT1/cmr/m/n/8 Sequential month-level risk
- []
-
-
-Underfull \hbox (badness 1769) in paragraph at lines 293--293
-\OT1/cmr/m/n/8 rank-ing over vari-able ac-tive
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 293--293
-[]|\OT1/cmr/m/n/8 Daily-strip CNN en-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 293--293
-[]|\OT1/cmr/m/n/8 Convolutional en-cod-ing of
- []
-
-
-Underfull \hbox (badness 1735) in paragraph at lines 293--293
-[]|\OT1/cmr/m/n/8 Transformers / at-ten-
- []
-
-[14]
-Underfull \hbox (badness 2005) in paragraph at lines 313--313
-[]|\OT1/cmr/m/n/12 Asset-rank per-centile
- []
-
-[15] [16]) [17]
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
+put line 182.
+[12] [13] [14] [15] [16] [17] [18] [19]) [20]
 \openout2 = `results.aux'.
 
  (results.tex
 Chapter 4.
-) [18
+[21
 
 
 
 
-]
+] [22] [23] [24]
+<./images/ch4_test_rank_alignment.png, id=532, 514.1025pt x 384.345pt>
+File: ./images/ch4_test_rank_alignment.png Graphic file (type png)
+<use ./images/ch4_test_rank_alignment.png>
+Package pdftex.def Info: ./images/ch4_test_rank_alignment.png  used on input li
+ne 197.
+(pdftex.def)             Requested size: 371.43698pt x 277.68999pt.
+ [25 <./images/ch4_test_rank_alignment.png>] [26] [27])
+[28]
 \openout2 = `conclusion.aux'.
 
  (conclusion.tex
 Chapter 5.
-) [19
+[29
 
 
 
 
-]
+] [30]) [31]
 \openout2 = `appendix.aux'.
 
- (appendix.tex [20
+ (appendix.tex [32
 
 
 
 
 ]
 Appendix A.
-[21
+[33
 
-] (bachelor.lof
-Overfull \hbox (0.9344pt too wide) in paragraph at lines 4--4
- [][] [][][]\OT1/cmr/m/n/12 Layered method-ol-ogy pipeline for risk-tolerance-o
-riented uni-verse con-struc- 
- []
-
-)
+] (bachelor.lof)
 \tf@lof=\write6
 \openout6 = `bachelor.lof'.
 
-) [22
+ [34
 
 
-] (bachelor.bbl [23
+] (bachelor.lot)
+\tf@lot=\write7
+\openout7 = `bachelor.lot'.
+
+) [35
+
+
+] (bachelor.bbl [36
 
 
 
-] [24]) [25] (bachelor.aux (GUC_TitlePage.aux)
-(acknowledgments.aux) (abstract.aux) (introduction.aux) (literature_review.aux)
-(methodology.aux) (results.aux) (conclusion.aux) (appendix.aux))
+] [37]) [38]
+(bachelor.aux (GUC_TitlePage.aux) (acknowledgments.aux) (abstract.aux)
+(introduction.aux) (literature_review.aux) (methodology.aux) (results.aux)
+(conclusion.aux) (appendix.aux))
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `bachelor.out' has not changed.
-(rerunfilecheck)             Checksum: AAFC04661F085F5427DEAED8AE92CB1D;7575.
+(rerunfilecheck)             Checksum: 4A44A37639F9AA5294E3745A853D989E;7663.
  ) 
 Here is how much of TeX's memory you used:
- 24265 strings out of 467871
- 462252 string characters out of 5418376
- 870483 words of memory out of 5000000
- 52568 multiletter control sequences out of 15000+600000
- 635155 words of font info for 66 fonts, out of 8000000 for 9000
+ 24427 strings out of 467871
+ 465029 string characters out of 5418376
+ 867317 words of memory out of 5000000
+ 52669 multiletter control sequences out of 15000+600000
+ 636402 words of font info for 70 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,11n,94p,878b,874s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,13n,94p,1172b,873s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\aliab\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm
 1200.pk><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfon
 ts/cm/cmbx12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/publ
@@ -1016,17 +980,22 @@ ic/amsfonts/cm/cmmi12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/t
 ype1/public/amsfonts/cm/cmmi8.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX
 /fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/aliab/AppData/Local/Program
 s/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/aliab/AppData/Local
-/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/aliab/AppDat
-a/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsl12.pfb><C:/Users/ali
-ab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/
-Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.
-pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/c
-m/cmti12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
-msfonts/cm/cmtt12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1
-/public/amsfonts/cm/cmtt8.pfb>
-Output written on bachelor.pdf (31 pages, 300773 bytes).
+/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/aliab/AppDat
+a/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/aliab
+/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsl12.pfb><C:/Us
+ers/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmss12.p
+fb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
+/cmssbx10.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/
+amsfonts/cm/cmsy10.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type
+1/public/amsfonts/cm/cmsy6.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fo
+nts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/aliab/AppData/Local/Programs/M
+iKTeX/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Users/aliab/AppData/Local/P
+rograms/MiKTeX/fonts/type1/public/amsfonts/cm/cmti8.pfb><C:/Users/aliab/AppData
+/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt12.pfb><C:/Users/alia
+b/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
+Output written on bachelor.pdf (44 pages, 604271 bytes).
 PDF statistics:
- 545 PDF objects out of 1000 (max. 8388607)
- 124 named destinations out of 1000 (max. 500000)
- 362 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 758 PDF objects out of 1000 (max. 8388607)
+ 179 named destinations out of 1000 (max. 500000)
+ 367 words of extra memory for PDF output out of 10000 (max. 10000000)
 

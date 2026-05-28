@@ -5,17 +5,39 @@ coverage/
 .vite/
 .runtime-logs/
 *.tsbuildinfo
-portfolio-simulator-web/*.log
+portfolio-simulator/*.log
+test-results/
+playwright-report/
 
 # Python caches
 __pycache__/
 *.py[cod]
 .pytest_cache/
 pytest-cache-files-*/
+.venv/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+*.synctex.gz
+thesis/**/bachelor.pdf
+thesis/**/bachelor.ps
+thesis/**/*-eps-converted-to.pdf
 
 # Local env files
 .env
 .env.*
 !.env.example
 
-# PPO project ignored artifacts are managed by ppo-risk-model/.gitignore
+# Local workspace/tool scratch
+tmp/
+.agents/
+skills-lock.json
+
+# PPO project ignored artifacts are managed by ranked-risk-model/.gitignore

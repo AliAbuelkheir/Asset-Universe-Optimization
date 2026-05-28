@@ -97,7 +97,7 @@ H.~Alsabah, A.~Capponi, O.~Ruiz~Lacedelli, and M.~Stern, ``Robo-advising:
   Financial Econometrics}, vol.~19, no.~2, pp.~369--392, 2021.
 
 \bibitem{yu2021personalized}
-C.~Yu and Y.~Liu, ``A personalized mean-cvar portfolio optimization model for
+C.~Yu and Y.~Liu, ``A personalized mean-{CVaR} portfolio optimization model for
   individual investment,'' {\em Mathematical Problems in Engineering},
   vol.~2021, p.~8863597, 2021.
 
@@ -108,7 +108,7 @@ A.~Capponi, S.~{\'O}lafsson, and T.~Zariphopoulou, ``Personalized
 
 \bibitem{schneider2025riskappetite}
 C.~J. Schneider and Y.~Yilmaz, ``Stock portfolio selection based on risk
-  appetite: Evidence from chatgpt,'' {\em Finance Research Letters}, vol.~82,
+  appetite: Evidence from {ChatGPT},'' {\em Finance Research Letters}, vol.~82,
   p.~107517, 2025.
 
 \bibitem{deng2017deepdirect}
@@ -124,18 +124,18 @@ Z.~Jiang, D.~Xu, and J.~Liang, ``A deep reinforcement learning framework for
 
 \bibitem{liu2020finrl}
 X.-Y. Liu, H.~Yang, Q.~Chen, R.~Zhang, L.~Yang, B.~Xiao, and C.~D. Wang,
-  ``Finrl: A deep reinforcement learning library for automated stock trading in
-  quantitative finance,'' {\em arXiv preprint arXiv:2011.09607}, 2020.
+  ``{FinRL}: A deep reinforcement learning library for automated stock trading
+  in quantitative finance,'' {\em arXiv preprint arXiv:2011.09607}, 2020.
 
 \bibitem{lucarelli2020deepq}
-G.~Lucarelli and M.~Borrotti, ``A deep q-learning portfolio management
+G.~Lucarelli and M.~Borrotti, ``A deep {Q-Learning} portfolio management
   framework for the cryptocurrency market,'' {\em Neural Computing and
   Applications}, vol.~32, pp.~17229--17244, 2020.
 
 \bibitem{soleymani2020deepbreath}
 F.~Soleymani and E.~Paquet, ``Financial portfolio optimization with online deep
-  reinforcement learning and restricted stacked autoencoder--deepbreath,'' {\em
-  Expert Systems with Applications}, vol.~156, p.~113456, 2020.
+  reinforcement learning and restricted stacked autoencoder--{DeepBreath},''
+  {\em Expert Systems with Applications}, vol.~156, p.~113456, 2020.
 
 \bibitem{pinelis2022machineallocation}
 M.~Pinelis and D.~Ruppert, ``Machine learning portfolio allocation,'' {\em The
@@ -157,5 +157,14 @@ A.~Orra, A.~Bhambu, H.~Choudhary, M.~Thakur, and S.~Natarajan, ``Deep
   reinforcement learning for investor-specific portfolio optimization: A
   volatility-guided asset selection approach,'' {\em arXiv preprint
   arXiv:2505.03760}, 2025.
+
+\bibitem{nelson1991egarch}
+D.~B. Nelson, ``Conditional heteroskedasticity in asset returns: A new
+  approach,'' {\em Econometrica}, vol.~59, no.~2, pp.~347--370, 1991.
+
+\bibitem{schulman2017ppo}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov, ``Proximal
+  policy optimization algorithms,'' {\em arXiv preprint arXiv:1707.06347},
+  2017.
 
 \end{thebibliography}

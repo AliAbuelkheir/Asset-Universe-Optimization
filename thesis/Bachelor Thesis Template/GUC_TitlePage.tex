@@ -4,7 +4,40 @@
 \begin{center}
 	\textbf{Media Engineering and Technology Faculty}\\[1mm]
 	\textbf{German University in Cairo}\\[1mm]
-	\includegraphics[width=2.5cm]{GUC-logo-ss.eps}
+	\textbf{Robin Solutions}\\[5mm]
+	\begin{tabular}{@{}c@{\hspace{1.25cm}}c@{}}
+		\raisebox{-0.52cm}[0pt][0pt]{\includegraphics[height=2.05cm]{GUC-logo-ss.eps}}
+		&
+		\begin{tikzpicture}[x=1cm,y=1cm,baseline=-0.42cm]
+			\begin{scope}[scale=1.55]
+				\clip (0,0) circle (0.5);
+				\fill[black] (0,0) circle (0.5);
+				\fill[white]
+					(-0.39,0.23) --
+					(-0.20,0.39) --
+					(-0.12,0.31) --
+					(0.00,0.25) --
+					(0.15,0.23) --
+					(0.26,0.31) --
+					(0.38,0.13) --
+					(0.27,0.00) --
+					(0.22,-0.13) --
+					(0.33,-0.28) --
+					(0.11,-0.45) --
+					(0.03,-0.31) --
+					(0.03,-0.18) --
+					(0.10,-0.05) --
+					(-0.30,-0.39) --
+					(-0.47,-0.30) --
+					(-0.10,0.02) --
+					(-0.20,0.12) --
+					(-0.30,0.10) --
+					(-0.42,0.18) -- cycle;
+			\end{scope}
+			\node[anchor=west,font=\sffamily\bfseries\Large] at (0.98,0.20) {Robin};
+			\node[anchor=west,font=\sffamily\normalsize] at (1.00,-0.20) {Solutions};
+		\end{tikzpicture}
+	\end{tabular}
 	
 	\vspace{2cm}
 	\doublespacing
@@ -21,10 +54,14 @@
         			\=\authorOfThesis\\[2mm]
       			UNI-ID:
         			\>\uniID\\[2mm]
-      			Supervisors: 
+Supervisor:
         			\>\supervisorOne\\[2mm]
+			\ifx\supervisorTwo\empty\else
 				\>\supervisorTwo\\[2mm]
+			\fi
+			\ifx\supervisorThree\empty\else
 				\>\supervisorThree\\[2mm]
+			\fi
       			Submission Date: 
         			\>\submissionDate\\
     			\end{tabbing}
@@ -40,7 +77,7 @@
 This is to certify that:
 \begin{itemize}
 \item[(i)] the thesis comprises only my original work toward the Bachelor Degree
-\item[(ii)] due acknowlegement has been made in the text to all other material used
+\item[(ii)] due acknowledgement has been made in the text to all other material used
 \end{itemize}
 
 \vspace{2cm}

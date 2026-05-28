@@ -1,0 +1,17 @@
+node_modules
+client/node_modules
+client/dist
+test-results
+playwright-report
+.pytest_cache
+**/.pytest_cache
+**/__pycache__
+**/*.pyc
+*.log
+client-live.log
+client-live.err.log
+.env
+.env.*
+coverage
+.vite
+*.tsbuildinfo

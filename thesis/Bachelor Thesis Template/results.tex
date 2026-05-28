@@ -1,18 +1,331 @@
-\chapter{Results \& Limitations}
+\chapter{Results}
 \label{chap:result}
-\section{Experiments Setup}
-Section text.
 
-\section{Dataset Description}
-Section text.
+This chapter reports the experimental evidence for the methodology introduced in Chapter~\ref{chap:method}. The results are organized around the three research questions: whether the model supports dynamic realized-risk ranking, whether the selected universes align with investor risk profiles, and how the selected universes compare with the full active-universe baseline under the same equal-weight diagnostic rule. The chapter reports historical diagnostics only; it does not claim guaranteed future outperformance.
 
-\section{Results}
-Section text.
-\subsection{Experiment 1}
-Subsection text. 
+\section{Experimental Environment}
+\label{sec:experimental_environment}
 
-\subsection{Experiment 2}
-Subsection text.
+The experiments were run in the local project environment associated with the PPO risk-ranking repository. Table~\ref{tab:experimental_environment} lists the verified software environment used for final reporting. The same repository contains the data-processing scripts, PPO training code, evaluation utilities, and final model files.
 
-\section{Results Analysis and Discussion}
-Section text.
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Experimental environment used for reporting}
+\label{tab:experimental_environment}
+\begin{tabularx}{\textwidth}{L{4.0cm}Y}
+\toprule
+Item & Value \\
+\midrule
+Operating environment & Local Windows workstation using PowerShell and the project virtual environment. \\
+Python & 3.13.1 \\
+Core packages & pandas 3.0.1, NumPy 2.4.3, SciPy 1.17.1, Matplotlib 3.10.8. \\
+Econometric and ML packages & arch 8.0.0, Stable-Baselines3 2.7.1, Gymnasium 1.2.3, Optuna 4.8.0. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Data Coverage and Splits}
+\label{sec:data_splits}
+
+The active model uses the monthly long panel described in Section~\ref{sec:dataset_features}. The generated panel covers October 2010 through January 2026. Decision months are chronological, and the test period is used only after model, feature, and tuning decisions have been made.
+
+Table~\ref{tab:data_splits} reports the split design. The training window is used for model learning, inner validation is used for checkpoint selection inside a run, validation is used for framework and candidate comparison, and test is reserved for final reporting.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Chronological data splits used in the promoted evaluation}
+\label{tab:data_splits}
+\begin{tabularx}{\textwidth}{L{3.0cm}L{3.0cm}L{2.0cm}Y}
+\toprule
+Split & Decision months & Months & Methodological role \\
+\midrule
+Training & 2011-01 to 2021-12 & 126 & PPO parameter learning. \\
+Inner validation & 2022-01 to 2022-12 & 12 & Best checkpoint selection within the final run. \\
+Validation & 2023-01 to 2025-02 & 26 & Framework, feature, tuning, and candidate comparison. \\
+Test & 2025-03 to 2026-01 & 11 & Final reporting only. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Model and Parameter Selection}
+\label{sec:model_parameter_selection}
+
+The model-selection process followed the promotion protocol in Table~\ref{tab:promotion_protocol}. First, candidate input frameworks were compared while keeping the initial PPO setup fixed. The monthly framework with pooled active-universe context was selected because it produced the strongest validation reward while preserving the rank-alignment diagnostic. Table~\ref{tab:framework_selection_results} summarizes the key framework-selection evidence using thesis-readable framework labels.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Framework-selection evidence before feature and PPO tuning}
+\label{tab:framework_selection_results}
+\begin{tabularx}{\textwidth}{L{4.5cm}ccY}
+\toprule
+Framework or check & Validation reward & Spearman diagnostic & Interpretation \\
+\midrule
+Monthly PPO without pooled context & 0.6710 & 0.5608 & Strong monthly baseline without active-universe context. \\
+Monthly PPO with pooled context & 0.6845 & 0.5761 & Selected framework; pooled active-universe context improved validation ranking quality. \\
+Daily-flat PPO & 0.5572 & 0.3962 & Rejected; flattened daily path did not improve ranking quality. \\
+Daily-CNN PPO & 0.6650 & 0.5486 & Rejected; strongest daily-input follow-up remained below the selected monthly framework. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+After the architecture was fixed, the feature phase tested whether the model inputs should be removed, redefined, shortened, or expanded. The main feature-profile phase preceded PPO hyperparameter tuning and used the same validation rule as the framework comparison. PPO tuning was then treated as the final model-development step. Table~\ref{tab:feature_selection_evidence} summarizes what each feature-testing phase changed, retained, or rejected.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Feature-selection evidence before final reporting}
+\label{tab:feature_selection_evidence}
+\begin{tabularx}{\textwidth}{L{3.5cm}L{5.0cm}Y}
+\toprule
+Testing phase & What was tested & Feature-selection outcome \\
+\midrule
+Baseline family screen & Risk, downside, liquidity, technical, market-sensitivity, and macro context features were tested as the starting input family after the framework was fixed. & Retained the broad baseline feature families as the core input design. \\
+Leave-one-out and drop checks & Individual feature families were neutralized or removed to test whether they weakened or improved validation ranking quality. & Tested removals, including the high-distance feature, but no dropped-feature profile was retained in the final current-best input set. \\
+Replacement and window checks & Shorter or alternative definitions were tested for selected inputs, including high-distance, moving-average, drawdown, USD-volatility, and beta variants. & Kept the canonical definitions where alternatives did not improve validation ranking quality. \\
+Tail and ratio additions & Downside, tail, jump, drawdown-duration, ratio, and volatility-instability additions were checked to improve high-risk identification. & Added the three-month downside-tail contribution ratio to the final promoted input set. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Table~\ref{tab:final_model_inputs} lists the final model inputs using descriptive labels. Most asset-level inputs use the trailing three-month feature window, while some technical indicators use their own observation count inside that window. Macro inputs are repeated for every active asset in the same decision month.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Final promoted model input features}
+\label{tab:final_model_inputs}
+\begin{tabularx}{\textwidth}{L{3.3cm}L{2.8cm}Y}
+\toprule
+Input feature & Duration or window & Description \\
+\midrule
+Conditional volatility & Trailing 3 months & Walk-forward EGARCH volatility summary for recent asset return variation. \\
+Downside deviation & Trailing 3 months & Downside-risk measure based on negative daily returns in the recent window. \\
+Maximum drawdown & Trailing 3 months & Largest peak-to-trough loss observed in the recent return path. \\
+Trading volume & Trailing 3 months & Observed trading activity, used as a liquidity and market-attention input. \\
+Average true range percentage & 20 observations & Range-based volatility measure divided by the latest observed close. \\
+Market beta & Trailing 3 months & Sensitivity of the asset's returns to the EGX30 reference series. \\
+Price versus moving average & 20 observations & Latest price position relative to a simple moving-average benchmark. \\
+Relative strength index & 14 observations & Momentum and overbought-or-oversold state based on recent price movement. \\
+Distance from recent high & Trailing 3 months & Latest price distance from the highest observed price in the recent window. \\
+USD exchange-rate volatility & Trailing 3 months & Foreign-exchange volatility context shared across active assets in a month. \\
+CPI trajectory & Trailing 3 months & Inflation trajectory context shared across active assets in a month. \\
+Downside-tail contribution ratio & Trailing 3 months & Share of total absolute movement explained by the largest downside daily-return tail observations. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The final promoted model uses the selected monthly pooled-context framework, the reported input feature set, the promoted realized-risk target, the promoted reward design, and the tuned PPO configuration. Table~\ref{tab:promoted_config} summarizes the evaluated configuration without repeating the full feature list or the tuned hyperparameter values.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Promoted model configuration}
+\label{tab:promoted_config}
+\begin{tabularx}{\textwidth}{L{4.2cm}Y}
+\toprule
+Item & Promoted setting \\
+\midrule
+Promoted model & PPO risk-ranking model. \\
+Framework & Monthly PPO with pooled active-universe context. \\
+Input features & Final promoted feature set listed in Table~\ref{tab:final_model_inputs}. \\
+Realized-risk target & Equal-ranked realized volatility, downside deviation, and maximum drawdown. \\
+Reward profile & \(70\%\) Spearman rank correlation and \(30\%\) score-error discipline. \\
+Training procedure & Chronological ordered-cycle PPO training over the training months. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The alternative realized-risk target and reward definitions described in the methodology are treated here as development audits. The remaining results evaluate the promoted configuration summarized in Table~\ref{tab:promoted_config}, rather than adding unreported target-weight or reward-weight comparison tables.
+
+Table~\ref{tab:ppo_hyperparameters_results} gives the final tuned PPO hyperparameters, including the Generalized Advantage Estimation (GAE) smoothing parameter.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Tuned PPO hyperparameter configuration}
+\label{tab:ppo_hyperparameters_results}
+\begin{tabular}{ll}
+\toprule
+Hyperparameter & Value \\
+\midrule
+Learning rate & \(2.4935 \times 10^{-4}\) \\
+\texttt{n\_steps} & 256 \\
+\texttt{batch\_size} & 256 \\
+\texttt{n\_epochs} & 10 \\
+\(\gamma\) & 1.0 \\
+GAE \(\lambda\) & 1.0 \\
+Clip range & 0.2990 \\
+Entropy coefficient & 0.00235 \\
+Value-function coefficient & 0.9024 \\
+Maximum gradient norm & 0.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Ranking Results}
+\label{sec:ranking_results}
+
+The first research question asks whether AI/ML can support dynamic asset-universe selection using asset-level realized-risk ranking. For this question, the main evidence is the PPO reward because it is the objective used to compare ranking candidates. Spearman rank correlation is also reported because it explains the rank-alignment component inside the reward.
+
+Table~\ref{tab:split_ranking_results} reports reward first, followed by the rank-alignment diagnostic. The promoted model reached a mean test reward of about 0.75. Because the reward is rank-dominant, the positive Spearman values show that the model's reward aligns with rank ordering rather than score scaling alone.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Promoted model ranking metrics by split}
+\label{tab:split_ranking_results}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+Split & Months & Mean assets & Reward & Spearman diagnostic \\
+\midrule
+Train & 126 & 29.48 & 0.7452 & 0.6574 \\
+Inner validation & 12 & 35.75 & 0.7233 & 0.6270 \\
+Validation & 26 & 36.00 & 0.7108 & 0.6081 \\
+Test & 11 & 36.00 & 0.7545 & 0.6690 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+Figure~\ref{fig:test_rank_alignment} visualizes the final test split by comparing predicted rank percentiles with realized-risk rank percentiles. Points near the diagonal represent assets whose predicted rank was close to the realized-risk rank in their decision month.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{ch4_test_rank_alignment.png}
+\caption{Predicted rank percentile versus realized-risk rank percentile on the final test split.}
+\label{fig:test_rank_alignment}
+\end{figure}
+
+The final selected setup was also checked across multiple random seeds before reporting. The validation reward values from that check were close to the final reported metrics in Table~\ref{tab:split_ranking_results}, while the Spearman diagnostic remained positive. This supports the stability of the selected setup without changing the final test interpretation.
+
+Table~\ref{tab:test_monthly_metrics} reports the monthly test-window ranking metrics. The model does not perform equally in every month. October 2025 is the weakest test month by reward, but the reward remains positive across all test months.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Monthly ranking metrics on the final test split}
+\label{tab:test_monthly_metrics}
+\begin{tabular}{lrr}
+\toprule
+Month & Reward & Spearman diagnostic \\
+\midrule
+2025-03 & 0.7786 & 0.7017 \\
+2025-04 & 0.7702 & 0.6895 \\
+2025-05 & 0.7456 & 0.6548 \\
+2025-06 & 0.7019 & 0.5955 \\
+2025-07 & 0.8033 & 0.7367 \\
+2025-08 & 0.8270 & 0.7727 \\
+2025-09 & 0.8088 & 0.7473 \\
+2025-10 & 0.6399 & 0.5095 \\
+2025-11 & 0.7595 & 0.6746 \\
+2025-12 & 0.7548 & 0.6714 \\
+2026-01 & 0.7102 & 0.6053 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Risk-Bucket Diagnostics}
+\label{sec:risk_bucket_diagnostics}
+
+The second research question asks whether the selected universes align with conservative, balanced, and aggressive investor profiles. The reported bucket method follows the selective overlapping-tail rule defined in Section~\ref{sec:bucket_mapping}: the conservative bucket uses the lowest predicted-rank tail, the balanced bucket uses the broader middle band, and the aggressive bucket uses the highest predicted-rank tail.
+
+Table~\ref{tab:risk_separation_results} reports the primary bucket evidence. Mean predicted risk-ranking score and mean realized risk are both monotonic from low to medium to high. Because realized risk is rank-normalized within each month, these values should be interpreted as relative separation diagnostics rather than absolute risk magnitudes. The realized-risk difference column is computed against the full active-universe reference of 0.500. The low-risk bucket is materially below that reference, while the high-risk bucket is above it. Monthly realized-risk monotonicity holds in all 11 test months.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Risk separation for the final test split}
+\label{tab:risk_separation_results}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+Bucket & Mean assets & Mean predicted risk-ranking score & Mean realized risk & Realized-risk difference vs full universe \\
+\midrule
+Low-risk bucket & 11 & 0.406 & 0.239 & -0.261 \\
+Medium-risk bucket & 22 & 0.526 & 0.536 & 0.036 \\
+High-risk bucket & 11 & 0.617 & 0.688 & 0.188 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+Table~\ref{tab:economic_diagnostics_results} reports secondary economic diagnostics. The high-risk bucket has the highest cumulative return in the short test window, while also having the highest volatility and the largest drawdown among the selected buckets. This is consistent with a risk-return gradient and should be read as a historical diagnostic rather than a return-prediction claim.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Secondary economic diagnostics for the final test split}
+\label{tab:economic_diagnostics_results}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Bucket & Cumulative return & Mean monthly return & Monthly volatility & Max drawdown & Sharpe ratio (zero risk-free rate) \\
+\midrule
+Full universe & 49.59\% & 3.75\% & 1.84\% & 0.00\% & 8.673 \\
+Low-risk bucket & 29.91\% & 2.43\% & 1.93\% & -1.92\% & 4.943 \\
+Medium-risk bucket & 50.17\% & 3.79\% & 2.08\% & 0.00\% & 7.753 \\
+High-risk bucket & 86.24\% & 5.92\% & 4.71\% & -3.97\% & 5.956 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Filter-Ablation Baseline Comparison}
+\label{sec:baseline_ablation_results}
+
+The third research question compares the proposed risk-tolerance-based asset universes with the full active-universe baseline. As established in Chapter~\ref{chap:litreview}, related AI/ML preselection studies remain comparison context rather than one-to-one empirical baselines. The implemented baseline is a filter-off ablation: the full active universe is evaluated without PPO filtering, and the filtered investor-profile universes are evaluated after PPO filtering.
+
+The empirical baseline keeps the weighting rule fixed and compares equal-weight results for the full active universe against equal-weight results for the filtered investor-profile universes. This isolates the risk-tolerance universe construction: the question is whether the assets selected by predicted rank percentile behave differently from the full universe under the same simple weighting rule. Table~\ref{tab:equal_weight_baseline_results} reports the final test split diagnostics.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Equal-weight full-universe and filtered-universe diagnostics on the final test split}
+\label{tab:equal_weight_baseline_results}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+Universe & Mean realized risk & Cumulative return & Monthly volatility & Max drawdown \\
+\midrule
+Full universe equal weight & 0.500 & 49.59\% & 1.84\% & 0.00\% \\
+Low-risk filtered equal weight & 0.239 & 29.91\% & 1.93\% & -1.92\% \\
+Medium-risk filtered equal weight & 0.536 & 50.17\% & 2.08\% & 0.00\% \\
+High-risk filtered equal weight & 0.688 & 86.24\% & 4.71\% & -3.97\% \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The low-risk filtered universe has much lower realized risk than the full universe, while the high-risk filtered universe has higher realized risk and higher cumulative return in this short historical window. The comparison is therefore evidence that the filter changes the risk character of the selected universe under a common equal-weight rule, rather than evidence that a final allocation method is superior.
+
+Validation bucket diagnostics support the same interpretation but also show that the method is not perfect. For the reported overlapping-tail method, validation mean realized risk is ordered from low to medium to high, and monthly monotonicity holds in 24 of 26 validation months. The exceptions are April 2023 and December 2023, where the high-risk bucket remains above the low-risk bucket but falls slightly below the medium bucket.
+
+Table~\ref{tab:bucket_method_ablation} reports the final-test bucket-method ablation as sensitivity evidence. The reported overlapping-tail rule shows the largest high-minus-low realized-risk spread and maintains monthly monotonicity across all test months, while wider buckets are easier to populate but create softer separation. This table is not used to turn the test period into a model-selection input.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Bucket-method ablation on the final test split}
+\label{tab:bucket_method_ablation}
+\begin{tabular}{lrrrrr}
+\toprule
+Method & Monthly monotonicity & Low risk & Medium risk & High risk & High-low spread \\
+\midrule
+Selective overlapping tails & 11/11 & 0.239 & 0.536 & 0.688 & 0.449 \\
+Non-overlapping thirds & 10/11 & 0.257 & 0.559 & 0.683 & 0.426 \\
+Broad overlapping tails & 11/11 & 0.304 & 0.549 & 0.660 & 0.356 \\
+Wide overlapping buckets & 11/11 & 0.341 & 0.536 & 0.659 & 0.317 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion and Limitations}
+\label{sec:results_discussion}
+
+The results support RQ1 because the promoted PPO model produces positive validation and test reward over a changing active universe. The final test reward of 0.7545 summarizes the rank-dominant objective, while the Spearman diagnostic confirms alignment between predicted and realized-risk ordering. The monthly table also shows month-to-month variation.
+
+The results support RQ2 because the selected buckets create distinct realized-risk groups. The conservative bucket is materially below the full universe, and the aggressive bucket is materially above it. The balanced bucket is not designed to minimize risk; it is intentionally broad and overlapping, so its role is closer to a central participation universe than a low-risk universe.
+
+The results address RQ3 through the filter-off baseline comparison. Under the same equal-weight diagnostic rule, the PPO-filtered conservative universe has lower realized risk than the full active universe, while the PPO-filtered aggressive universe has higher realized risk and higher historical cumulative return in this short test window. This shows that the proposed risk-tolerance-based asset universes have different historical risk characteristics from the full active universe before downstream allocation. The literature comparison remains conceptual context rather than a directly matched empirical baseline.
+
+There are several limitations. The final test window contains only 11 months and is strongly positive for the full active universe. The high-risk bucket's high cumulative return is a diagnostic observation rather than evidence of return prediction. The methodology does not implement production questionnaire inference or user-interaction evaluation, and it makes no claim that the selected universes will improve every final allocation method. The safest conclusion is narrower: the promoted model creates historically distinct realized-risk buckets from predicted ranks.

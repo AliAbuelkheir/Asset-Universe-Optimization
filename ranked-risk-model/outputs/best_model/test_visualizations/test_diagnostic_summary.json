@@ -1,0 +1,36 @@
+{
+  "best_month_by_reward": {
+    "date": "2025-08",
+    "mse": 0.0462697860323826,
+    "reward": 0.8269790203248549,
+    "spearman": 0.7726570801922424
+  },
+  "best_month_by_spearman": {
+    "date": "2025-08",
+    "mse": 0.0462697860323826,
+    "reward": 0.8269790203248549,
+    "spearman": 0.7726570801922424
+  },
+  "experiment_dir": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model",
+  "mean_absolute_rank_gap": 6.383838383838384,
+  "mean_predicted_risk": 0.5188553355859987,
+  "mean_realized_risk": 0.5000000112699439,
+  "month_count": 11,
+  "output_dir": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model\\test_visualizations",
+  "plot_files": {
+    "best_month_rank_comparison": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model\\test_visualizations\\test_best_month_rank_comparison.png",
+    "extreme_rank_overlap": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model\\test_visualizations\\test_extreme_rank_overlap.png",
+    "monthly_performance": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model\\test_visualizations\\test_monthly_performance.png",
+    "monthly_rank_gap": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model\\test_visualizations\\test_monthly_rank_gap.png",
+    "rank_alignment": "C:\\Ali\\CS\\Bachelor thesis\\ranked-risk-model\\outputs\\best_model\\test_visualizations\\test_rank_alignment.png"
+  },
+  "row_count": 396,
+  "setup_label": "TAIL-REFINED50-DOWNSIDE_TAIL_RATIO_3M-S13",
+  "split_name": "test",
+  "worst_month_by_reward": {
+    "date": "2025-10",
+    "mse": 0.055886458673175,
+    "reward": 0.63990421014684,
+    "spearman": 0.5095287824982749
+  }
+}
