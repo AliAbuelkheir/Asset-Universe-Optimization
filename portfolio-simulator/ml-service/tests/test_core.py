@@ -103,6 +103,16 @@ def test_precomputed_source_artifacts_exclude_questionnaire_files() -> None:
     assert "questionnaire_model" not in artifact_keys
 
 
+def test_precomputed_text_artifact_fingerprints_are_line_ending_stable(tmp_path: Path) -> None:
+    crlf_artifact = tmp_path / "artifact.csv"
+    lf_artifact = tmp_path / "artifact_lf.csv"
+    crlf_artifact.write_bytes(b"month,value\r\n2025-01,1\r\n")
+    lf_artifact.write_bytes(b"month,value\n2025-01,1\n")
+
+    assert store_module.file_sha256(crlf_artifact) == store_module.file_sha256(lf_artifact)
+    assert store_module.file_fingerprint_size(crlf_artifact) == store_module.file_fingerprint_size(lf_artifact)
+
+
 def test_precomputed_store_validates_schema_and_coverage() -> None:
     with store_module.connect_validated_store() as connection:
         assert connection.execute("SELECT COUNT(*) FROM reportable_months").fetchone()[0] == 37

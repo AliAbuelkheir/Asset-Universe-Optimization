@@ -14,7 +14,7 @@ from ..data import DAILY_MARKET_PATH, MONTHLY_PANEL_PATH, PREDICTIONS_PATH, RISK
 from ..paths import APP_ROOT, MODEL_ARTIFACTS_ROOT
 
 SCHEMA_VERSION = "1"
-GENERATOR_VERSION = "2"
+GENERATOR_VERSION = "3"
 
 PRECOMPUTED_ROOT = MODEL_ARTIFACTS_ROOT / "precomputed-simulations"
 SIMULATION_STORE_PATH = PRECOMPUTED_ROOT / "simulation_store.sqlite"
@@ -34,6 +34,7 @@ STRATEGY_LABELS = {
     "mvoFullUniverse": "Full-universe MVO benchmark",
     "egx30": "EGX30",
 }
+CANONICAL_TEXT_SUFFIXES = {".csv", ".json"}
 
 DEPLOYMENT_ROOT = MODEL_ARTIFACTS_ROOT / "deployment"
 OPTIMIZER_MODEL_ROOT = DEPLOYMENT_ROOT / "models"
@@ -146,12 +147,19 @@ def source_artifact_specs() -> list[SourceArtifactSpec]:
     return specs
 
 
+def _canonical_artifact_bytes(path: Path) -> bytes:
+    data = path.read_bytes()
+    if path.suffix.lower() in CANONICAL_TEXT_SUFFIXES:
+        return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return data
+
+
 def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return hashlib.sha256(_canonical_artifact_bytes(path)).hexdigest()
+
+
+def file_fingerprint_size(path: Path) -> int:
+    return len(_canonical_artifact_bytes(path))
 
 
 def relative_artifact_path(path: Path) -> str:
@@ -166,11 +174,10 @@ def current_source_artifacts() -> dict[str, dict[str, Any]]:
     for spec in source_artifact_specs():
         if not spec.path.exists():
             raise PrecomputedStoreValidationError(f"Missing source artifact for precomputed store: {spec.path}")
-        stat = spec.path.stat()
         artifacts[spec.artifact_key] = {
             "relative_path": relative_artifact_path(spec.path),
             "sha256": file_sha256(spec.path),
-            "size_bytes": int(stat.st_size),
+            "size_bytes": file_fingerprint_size(spec.path),
         }
     return artifacts
 
