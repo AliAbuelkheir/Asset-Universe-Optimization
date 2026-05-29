@@ -78,7 +78,9 @@ class ChartInterval(BaseModel):
 class MonthlyReturnPoint(BaseModel):
     month: str
     optimizedPortfolio: float
+    profileEqualWeight: float
     optimizerFullUniverse: float
+    fullUniverseEqualWeight: float
     mvoFilteredUniverse: float
     mvoFullUniverse: float
     egx30: float
@@ -103,7 +105,9 @@ class PerformanceMetrics(BaseModel):
 class ComparisonRow(BaseModel):
     id: Literal[
         "optimizedPortfolio",
+        "profileEqualWeight",
         "optimizerFullUniverse",
+        "fullUniverseEqualWeight",
         "mvoFilteredUniverse",
         "mvoFullUniverse",
         "egx30",

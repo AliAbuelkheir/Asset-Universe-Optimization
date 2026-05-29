@@ -32,7 +32,9 @@ function assertMonthlyReturnPoint(value: unknown): asserts value is SimulationRe
   }
   assertString(value.month, "monthlyReturns[].month");
   assertFiniteNumber(value.optimizedPortfolio, "monthlyReturns[].optimizedPortfolio");
+  assertFiniteNumber(value.profileEqualWeight, "monthlyReturns[].profileEqualWeight");
   assertFiniteNumber(value.optimizerFullUniverse, "monthlyReturns[].optimizerFullUniverse");
+  assertFiniteNumber(value.fullUniverseEqualWeight, "monthlyReturns[].fullUniverseEqualWeight");
   assertFiniteNumber(value.mvoFilteredUniverse, "monthlyReturns[].mvoFilteredUniverse");
   assertFiniteNumber(value.mvoFullUniverse, "monthlyReturns[].mvoFullUniverse");
   assertFiniteNumber(value.egx30, "monthlyReturns[].egx30");
@@ -61,7 +63,9 @@ function assertComparisonRow(value: unknown): asserts value is SimulationReport[
   }
   if (
     value.id !== "optimizedPortfolio" &&
+    value.id !== "profileEqualWeight" &&
     value.id !== "optimizerFullUniverse" &&
+    value.id !== "fullUniverseEqualWeight" &&
     value.id !== "mvoFilteredUniverse" &&
     value.id !== "mvoFullUniverse" &&
     value.id !== "egx30"

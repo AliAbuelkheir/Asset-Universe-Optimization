@@ -11,7 +11,9 @@ These are historical simulation diagnostics only. They compare realized returns 
   `cd portfolio-simulator/ml-service && python -m app.precompute.regenerate_simulation_store`.
 - The generated store materializes one decision per reportable month/risk level:
   - `optimizedPortfolio`: profile optimizer weights on the selected/filtered universe.
+  - `profileEqualWeight`: equal weights on the selected/filtered profile universe.
   - `optimizerFullUniverse`: profile optimizer weights on the full reportable universe.
+  - `fullUniverseEqualWeight`: equal weights on the full reportable universe.
 - Visible benchmarks:
   - `mvoFilteredUniverse`: classical MVO on the selected/filtered universe.
   - `mvoFullUniverse`: classical MVO on the full reportable universe.
@@ -36,26 +38,32 @@ Important caveat: when selected-bucket deployment `N` differs from the training 
 | Risk level | Portfolio | Assets | Cumulative return | Annualized volatility | Sharpe | Max drawdown |
 |---|---:|---:|---:|---:|---:|---:|
 | Low | Profile optimizer portfolio | 11 | 33.15% | 26.88% | 2.29 | -7.21% |
+| Low | Profile equal weights | 11 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Low | Full-universe optimizer benchmark | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
+| Low | Full-universe equal weights | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Low | Profile MVO benchmark | 11 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Low | Full-universe MVO benchmark | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Low | EGX30 | 1 | 11.54% | 31.31% | 0.83 | -15.59% |
 | Medium | Profile optimizer portfolio | 22 | 3.55% | 55.15% | 0.37 | -31.33% |
+| Medium | Profile equal weights | 22 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Medium | Full-universe optimizer benchmark | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
+| Medium | Full-universe equal weights | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Medium | Profile MVO benchmark | 22 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Medium | Full-universe MVO benchmark | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
 | Medium | EGX30 | 1 | 11.54% | 31.31% | 0.83 | -15.59% |
 | High | Profile optimizer portfolio | 11 | 35.15% | 46.85% | 1.51 | -20.17% |
+| High | Profile equal weights | 11 | Re-run required | Re-run required | Re-run required | Re-run required |
 | High | Full-universe optimizer benchmark | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
+| High | Full-universe equal weights | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
 | High | Profile MVO benchmark | 11 | Re-run required | Re-run required | Re-run required | Re-run required |
 | High | Full-universe MVO benchmark | 36 | Re-run required | Re-run required | Re-run required | Re-run required |
 | High | EGX30 | 1 | 11.54% | 31.31% | 0.83 | -15.59% |
 
-The full-universe optimizer and MVO rows must be re-generated after the benchmark-set change before quoting figures.
+The full-universe optimizer, equal-weight, and MVO rows must be re-generated after the benchmark-set change before quoting figures.
 
 ## Honest Interpretation
 
 - Low-risk 2024-01 is a historical example where profile filtering before optimizer weighting produced a higher realized diagnostic than EGX30 in the prior probe.
 - Medium-risk 2024-01 is not supportive for the selected optimizer in the prior probe, so do not quote it as general outperformance.
 - High-risk 2024-01 shows higher upside from selected optimization, with higher drawdown than the lower-risk examples.
-- The visible report now separates allocator and universe: profile optimizer, full-universe optimizer, profile MVO, full-universe MVO, and EGX30.
+- The visible report now separates allocator and universe: profile optimizer, profile equal weights, full-universe optimizer, full-universe equal weights, profile MVO, full-universe MVO, and EGX30.

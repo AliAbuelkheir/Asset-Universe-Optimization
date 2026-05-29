@@ -14,7 +14,9 @@ import {
 
 const COLORS: Record<string, string> = {
   optimizedPortfolio: "#31f30a",
+  profileEqualWeight: "#0ea5e9",
   optimizerFullUniverse: "#159947",
+  fullUniverseEqualWeight: "#f59e0b",
   mvoFilteredUniverse: "#292929",
   mvoFullUniverse: "#7f7f7f",
   egx30: "#b8b8b8"

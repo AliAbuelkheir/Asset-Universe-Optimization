@@ -106,7 +106,9 @@ const baseReport = {
     {
       month: "2025-03",
       optimizedPortfolio: 0.015,
+      profileEqualWeight: 0.013,
       optimizerFullUniverse: 0.014,
+      fullUniverseEqualWeight: 0.012,
       mvoFilteredUniverse: 0.011,
       mvoFullUniverse: 0.012,
       egx30: 0.03
@@ -114,7 +116,9 @@ const baseReport = {
     {
       month: "2025-04",
       optimizedPortfolio: -0.005,
+      profileEqualWeight: -0.004,
       optimizerFullUniverse: -0.006,
+      fullUniverseEqualWeight: -0.007,
       mvoFilteredUniverse: -0.009,
       mvoFullUniverse: -0.008,
       egx30: 0.02
@@ -136,6 +140,20 @@ const baseReport = {
       }
     },
     {
+      id: "profileEqualWeight",
+      label: "Profile equal weights",
+      metrics: {
+        cumulativeReturn: 0.009,
+        annualizedVolatility: 0.07,
+        sharpe: 1,
+        sortino: null,
+        maxDrawdown: -0.004,
+        bestMonth: 0.013,
+        worstMonth: -0.004,
+        ratioNotes: { sharpe: "", sortino: "n/a" }
+      }
+    },
+    {
       id: "optimizerFullUniverse",
       label: "Full-universe optimizer benchmark",
       metrics: {
@@ -146,6 +164,20 @@ const baseReport = {
         maxDrawdown: -0.006,
         bestMonth: 0.014,
         worstMonth: -0.006,
+        ratioNotes: { sharpe: "", sortino: "n/a" }
+      }
+    },
+    {
+      id: "fullUniverseEqualWeight",
+      label: "Full-universe equal weights",
+      metrics: {
+        cumulativeReturn: 0.005,
+        annualizedVolatility: 0.088,
+        sharpe: 0.6,
+        sortino: null,
+        maxDrawdown: -0.007,
+        bestMonth: 0.012,
+        worstMonth: -0.007,
         ratioNotes: { sharpe: "", sortino: "n/a" }
       }
     },
@@ -208,17 +240,7 @@ function reportForMode(simulatorMode: "single" | "monthly_rebalance") {
         }
       ]
     : baseReport.rebalanceTimeline;
-  const comparison = simulatorMode === "monthly_rebalance"
-    ? baseReport.comparison.map((row) => row.id === "optimizedPortfolio"
-      ? { ...row, label: "Profile optimizer portfolio" }
-      : row.id === "optimizerFullUniverse"
-        ? { ...row, label: "Full-universe optimizer benchmark" }
-        : row.id === "mvoFilteredUniverse"
-          ? { ...row, label: "Profile MVO benchmark" }
-      : row.id === "mvoFullUniverse"
-        ? { ...row, label: "Full-universe MVO benchmark" }
-          : row)
-    : baseReport.comparison;
+  const comparison = baseReport.comparison;
   return { ...baseReport, simulatorMode, rebalanceTimeline, comparison };
 }
 
@@ -321,7 +343,9 @@ describe("App", () => {
     expect(screen.getByText("Holdings")).toBeInTheDocument();
     expect(screen.queryByText(/Rank \d/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Profile optimizer portfolio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Profile equal weights").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Full-universe optimizer benchmark").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Full-universe equal weights").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Profile MVO benchmark").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Full-universe MVO benchmark").length).toBeGreaterThan(0);
     expect(screen.getByText("2 holdings from 3 available assets")).toBeInTheDocument();

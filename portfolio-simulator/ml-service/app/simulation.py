@@ -146,11 +146,7 @@ def _monthly_point(
         )
     return {
         "month": return_month,
-        "optimizedPortfolio": returns["optimizedPortfolio"],
-        "optimizerFullUniverse": returns["optimizerFullUniverse"],
-        "mvoFilteredUniverse": returns["mvoFilteredUniverse"],
-        "mvoFullUniverse": returns["mvoFullUniverse"],
-        "egx30": returns["egx30"],
+        **{strategy_id: returns[strategy_id] for strategy_id in STRATEGY_IDS},
     }
 
 

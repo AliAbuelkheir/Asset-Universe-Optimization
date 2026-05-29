@@ -261,6 +261,7 @@ def generate_store(output_path: Path = SIMULATION_STORE_PATH) -> Path:
                 selected = select_assets(month, risk_level, predictions=predictions)
                 selected_asset_ids = selected["AssetID"].astype(str).tolist()
                 selected_equal_weights = equal_weights(selected_asset_ids)
+                full_universe_equal_weights = equal_weights(all_universe_asset_ids)
 
                 optimized_selected = run_weight_optimizer(
                     tier=risk_level,
@@ -289,7 +290,9 @@ def generate_store(output_path: Path = SIMULATION_STORE_PATH) -> Path:
 
                 weights_by_strategy = {
                     "optimizedPortfolio": optimized_selected.weights,
+                    "profileEqualWeight": selected_equal_weights,
                     "optimizerFullUniverse": optimized_full.weights,
+                    "fullUniverseEqualWeight": full_universe_equal_weights,
                     "mvoFilteredUniverse": mvo_selected.weights,
                     "mvoFullUniverse": mvo_full.weights,
                     "egx30": {"EGX30": 1.0},
@@ -301,10 +304,22 @@ def generate_store(output_path: Path = SIMULATION_STORE_PATH) -> Path:
                     weights=optimized_selected.weights,
                 )
                 _validate_weights(
+                    strategy_id="profileEqualWeight",
+                    target_month=month,
+                    requested_asset_ids=selected_asset_ids,
+                    weights=selected_equal_weights,
+                )
+                _validate_weights(
                     strategy_id="optimizerFullUniverse",
                     target_month=month,
                     requested_asset_ids=all_universe_asset_ids,
                     weights=optimized_full.weights,
+                )
+                _validate_weights(
+                    strategy_id="fullUniverseEqualWeight",
+                    target_month=month,
+                    requested_asset_ids=all_universe_asset_ids,
+                    weights=full_universe_equal_weights,
                 )
                 _validate_weights(
                     strategy_id="mvoFilteredUniverse",

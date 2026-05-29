@@ -39,7 +39,9 @@ function topAllocations(snapshot: RebalanceTimelinePoint, limit = 8) {
 function compactLabel(row: ComparisonRow) {
   const compactLabels: Record<ComparisonRow["id"], string> = {
     optimizedPortfolio: "Profile optimizer",
+    profileEqualWeight: "Profile equal weights",
     optimizerFullUniverse: "Full-universe optimizer",
+    fullUniverseEqualWeight: "Full-universe equal weights",
     mvoFilteredUniverse: "Profile MVO",
     mvoFullUniverse: "Full-universe MVO",
     egx30: "EGX30"

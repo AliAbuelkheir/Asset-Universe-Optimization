@@ -14,7 +14,7 @@ from ..data import DAILY_MARKET_PATH, MONTHLY_PANEL_PATH, PREDICTIONS_PATH, RISK
 from ..paths import APP_ROOT, MODEL_ARTIFACTS_ROOT
 
 SCHEMA_VERSION = "1"
-GENERATOR_VERSION = "3"
+GENERATOR_VERSION = "4"
 
 PRECOMPUTED_ROOT = MODEL_ARTIFACTS_ROOT / "precomputed-simulations"
 SIMULATION_STORE_PATH = PRECOMPUTED_ROOT / "simulation_store.sqlite"
@@ -22,14 +22,18 @@ SIMULATION_STORE_PATH = PRECOMPUTED_ROOT / "simulation_store.sqlite"
 RISK_LEVEL_ORDER = ("low", "medium", "high")
 STRATEGY_IDS = (
     "optimizedPortfolio",
+    "profileEqualWeight",
     "optimizerFullUniverse",
+    "fullUniverseEqualWeight",
     "mvoFilteredUniverse",
     "mvoFullUniverse",
     "egx30",
 )
 STRATEGY_LABELS = {
     "optimizedPortfolio": "Profile optimizer portfolio",
+    "profileEqualWeight": "Profile equal weights",
     "optimizerFullUniverse": "Full-universe optimizer benchmark",
+    "fullUniverseEqualWeight": "Full-universe equal weights",
     "mvoFilteredUniverse": "Profile MVO benchmark",
     "mvoFullUniverse": "Full-universe MVO benchmark",
     "egx30": "EGX30",

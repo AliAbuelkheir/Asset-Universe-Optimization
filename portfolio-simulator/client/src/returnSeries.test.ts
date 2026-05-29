@@ -20,7 +20,9 @@ describe("visibleReturnSeries", () => {
   it("uses API comparison rows as the visible benchmark order", () => {
     const comparison: ComparisonRow[] = [
       { id: "optimizedPortfolio", label: "Profile optimizer portfolio", metrics },
+      { id: "profileEqualWeight", label: "Profile equal weights", metrics },
       { id: "optimizerFullUniverse", label: "Full-universe optimizer benchmark", metrics },
+      { id: "fullUniverseEqualWeight", label: "Full-universe equal weights", metrics },
       { id: "mvoFilteredUniverse", label: "Profile MVO benchmark", metrics },
       { id: "mvoFullUniverse", label: "Full-universe MVO benchmark", metrics },
       { id: "egx30", label: "EGX30", metrics }
@@ -28,7 +30,9 @@ describe("visibleReturnSeries", () => {
 
     expect(visibleReturnSeries(true, comparison).map((series) => series.key)).toEqual([
       "optimizedPortfolio",
+      "profileEqualWeight",
       "optimizerFullUniverse",
+      "fullUniverseEqualWeight",
       "mvoFilteredUniverse",
       "mvoFullUniverse",
       "egx30"

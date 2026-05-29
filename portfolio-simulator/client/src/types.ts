@@ -49,7 +49,9 @@ export interface QuestionnaireInference {
 export interface MonthlyReturnPoint {
   month: string;
   optimizedPortfolio: number;
+  profileEqualWeight: number;
   optimizerFullUniverse: number;
+  fullUniverseEqualWeight: number;
   mvoFilteredUniverse: number;
   mvoFullUniverse: number;
   egx30: number;
@@ -70,7 +72,14 @@ export interface PerformanceMetrics {
 }
 
 export interface ComparisonRow {
-  id: "optimizedPortfolio" | "optimizerFullUniverse" | "mvoFilteredUniverse" | "mvoFullUniverse" | "egx30";
+  id:
+    | "optimizedPortfolio"
+    | "profileEqualWeight"
+    | "optimizerFullUniverse"
+    | "fullUniverseEqualWeight"
+    | "mvoFilteredUniverse"
+    | "mvoFullUniverse"
+    | "egx30";
   label: string;
   metrics: PerformanceMetrics;
 }

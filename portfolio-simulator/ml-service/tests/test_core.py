@@ -46,7 +46,9 @@ INTERNAL_SUMMARY_TERMS = (
 
 BENCHMARK_IDS = [
     "optimizedPortfolio",
+    "profileEqualWeight",
     "optimizerFullUniverse",
+    "fullUniverseEqualWeight",
     "mvoFilteredUniverse",
     "mvoFullUniverse",
     "egx30",
@@ -54,7 +56,9 @@ BENCHMARK_IDS = [
 
 BENCHMARK_LABELS = [
     "Profile optimizer portfolio",
+    "Profile equal weights",
     "Full-universe optimizer benchmark",
+    "Full-universe equal weights",
     "Profile MVO benchmark",
     "Full-universe MVO benchmark",
     "EGX30",
@@ -198,7 +202,9 @@ def test_fast_simulation_builds_trimmed_forward_report() -> None:
     assert set(report["monthlyReturns"][0]) == {
         "month",
         "optimizedPortfolio",
+        "profileEqualWeight",
         "optimizerFullUniverse",
+        "fullUniverseEqualWeight",
         "mvoFilteredUniverse",
         "mvoFullUniverse",
         "egx30",
@@ -407,7 +413,9 @@ def test_fast_endpoint_serializes_multi_month_rebalance() -> None:
     assert payload["simulatorMode"] == "monthly_rebalance"
     assert [row["month"] for row in payload["rebalanceTimeline"]] == ["2025-03", "2025-04", "2025-05"]
     assert [row["month"] for row in payload["monthlyReturns"]] == ["2025-03", "2025-04", "2025-05"]
+    assert "profileEqualWeight" in payload["monthlyReturns"][0]
     assert "optimizerFullUniverse" in payload["monthlyReturns"][0]
+    assert "fullUniverseEqualWeight" in payload["monthlyReturns"][0]
     assert "mvoFilteredUniverse" in payload["monthlyReturns"][0]
     assert "mvoFullUniverse" in payload["monthlyReturns"][0]
     assert "assignedRiskBucket" not in payload["monthlyReturns"][0]

@@ -3,7 +3,9 @@ import type { ComparisonRow, MonthlyReturnPoint } from "./types";
 
 export const returnSeries = [
   { key: "optimizedPortfolio", label: comparisonLabels.optimizedPortfolio, color: "#31f30a" },
+  { key: "profileEqualWeight", label: comparisonLabels.profileEqualWeight, color: "#0ea5e9" },
   { key: "optimizerFullUniverse", label: comparisonLabels.optimizerFullUniverse, color: "#159947" },
+  { key: "fullUniverseEqualWeight", label: comparisonLabels.fullUniverseEqualWeight, color: "#f59e0b" },
   { key: "mvoFilteredUniverse", label: comparisonLabels.mvoFilteredUniverse, color: "#292929" },
   { key: "mvoFullUniverse", label: comparisonLabels.mvoFullUniverse, color: "#7f7f7f" },
   { key: "egx30", label: comparisonLabels.egx30, color: "#b8b8b8" }
