@@ -140,6 +140,7 @@ svg {
 .productIntro > div > span,
 .sectionHeading span,
 .activeModeHeader span,
+.questionnaireHeader span,
 .workspaceHeader span,
 .reportHeader > div > span,
 .resultPanelHeader span,
@@ -207,6 +208,35 @@ svg {
   line-height: 1.45;
 }
 
+.newQuestionnaireButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.newQuestionnaireButton svg {
+  color: var(--positive);
+}
+
+.newQuestionnaireButton:hover {
+  border-color: var(--accent);
+  color: var(--ink-strong);
+  background: var(--surface-soft);
+}
+
 .simulatorFrame {
   width: 100%;
   max-width: 1500px;
@@ -222,6 +252,9 @@ svg {
 .runPanel,
 .simulationMain,
 .activeModePanel,
+.questionnaireSurface,
+.profileUnavailable,
+.workspaceLoading,
 .reportSurface,
 .resultPanel,
 .pipelinePanel,
@@ -336,7 +369,8 @@ svg {
 }
 
 .sectionHeading,
-.activeModeHeader {
+.activeModeHeader,
+.questionnaireHeader {
   align-items: flex-start;
 }
 
@@ -349,7 +383,6 @@ svg {
 
 .runPanel label > span,
 .runPanelGroup > span,
-.riskPreview span,
 .questionItem > span,
 .metricCard > span,
 .snapshotStats dt,
@@ -483,6 +516,39 @@ select {
   background: var(--surface-soft);
 }
 
+.questionnaireSurface {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  scroll-margin-top: 12px;
+}
+
+.questionnaireHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px;
+}
+
+.questionnaireHeader h3 {
+  margin-top: 3px;
+  color: var(--ink-strong);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.questionnaireHeader p {
+  max-width: 680px;
+  margin-top: 6px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .activeModeHeader h3,
 .resultPanel h3,
 .chartPanelHeader h3,
@@ -521,6 +587,7 @@ select {
 
 .questionnaireStack {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -544,6 +611,118 @@ select {
   font-weight: 500;
 }
 
+.questionnaireAction {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.questionnaireAction div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.questionnaireAction strong {
+  color: var(--ink-strong);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.questionnaireAction span {
+  color: var(--ink-subtle);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.questionnaireAction .primaryButton {
+  width: auto;
+  min-width: 220px;
+  padding: 0 12px;
+}
+
+.profileUnavailable {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: center;
+  scroll-margin-top: 12px;
+}
+
+.profileUnavailable svg {
+  color: var(--accent);
+}
+
+.profileUnavailable h2 {
+  color: var(--ink-strong);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.profileUnavailable p {
+  max-width: 420px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.workspaceLoading {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 44%, var(--accent-soft), transparent 92px),
+    var(--surface);
+  text-align: center;
+}
+
+.workspaceSpinner {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent-border);
+  border-radius: 50%;
+  color: var(--positive);
+  background: var(--surface);
+  box-shadow: 0 8px 18px rgba(49, 243, 10, 0.08);
+}
+
+.workspaceSpinner svg {
+  animation: spin 900ms linear infinite;
+}
+
+.workspaceLoading h2 {
+  color: var(--ink-strong);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.workspaceLoading p {
+  max-width: 420px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .simulatorModeToggle {
   display: grid;
   gap: 5px;
@@ -559,22 +738,6 @@ select {
   background: var(--surface);
 }
 
-.riskPreview {
-  display: grid;
-  gap: 4px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-soft);
-}
-
-.riskPreview strong {
-  color: var(--ink-strong);
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.1;
-}
-
 .primaryButton {
   display: inline-flex;
   justify-content: center;
@@ -587,6 +750,12 @@ select {
   border-color: var(--accent);
   font-size: 13px;
   font-weight: 500;
+}
+
+.runNote {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .primaryButton:hover:not(:disabled) {
@@ -1456,6 +1625,12 @@ th {
   }
 }
 
+@media (max-width: 1360px) {
+  .snapshotGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1220px) {
   .simulatorFrame {
     grid-template-columns: 300px minmax(0, 1fr);
@@ -1515,13 +1690,24 @@ th {
     flex-direction: column;
     align-items: stretch;
   }
+
 }
 
 @media (max-width: 640px) {
   .metricsGrid,
   .snapshotGrid,
-  .modeCards {
+  .modeCards,
+  .questionnaireStack {
     grid-template-columns: 1fr;
+  }
+
+  .questionnaireAction {
+    display: grid;
+  }
+
+  .questionnaireAction .primaryButton {
+    width: 100%;
+    min-width: 0;
   }
 
   .monthRailWrap {
@@ -1562,6 +1748,7 @@ th {
   }
 
   .t-panel-slide,
+  .newQuestionnaireButton,
   .modeCard,
   .simulatorModeToggle button,
   .segmented button,
@@ -1572,5 +1759,10 @@ th {
   .primaryButton {
     animation: none !important;
     transition: none !important;
+  }
+
+  .primaryButton svg,
+  .workspaceSpinner svg {
+    animation: none !important;
   }
 }

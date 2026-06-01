@@ -1,12 +1,12 @@
 # Questionnaire Risk-Tolerance Artifacts
 
 This directory stores the runtime artifacts for the questionnaire-based
-investor risk-tolerance feature. The raw Random Forest pickle is wired into the
-FastAPI simulator runtime through `ml-service/app/questionnaire.py`.
+investor risk-tolerance feature. The CatBoost pickle is wired into the FastAPI
+simulator runtime through `ml-service/app/questionnaire.py`.
 
 ## Files
 
-- `risk_tolerance_rf_model.pkl`: raw Random Forest risk-tolerance classifier.
+- `catboost_undersampling_risk_model.pkl`: CatBoost risk-tolerance classifier.
 - `contract.json`: runtime feature-order and checksum contract.
 
 Source/provenance files live under
@@ -14,22 +14,31 @@ Source/provenance files live under
 
 ## Raw Model Contract
 
-The supplied pickle is a raw `sklearn.ensemble.RandomForestClassifier`, not the
-dict-style artifact described in the provenance PDF.
+The supplied pickle is a `catboost.CatBoostClassifier`. The simulator accepts
+the deployment model inputs directly instead of reconstructing the original
+survey answers.
 
 Expected inference feature vector, in exact order:
 
 1. `age`
-2. `Duration_Score`
-3. `Expect_Score`
-4. `Monitor_Score`
-5. `gender_Male`
-6. `Objective_Income`
-7. `Objective_Growth`
-8. `Purpose_Savings for Future`
-9. `What are your savings objectives?_Health Care`
+2. `Gender_Score`
+3. `Stock_Score`
+4. `Duration_Score`
+5. `Expect_Score`
+6. `Monitor_Score`
+7. `Objective_Score`
+8. `Avenue_Score`
+9. `Factor_Returns`
+10. `Factor_Risk`
+11. `Purpose_Savings for Future`
+12. `Purpose_Wealth Creation`
+13. `What are your savings objectives?_Health Care`
+14. `What are your savings objectives?_Retirement Plan`
 
-Number of features: 9.
+Number of features: 14.
+
+The training export reports observed ages from `18` through `38`. Runtime
+inference clamps submitted ages to this range before passing them to the model.
 
 ## Output Mapping
 
@@ -40,9 +49,3 @@ Number of features: 9.
 The simulator uses the predicted risk level as the input to the existing
 historical simulation path. Portfolio results must remain described as
 historical diagnostics, not guaranteed performance.
-
-Note: the supplied pickle is missing the richer `feature_names` and `scaler`
-metadata described in the provenance PDF. Controlled-profile checks showed the
-raw model expects the two objective one-hot columns as `Objective_Income` then
-`Objective_Growth`; using the reverse order makes income-oriented conservative
-profiles classify as aggressive.

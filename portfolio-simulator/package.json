@@ -11,7 +11,11 @@
     "dev:client": "npm --prefix client run dev",
     "dev:ml": "..\\ranked-risk-model\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --app-dir ml-service --host 127.0.0.1 --port 8000 --reload",
     "build": "npm --prefix client run build",
-    "test": "npm --prefix client test && ..\\ranked-risk-model\\.venv\\Scripts\\python.exe -m pytest ml-service/tests"
+    "check:types": "node scripts/run-with-timeout.mjs --timeout-ms 60000 -- node.exe node_modules\\typescript\\bin\\tsc -p client\\tsconfig.json --noEmit --incremental false",
+    "test:client": "node scripts/run-with-timeout.mjs --timeout-ms 60000 -- node.exe node_modules\\vitest\\vitest.mjs run --root client --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "test:ml": "node scripts/run-with-timeout.mjs --timeout-ms 120000 --mkdir ..\\tmp\\portfolio-simulator-pytest -- ..\\ranked-risk-model\\.venv\\Scripts\\python.exe -m pytest ml-service\\tests -q -p no:cacheprovider --basetemp ..\\tmp\\portfolio-simulator-pytest\\full",
+    "test:questionnaire": "node scripts/run-with-timeout.mjs --timeout-ms 60000 --mkdir ..\\tmp\\portfolio-simulator-pytest -- ..\\ranked-risk-model\\.venv\\Scripts\\python.exe -m pytest ml-service\\tests\\test_core.py -q -p no:cacheprovider --basetemp ..\\tmp\\portfolio-simulator-pytest\\questionnaire -k questionnaire",
+    "test": "npm run check:types && npm run test:client && npm run test:ml"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

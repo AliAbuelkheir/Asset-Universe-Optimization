@@ -1,18 +1,14 @@
-import { Gauge, UserRoundCheck } from "lucide-react";
+import { Gauge, Play, RotateCw } from "lucide-react";
 import { labelRisk } from "../format";
 import { riskOrder } from "../simulationOptions";
-import type { QuestionnaireInput, RiskLevel, RiskLevelDefinition, SimulationMode } from "../types";
-import { QuestionnaireForm } from "./QuestionnaireForm";
+import type { RiskLevel, RiskLevelDefinition } from "../types";
 
 interface SimulationControlsProps {
   levels: RiskLevelDefinition[];
-  mode: SimulationMode;
   riskLevel: RiskLevel;
-  questionnaire: QuestionnaireInput;
-  questionnaireAvailable: boolean;
-  onModeChange: (mode: SimulationMode) => void;
+  loading: boolean;
   onRiskLevelChange: (riskLevel: RiskLevel) => void;
-  onQuestionnaireChange: <K extends keyof QuestionnaireInput>(field: K, value: QuestionnaireInput[K]) => void;
+  onRun: () => void;
 }
 
 const publicRiskDescriptions: Record<RiskLevel, string> = {
@@ -23,73 +19,47 @@ const publicRiskDescriptions: Record<RiskLevel, string> = {
 
 export function SimulationControls({
   levels,
-  mode,
   riskLevel,
-  questionnaire,
-  questionnaireAvailable,
-  onModeChange,
+  loading,
   onRiskLevelChange,
-  onQuestionnaireChange
+  onRun
 }: SimulationControlsProps) {
   return (
-    <section className="simulationMain">
+    <section className="simulationMain" aria-label="Fast select">
       <div className="sectionHeading">
         <div>
-          <span>Investor profile</span>
-          <h2>Risk input</h2>
+          <span>Fast mode</span>
+          <h2>Quick simulation</h2>
         </div>
       </div>
 
-      <div className="modeCards" role="group" aria-label="Risk input mode">
-        <button
-          type="button"
-          className={mode === "questionnaire" ? "modeCard selected" : "modeCard"}
-          aria-pressed={mode === "questionnaire"}
-          disabled={!questionnaireAvailable}
-          onClick={() => onModeChange("questionnaire")}
-        >
-          <UserRoundCheck size={16} />
-          <strong>Questionnaire</strong>
-          <span>{questionnaireAvailable ? "Use profile answers" : "Unavailable"}</span>
-        </button>
-        <button
-          type="button"
-          className={mode === "fast" ? "modeCard selected" : "modeCard"}
-          aria-pressed={mode === "fast"}
-          onClick={() => onModeChange("fast")}
-        >
-          <Gauge size={16} />
-          <strong>Fast select</strong>
-          <span>Choose profile</span>
-        </button>
-      </div>
-
-      {mode === "questionnaire" && questionnaireAvailable ? (
-        <QuestionnaireForm questionnaire={questionnaire} onChange={onQuestionnaireChange} />
-      ) : (
-        <section className="activeModePanel fastModePanel" aria-label="Fast select input">
-          <div className="activeModeHeader">
-            <div>
-              <span>Fast select</span>
-              <h3>Risk profile</h3>
-            </div>
+      <section className="activeModePanel fastModePanel" aria-label="Fast select input">
+        <div className="activeModeHeader">
+          <div>
+            <span>Fast select</span>
+            <h3>Risk profile</h3>
           </div>
-          <div className="segmented" role="group" aria-label="Risk profile">
-            {riskOrder.map((level) => (
-              <button
-                key={level}
-                type="button"
-                className={riskLevel === level ? "selected" : ""}
-                aria-pressed={riskLevel === level}
-                onClick={() => onRiskLevelChange(level)}
-              >
-                {labelRisk(level)}
-              </button>
-            ))}
-          </div>
-          <p className="modeDescription">{publicRiskDescriptions[riskLevel]}</p>
-        </section>
-      )}
+        </div>
+        <div className="segmented" role="group" aria-label="Risk profile">
+          {riskOrder.map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={riskLevel === level ? "selected" : ""}
+              aria-pressed={riskLevel === level}
+              onClick={() => onRiskLevelChange(level)}
+            >
+              {labelRisk(level)}
+            </button>
+          ))}
+        </div>
+        <p className="modeDescription">{publicRiskDescriptions[riskLevel]}</p>
+        <button className="primaryButton" type="button" onClick={onRun} disabled={loading || levels.length === 0}>
+          {loading ? <RotateCw size={16} /> : <Play size={16} />}
+          {loading ? "Running" : "Run"}
+        </button>
+        <p className="runNote"><Gauge size={13} />Uses the selected profile directly.</p>
+      </section>
     </section>
   );
 }

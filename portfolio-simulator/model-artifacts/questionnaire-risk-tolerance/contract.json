@@ -1,18 +1,22 @@
 {
-  "artifact": "risk_tolerance_rf_model.pkl",
-  "sha256": "dc684135050bd72c04630d2d37e5e4f4e0e3355a2557a7648446f80ab1142674",
-  "modelType": "sklearn.ensemble.RandomForestClassifier",
-  "trainedSklearnVersion": "1.6.1",
+  "artifact": "catboost_undersampling_risk_model.pkl",
+  "sha256": "721b680f735a176aef1266bff95536c8ef1da55b5bea23fd43f2fa766e0e43e1",
+  "modelType": "catboost.CatBoostClassifier",
   "featureNames": [
     "age",
+    "Gender_Score",
+    "Stock_Score",
     "Duration_Score",
     "Expect_Score",
     "Monitor_Score",
-    "gender_Male",
-    "Objective_Income",
-    "Objective_Growth",
+    "Objective_Score",
+    "Avenue_Score",
+    "Factor_Returns",
+    "Factor_Risk",
     "Purpose_Savings for Future",
-    "What are your savings objectives?_Health Care"
+    "Purpose_Wealth Creation",
+    "What are your savings objectives?_Health Care",
+    "What are your savings objectives?_Retirement Plan"
   ],
   "classMapping": {
     "0": {

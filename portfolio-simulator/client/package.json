@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "build": "tsc -b && vite build",
+    "build": "node ../scripts/run-with-timeout.mjs --timeout-ms 60000 -- node.exe ../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --incremental false && node ../scripts/run-with-timeout.mjs --timeout-ms 60000 -- node.exe ../node_modules/vite/bin/vite.js build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "node ../scripts/run-with-timeout.mjs --timeout-ms 60000 -- node.exe ../node_modules/vitest/vitest.mjs run --pool=threads --maxWorkers=1 --no-file-parallelism"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.4.1",

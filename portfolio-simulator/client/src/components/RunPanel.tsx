@@ -1,57 +1,31 @@
-import { Play, RotateCw } from "lucide-react";
-import { labelRisk } from "../format";
 import { durationOptions, simulatorModeOptions } from "../simulationOptions";
 import type {
   MonthOption,
-  RiskLevel,
-  RiskLevelDefinition,
-  SimulationMode,
-  SimulatorMode,
-  SimulationReport
+  SimulatorMode
 } from "../types";
 
 interface RunPanelProps {
   months: MonthOption[];
-  levels: RiskLevelDefinition[];
-  mode: SimulationMode;
   month: string;
-  riskLevel: RiskLevel;
   simulatorMode: SimulatorMode;
   durationMonths: number | null;
-  report: SimulationReport | null;
-  lastRunMode: SimulationMode | null;
-  loading: boolean;
   onMonthChange: (month: string) => void;
   onSimulatorModeChange: (simulatorMode: SimulatorMode) => void;
   onDurationChange: (duration: number | null) => void;
-  onRun: () => void;
 }
 
 export function RunPanel({
   months,
-  levels,
-  mode,
   month,
-  riskLevel,
   simulatorMode,
   durationMonths,
-  report,
-  lastRunMode,
-  loading,
   onMonthChange,
   onSimulatorModeChange,
-  onDurationChange,
-  onRun
+  onDurationChange
 }: RunPanelProps) {
   const durationRequestLabel = durationMonths === null
     ? "Max window"
     : `${durationMonths} month${durationMonths === 1 ? "" : "s"}`;
-  const profileLabel = mode === "questionnaire" && report?.questionnaireInference && lastRunMode === "questionnaire"
-    ? report.questionnaireInference.riskLabel
-    : mode === "questionnaire"
-      ? "Pending"
-      : labelRisk(riskLevel);
-  const selectedLevel = levels.find((level) => level.id === riskLevel);
 
   return (
     <section className="runPanel">
@@ -107,17 +81,7 @@ export function RunPanel({
         </div>
       )}
 
-      <div className="riskPreview">
-        <span>{mode === "questionnaire" ? "Profile from answers" : "Selected profile"}</span>
-        <strong>{profileLabel}</strong>
-        <p>{mode === "questionnaire" ? "Confirmed after running." : selectedLevel?.label ?? "Manual profile"}</p>
-      </div>
-
-      <button className="primaryButton" type="button" onClick={onRun} disabled={loading || months.length === 0}>
-        {loading ? <RotateCw size={16} /> : <Play size={16} />}
-        {loading ? "Running" : "Run simulation"}
-      </button>
-      <p className="runNote">{durationRequestLabel} historical diagnostic.</p>
+      <p className="runNote">{durationRequestLabel} historical diagnostic. Applied to both run paths.</p>
     </section>
   );
 }

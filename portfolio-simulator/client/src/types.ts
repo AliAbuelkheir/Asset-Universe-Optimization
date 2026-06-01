@@ -28,14 +28,20 @@ export interface HealthResponse {
 }
 
 export interface QuestionnaireInput {
-  gender: "Male" | "Female";
   age: number;
-  Duration: "Less than 1 year" | "1-3 years" | "3-5 years" | "More than 5 years";
-  Invest_Monitor: "Monthly" | "Weekly" | "Daily";
-  Expect: "10%-20%" | "20%-30%" | "30%-40%";
-  Objective: "Risk" | "Returns" | "Growth" | "Income";
-  Purpose: "Wealth Creation" | "Savings for Future" | "Returns" | "Income";
-  "What are your savings objectives?": "Health Care" | "Retirement Plan" | "Education";
+  Gender_Score: 0 | 1;
+  Stock_Score: 0 | 1;
+  Duration_Score: 1 | 2 | 3 | 4;
+  Expect_Score: 1 | 2 | 3;
+  Monitor_Score: 1 | 2 | 3;
+  Objective_Score: 1 | 2 | 3;
+  Avenue_Score: 1 | 2 | 3 | 4;
+  Factor_Returns: boolean;
+  Factor_Risk: boolean;
+  "Purpose_Savings for Future": boolean;
+  "Purpose_Wealth Creation": boolean;
+  "What are your savings objectives?_Health Care": boolean;
+  "What are your savings objectives?_Retirement Plan": boolean;
 }
 
 export interface QuestionnaireInference {

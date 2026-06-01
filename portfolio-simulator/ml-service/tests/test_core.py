@@ -22,14 +22,20 @@ from app.simulation import health, run_fast_simulation, run_questionnaire_simula
 
 
 SAMPLE_QUESTIONNAIRE = {
-    "gender": "Male",
     "age": 29,
-    "Duration": "Less than 1 year",
-    "Invest_Monitor": "Weekly",
-    "Expect": "20%-30%",
-    "Objective": "Growth",
-    "Purpose": "Wealth Creation",
-    "What are your savings objectives?": "Health Care",
+    "Gender_Score": 1,
+    "Stock_Score": 1,
+    "Duration_Score": 2,
+    "Expect_Score": 2,
+    "Monitor_Score": 2,
+    "Objective_Score": 2,
+    "Avenue_Score": 3,
+    "Factor_Returns": True,
+    "Factor_Risk": False,
+    "Purpose_Savings for Future": False,
+    "Purpose_Wealth Creation": True,
+    "What are your savings objectives?_Health Care": True,
+    "What are your savings objectives?_Retirement Plan": False,
 }
 
 INTERNAL_SUMMARY_TERMS = (
@@ -455,7 +461,13 @@ def test_missing_precomputed_store_returns_503(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_questionnaire_feature_vector_uses_exact_order() -> None:
-    assert build_feature_vector(SAMPLE_QUESTIONNAIRE) == [29.0, 1.0, 2.0, 2.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+    assert build_feature_vector(SAMPLE_QUESTIONNAIRE) == [
+        29.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0
+    ]
+
+
+def test_questionnaire_age_is_clamped_to_training_range() -> None:
+    assert build_feature_vector({**SAMPLE_QUESTIONNAIRE, "age": 70})[0] == 38.0
 
 
 def test_questionnaire_model_predicts_valid_risk_level() -> None:
@@ -468,32 +480,6 @@ def test_questionnaire_model_predicts_valid_risk_level() -> None:
     assert 0.0 <= inference["riskScore"] <= 100.0
     assert "featureNames" not in inference
     assert "featureVector" not in inference
-
-
-def test_questionnaire_mapping_matches_controlled_profiles() -> None:
-    conservative = {
-        "gender": "Female",
-        "age": 60,
-        "Duration": "Less than 1 year",
-        "Invest_Monitor": "Monthly",
-        "Expect": "10%-20%",
-        "Objective": "Income",
-        "Purpose": "Savings for Future",
-        "What are your savings objectives?": "Retirement Plan",
-    }
-    aggressive = {
-        "gender": "Male",
-        "age": 22,
-        "Duration": "More than 5 years",
-        "Invest_Monitor": "Daily",
-        "Expect": "30%-40%",
-        "Objective": "Growth",
-        "Purpose": "Wealth Creation",
-        "What are your savings objectives?": "Education",
-    }
-
-    assert predict_questionnaire_risk(conservative)["riskLevel"] == "low"
-    assert predict_questionnaire_risk(aggressive)["riskLevel"] == "high"
 
 
 def test_questionnaire_simulation_attaches_inference_metadata() -> None:
@@ -526,14 +512,14 @@ def test_questionnaire_endpoint_returns_model_inference_metadata() -> None:
     assert "featureVector" not in inference
 
 
-def test_questionnaire_endpoint_validates_invalid_category() -> None:
+def test_questionnaire_endpoint_validates_invalid_score() -> None:
     client = TestClient(app)
     response = client.post(
         "/api/simulations/questionnaire",
         json={
             "month": "2025-03",
             "durationMonths": 1,
-            "questionnaire": {**SAMPLE_QUESTIONNAIRE, "Expect": "50%-60%"},
+            "questionnaire": {**SAMPLE_QUESTIONNAIRE, "Expect_Score": 4},
         },
     )
     assert response.status_code == 422

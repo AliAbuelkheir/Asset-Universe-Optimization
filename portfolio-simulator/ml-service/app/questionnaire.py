@@ -10,29 +10,25 @@ import numpy as np
 
 from .paths import MODEL_ARTIFACTS_ROOT
 
-MODEL_PATH = MODEL_ARTIFACTS_ROOT / "questionnaire-risk-tolerance" / "risk_tolerance_rf_model.pkl"
+MODEL_PATH = MODEL_ARTIFACTS_ROOT / "questionnaire-risk-tolerance" / "catboost_undersampling_risk_model.pkl"
 CONTRACT_PATH = MODEL_ARTIFACTS_ROOT / "questionnaire-risk-tolerance" / "contract.json"
 
 FEATURE_NAMES = [
     "age",
+    "Gender_Score",
+    "Stock_Score",
     "Duration_Score",
     "Expect_Score",
     "Monitor_Score",
-    "gender_Male",
-    "Objective_Income",
-    "Objective_Growth",
+    "Objective_Score",
+    "Avenue_Score",
+    "Factor_Returns",
+    "Factor_Risk",
     "Purpose_Savings for Future",
+    "Purpose_Wealth Creation",
     "What are your savings objectives?_Health Care",
+    "What are your savings objectives?_Retirement Plan",
 ]
-
-DURATION_SCORE = {
-    "Less than 1 year": 1,
-    "1-3 years": 2,
-    "3-5 years": 3,
-    "More than 5 years": 4,
-}
-EXPECT_SCORE = {"10%-20%": 1, "20%-30%": 2, "30%-40%": 3}
-MONITOR_SCORE = {"Monthly": 1, "Weekly": 2, "Daily": 3}
 
 LABEL_NAMES = {0: "Conservative", 1: "Moderate", 2: "Aggressive"}
 RISK_LEVELS = {0: "low", 1: "medium", 2: "high"}
@@ -92,35 +88,13 @@ def questionnaire_model_available() -> bool:
 
 def build_feature_vector(questionnaire: dict[str, Any]) -> list[float]:
     try:
-        age = int(questionnaire["age"])
-        duration = str(questionnaire["Duration"])
-        expect = str(questionnaire["Expect"])
-        monitor = str(questionnaire["Invest_Monitor"])
-        gender = str(questionnaire["gender"])
-        objective = str(questionnaire["Objective"])
-        purpose = str(questionnaire["Purpose"])
-        savings_objective = str(questionnaire["What are your savings objectives?"])
+        values = [questionnaire[name] for name in FEATURE_NAMES]
     except KeyError as exc:
         raise ValueError(f"Missing questionnaire field: {exc.args[0]}") from exc
 
-    if duration not in DURATION_SCORE:
-        raise ValueError(f"Unsupported Duration value: {duration}")
-    if expect not in EXPECT_SCORE:
-        raise ValueError(f"Unsupported Expect value: {expect}")
-    if monitor not in MONITOR_SCORE:
-        raise ValueError(f"Unsupported Invest_Monitor value: {monitor}")
-
-    return [
-        float(age),
-        float(DURATION_SCORE[duration]),
-        float(EXPECT_SCORE[expect]),
-        float(MONITOR_SCORE[monitor]),
-        1.0 if gender == "Male" else 0.0,
-        1.0 if objective == "Income" else 0.0,
-        1.0 if objective == "Growth" else 0.0,
-        1.0 if purpose == "Savings for Future" else 0.0,
-        1.0 if savings_objective == "Health Care" else 0.0,
-    ]
+    # The provided training data only covered ages 18-38.
+    values[0] = min(max(int(values[0]), 18), 38)
+    return [float(value) for value in values]
 
 
 def _load_model() -> Any:
@@ -136,8 +110,8 @@ def predict_questionnaire_risk(questionnaire: dict[str, Any]) -> dict[str, Any]:
     model = _load_model()
     features = build_feature_vector(questionnaire)
     values = np.asarray([features], dtype=float)
-    predicted_class = int(model.predict(values)[0])
-    probabilities_array = model.predict_proba(values)[0]
+    predicted_class = int(np.asarray(model.predict(values)).reshape(-1)[0])
+    probabilities_array = np.asarray(model.predict_proba(values))[0]
     classes = [int(value) for value in getattr(model, "classes_", [0, 1, 2])]
     probabilities = {
         LABEL_NAMES[class_id]: float(probabilities_array[index])

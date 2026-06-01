@@ -19,16 +19,20 @@ class FastSimulationRequest(BaseModel):
 class QuestionnaireInput(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    gender: Literal["Male", "Female"]
     age: int = Field(ge=18, le=70)
-    Duration: Literal["Less than 1 year", "1-3 years", "3-5 years", "More than 5 years"]
-    Invest_Monitor: Literal["Monthly", "Weekly", "Daily"]
-    Expect: Literal["10%-20%", "20%-30%", "30%-40%"]
-    Objective: Literal["Risk", "Returns", "Growth", "Income"]
-    Purpose: Literal["Wealth Creation", "Savings for Future", "Returns", "Income"]
-    savings_objective: Literal["Health Care", "Retirement Plan", "Education"] = Field(
-        alias="What are your savings objectives?"
-    )
+    Gender_Score: Literal[0, 1]
+    Stock_Score: Literal[0, 1]
+    Duration_Score: Literal[1, 2, 3, 4]
+    Expect_Score: Literal[1, 2, 3]
+    Monitor_Score: Literal[1, 2, 3]
+    Objective_Score: Literal[1, 2, 3]
+    Avenue_Score: Literal[1, 2, 3, 4]
+    Factor_Returns: bool
+    Factor_Risk: bool
+    Purpose_Savings_for_Future: bool = Field(alias="Purpose_Savings for Future")
+    Purpose_Wealth_Creation: bool = Field(alias="Purpose_Wealth Creation")
+    savings_objective_health_care: bool = Field(alias="What are your savings objectives?_Health Care")
+    savings_objective_retirement_plan: bool = Field(alias="What are your savings objectives?_Retirement Plan")
 
 
 class QuestionnaireSimulationRequest(BaseModel):

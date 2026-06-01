@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 const monthOptions = [{ month: "2025-03", assetCount: 36 }];
@@ -249,6 +249,8 @@ function latestSimulationRequest() {
   return JSON.parse(String((call?.[1] as RequestInit | undefined)?.body ?? "{}"));
 }
 
+let questionnaireModelAvailable = true;
+
 const fetchMock = vi.fn((url: string, init?: RequestInit) => {
   const body = init?.body ? JSON.parse(String(init.body)) : {};
   const simulatorMode = body.simulatorMode === "single" ? "single" : "monthly_rebalance";
@@ -261,7 +263,7 @@ const fetchMock = vi.fn((url: string, init?: RequestInit) => {
         predictionsAvailable: true,
         dailyMarketAvailable: true,
         monthlyPanelAvailable: true,
-        questionnaireModelAvailable: true,
+        questionnaireModelAvailable,
         optimizerMode: "external_model",
         optimizerRuntimeAvailable: true
       })
@@ -305,22 +307,53 @@ const fetchMock = vi.fn((url: string, init?: RequestInit) => {
 
 vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
+async function fastRunButton() {
+  const button = within(await screen.findByLabelText("Fast select input")).getByRole("button", { name: "Run" });
+  await waitFor(() => expect(button).toBeEnabled());
+  return button;
+}
+
+async function questionnaireRunButton() {
+  return within(await screen.findByLabelText("Questionnaire input")).getByRole("button", { name: "Run" });
+}
+
+async function runSimulation(button: HTMLElement) {
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(button);
+    expect(screen.getByLabelText("Running simulation")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Fast select")).not.toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    questionnaireModelAvailable = true;
     window.localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders the simulation workflow", async () => {
     render(<App />);
     expect(await screen.findByText("Egyptian market allocation review")).toBeInTheDocument();
-    expect(screen.getByText("Risk input")).toBeInTheDocument();
-    expect(screen.getAllByText("Questionnaire").length).toBeGreaterThan(0);
+    expect(screen.getByText("Quick simulation")).toBeInTheDocument();
+    expect(screen.getByText("Questionnaire setup")).toBeInTheDocument();
+    expect(screen.getByLabelText("Questionnaire input")).toBeInTheDocument();
     expect(screen.getByText("Fast select")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Monthly review/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Opening allocation/ })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByText("Run simulation")).toBeInTheDocument();
+    expect(await fastRunButton()).toBeInTheDocument();
+    expect(await questionnaireRunButton()).toBeInTheDocument();
   });
 
   it("renders the native diagnostic header", async () => {
@@ -332,12 +365,12 @@ describe("App", () => {
 
   it("runs fast mode with single allocation and renders only public report fields", async () => {
     render(<App />);
-    fireEvent.click(await screen.findByText("Fast select"));
     fireEvent.click(await screen.findByText("Low"));
     fireEvent.click(screen.getByRole("button", { name: /Opening allocation/ }));
-    fireEvent.click(screen.getByText("Run simulation"));
+    await runSimulation(await fastRunButton());
 
     expect(await screen.findByText("Simulation report")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Fast select")).not.toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("single");
     expect(screen.getAllByText("Allocation review").length).toBeGreaterThan(0);
     expect(screen.getByText("Holdings")).toBeInTheDocument();
@@ -370,9 +403,8 @@ describe("App", () => {
 
   it("runs fast mode with monthly rebalance by default", async () => {
     render(<App />);
-    fireEvent.click(await screen.findByText("Fast select"));
     fireEvent.click(await screen.findByText("Low"));
-    fireEvent.click(screen.getByText("Run simulation"));
+    await runSimulation(await fastRunButton());
 
     expect(await screen.findByText("Monthly allocation review")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
@@ -383,8 +415,7 @@ describe("App", () => {
 
   it("updates selected-month intelligence when a rebalance month is clicked", async () => {
     render(<App />);
-    fireEvent.click(await screen.findByText("Fast select"));
-    fireEvent.click(screen.getByText("Run simulation"));
+    await runSimulation(await fastRunButton());
 
     const intelligence = await screen.findByLabelText("Monthly Allocation Review");
     expect(within(intelligence).getAllByText("2025-03").length).toBeGreaterThan(0);
@@ -398,8 +429,7 @@ describe("App", () => {
 
   it("shows selected-month allocations and benchmark deltas", async () => {
     render(<App />);
-    fireEvent.click(await screen.findByText("Fast select"));
-    fireEvent.click(screen.getByText("Run simulation"));
+    await runSimulation(await fastRunButton());
 
     const intelligence = await screen.findByLabelText("Monthly Allocation Review");
     expect(within(intelligence).getByText("Benchmark delta")).toBeInTheDocument();
@@ -410,16 +440,17 @@ describe("App", () => {
 
   it("runs questionnaire simulation and displays inferred label", async () => {
     render(<App />);
-    fireEvent.click(await screen.findByText("Run simulation"));
+    await runSimulation(await questionnaireRunButton());
 
     expect(await screen.findByText("Moderate profile")).toBeInTheDocument();
     expect(latestSimulationRequest().simulatorMode).toBe("monthly_rebalance");
     expect(screen.queryByText("Moderate questionnaire")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Questionnaire input")).not.toBeInTheDocument();
   });
 
   it("lets the age input be cleared before entering a new value", async () => {
     render(<App />);
-    const ageInput = await screen.findByLabelText("How old is the investor?");
+    const ageInput = await screen.findByLabelText("What is your age?");
 
     fireEvent.change(ageInput, { target: { value: "" } });
     expect(ageInput).toHaveValue(null);
@@ -430,10 +461,61 @@ describe("App", () => {
 
   it("marks a report stale when controls change after a run", async () => {
     render(<App />);
-    fireEvent.click(await screen.findByText("Run simulation"));
+    await runSimulation(await questionnaireRunButton());
     expect(await screen.findByText("Moderate profile")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Opening allocation/ }));
     expect(screen.getByText("Controls changed after this report was generated. Run the simulation again to refresh the dashboard.")).toBeInTheDocument();
+  });
+
+  it("reopens the saved questionnaire from a generated report", async () => {
+    render(<App />);
+    await runSimulation(await questionnaireRunButton());
+    expect(await screen.findByText("Simulation report")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Fast select")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "New questionnaire" }));
+
+    expect(await screen.findByLabelText("Questionnaire input")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fast select")).toBeInTheDocument();
+    expect(screen.getByLabelText("What is your age?")).toHaveValue(29);
+    expect(screen.queryByText("Simulation report")).not.toBeInTheDocument();
+  });
+
+  it("keeps fast select usable when questionnaire inference is unavailable", async () => {
+    questionnaireModelAvailable = false;
+    render(<App />);
+
+    expect(await screen.findByText("Questionnaire unavailable")).toBeInTheDocument();
+    await runSimulation(await fastRunButton());
+
+    expect(await screen.findByText("Simulation report")).toBeInTheDocument();
+  });
+
+  it("renders source-backed questionnaire answers and maps grouped one-hot choices", async () => {
+    render(<App />);
+    expect(await screen.findByText("What is your gender?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Female" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Male" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Locking Period" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Education" })).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole("group", { name: "What is your gender?" })).getByRole("button", { name: "Female" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Do you invest in the stock market?" })).getByRole("button", { name: "No" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Which factor matters most when choosing an investment?" })).getByRole("button", { name: "Risk" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "What is the purpose of this investment?" })).getByRole("button", { name: "Returns" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "What are your savings objectives?" })).getByRole("button", { name: "Education" }));
+    await runSimulation(await questionnaireRunButton());
+
+    expect(latestSimulationRequest().questionnaire).toMatchObject({
+      Gender_Score: 0,
+      Stock_Score: 0,
+      Factor_Returns: false,
+      Factor_Risk: true,
+      "Purpose_Savings for Future": false,
+      "Purpose_Wealth Creation": false,
+      "What are your savings objectives?_Health Care": false,
+      "What are your savings objectives?_Retirement Plan": false
+    });
   });
 });
