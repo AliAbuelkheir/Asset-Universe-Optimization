@@ -1,22 +1,39 @@
-Slide 4:
+# Defense Script
 
-In the Egyptian investment context, many retail investors are highly sensitive to instability due to inflation, currency fluctuations, and broader economic uncertainty. This often leads investors toward stable assets such as gold, bank certificates, or foreign currency exposure.
+Use this file as the reusable slide-by-slide speaking script template.
 
-This thesis explores a risk-first portfolio construction approach that prioritizes aligning asset exposure with the investor’s risk tolerance based on market conditions. Rather than optimizing primarily for maximum return, the system focuses on controlling portfolio risk, reducing excessive exposure to unstable assets, and evaluating historical behavior through simulation diagnostics.
+## Slide 4 - Why Risk-Tolerance Universe Selection Matters
 
-For medium- and high-risk investors, the approach does not remove return-seeking exposure, but it allows greater participation in higher-risk assets which increases expected returns.
+**Talk track**
 
+In the Egyptian investment context, many retail investors are highly sensitive to instability because of inflation, currency fluctuations, and broader economic uncertainty. That often pushes investors toward assets they see as more stable, such as gold, bank certificates, or foreign currency exposure.
 
-Slide 8.1:
+This thesis explores a risk-first portfolio construction approach that starts by aligning asset exposure with investor risk tolerance under changing market conditions. Instead of optimizing mainly for maximum return, the system focuses first on controlling portfolio risk, reducing excessive exposure to unstable assets, and evaluating historical behavior through simulation diagnostics.
 
-In the literature, AI and machine learning are often used before portfolio optimization as a filtering step. The model first helps decide which stocks should enter the portfolio construction stage.
+For medium- and high-risk investors, this does not mean removing return-seeking exposure. It means allowing greater participation in higher-risk assets when that fits the investor profile, while still keeping the selection logic centered on risk behavior first.
 
-The important distinction is that these AI/ML preselection papers usually filter stocks based on expected price, expected return, or profitability. After that, the selected candidates are passed to a portfolio optimizer.
+**Transition**
+This leads to the next question: how similar ideas were handled in the literature before my proposed solution.
+
+## Slide 8.1 - AI/ML Preselection Context
+
+**Talk track**
+
+In the literature, AI and machine learning are often used before portfolio optimization as a filtering step. The model helps decide which stocks should enter the portfolio construction stage.
+
+The important distinction is that these AI and machine learning preselection papers usually filter stocks based on expected price, expected return, or profitability. After that, the selected candidates are passed to a portfolio optimizer.
 
 Risk metrics such as Sharpe ratio, volatility, drawdown, or robustness usually appear after the preselection step, during weight allocation, portfolio optimization, or evaluation. So risk is often used to judge or optimize the final portfolio, not as the direct target of the AI preselection model.
 
-Slide 8.2:
+**Transition**
+There is one important exception in the reviewed literature, and that is the DEA-style preselection line.
 
-The main exception is the DEA-style preselection paper. DEA is not AI or machine learning in the same predictive sense. It is an efficiency-screening method, and it can include risk-return measures as a secondary metric of the screening process.
+## Slide 8.2 - DEA Preselection Papers
 
-However, this still falls under efficiency-based filtering. The goal is to identify efficient assets by risk-return behavior, not to learn an investor-risk-tolerance ranking. It is also not the same market setting as my thesis, because my work uses an Egyptian mixed-asset universe rather than only that paper's setting.
+**Talk track**
+
+The main exception is the DEA-style preselection paper. DEA is not AI or machine learning in the same predictive sense. It is an efficiency-screening method, and it can include risk-return measures as part of the screening process.
+
+However, this still falls under efficiency-based filtering. The goal is to identify efficient assets based on risk-return behavior, not to learn an investor-risk-tolerance ranking.
+
+It is also not the same market setting as my thesis, because my work uses an Egyptian mixed-asset universe rather than the setting used in that paper.

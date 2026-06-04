@@ -16,7 +16,7 @@ Each slide has a short `Talk focus` section. Expand these into the script later.
 - [6. Experiments](#6-experiments)
 - [7. Results](#7-results)
 - [8. Conclusion](#8-conclusion)
-- [9. Future Work](#9-future-work)
+- [9. Optional Future Work](#9-optional-future-work)
 - [10. References](#10-references)
 - [Appendix Candidates](#appendix-candidates)
 
@@ -27,16 +27,15 @@ Purpose: set the scope quickly and make it clear that the project is about risk-
 ### Slide 1 - Title
 
 Talk focus:
-- State the thesis title, presenter, supervisor, and project context.
+- Introduce Myself
+- State the thesis title and  supervisor.
 - Frame the work as a pre-allocation portfolio-management component: selecting an asset universe that matches investor risk tolerance.
-- Clarify from the beginning that the system ranks assets by predicted risk behavior; it is not claiming guaranteed future returns.
+- Clarify from the beginning that the system ranks assets by predicted risk behavior.
 
 ### Slide 2 - Talk Roadmap
 
 Talk focus:
 - Walk the audience through the defense structure: problem, literature gap, proposed solution, methodology, experiments, results, conclusion, and future work.
-- Tell them the methodology section will be the most detailed part because it explains the full RL/PPO process.
-- Mention that finance interpretation will appear throughout, especially in the target, bucket, and result slides.
 
 ## 1. Problem Statement
 
@@ -55,15 +54,16 @@ Talk focus:
 - Explain why conservative, balanced, and aggressive investors should not necessarily start from the same candidate universe.
 - Connect the problem to changing market conditions: inflation, exchange-rate movement, equity volatility, and drawdowns can shift asset risk behavior over time.
 - Emphasize that suitability is treated as risk behavior first, not only expected return.
-- Egyptian Market instability leads to risk oriented portfolios
-- Market condition
+- Add the Egyptian-market motivation: instability can make investors more risk-conscious and increase demand for stable assets.
+- State that the selected universe should respond to changing market conditions rather than remain static.
+
 ### Slide 5 - Scope And Asset Universe
 
 Talk focus:
 - Define the Egyptian mixed-asset setting used in the project.
 - Cover the included asset categories: 91-day treasury bills, 5-year government bonds, EGX30, EGX30 constituent stocks, REIT exposure, gold in EGP, USD/EGP, and CPI.
 - Explain why this is more realistic than using equities only: the investor can compare defensive, growth, real-asset, and macro-sensitive exposures.
-- Compare asset and its benchmark using a **table**
+- Compare each asset category with its benchmark or market role using a compact **table**.
 
 ### Slide 6 - Research Questions
 
@@ -81,11 +81,11 @@ Purpose: keep the literature short and use it only to justify the project gap.
 
 Talk focus:
 - Briefly introduce classical allocation as a return-risk weighting problem, starting with Markowitz-style portfolio construction and MVO.
-- focus on mvo as it used in the simulator
+- Keep MVO central because the simulator includes filtered-universe ( Profile ) and full-universe MVO benchmarks.
 - Mention that later approaches improve risk modeling, constraints, or robustness, but usually still assume the investable universe is already defined.
 - Use this slide to separate the thesis from final weight optimization: this project focuses on what comes before it.
 
-### Slide 8.1 - AI/ML Preselection Context
+### Slide 8 - AI/ML Preselection Context
 
 Talk focus:
 - Explain that AI/ML has been used for asset filtering and preselection before optimization.
@@ -93,14 +93,17 @@ Talk focus:
 - Clarify that risk metrics such as Sharpe ratio, volatility, drawdown, or robustness usually appear later during weighting, optimization, or evaluation.
 
 
-### Slide 8.2 - DEA Preselection Paper
+### Slide 9 - DEA Preselection Paper
 
 Talk focus:
-- Explain DEA as the main exception: efficiency-based preselection can include risk-return measures inside the screening stage.
+- Explain DEA briefly as an efficiency-screening method.
+- Explain the main DEA comparison: Atta Mills and Anyomi (2022) use a two-stage portfolio-construction approach under uncertainty.
+- Stage 1 used a DEA model to rank candidate stocks by efficiency and filter qualified stocks before allocation.
+- Standard deviation is the risk-related DEA input used where the other three DEA inputs were return oriented.
 - Clarify that DEA is not AI/ML in the same sense as predictive stock-selection models, and it is still an efficiency filter rather than learned investor-risk-tolerance ranking.
-- Note that the reviewed DEA setting is not the Egyptian assets market used in this thesis.
+- Note that the paper studies stocks from the Shenzhen and Shanghai Stock Exchanges, not the Egyptian mixed-asset market setting used in this thesis.
 
-### Slide 9 - RL And Investor Personalization Gap
+### Slide 10 - RL And Investor Personalization Gap
 
 Talk focus:
 - Explain that RL in finance often learns trading decisions, rebalancing policies, or allocation weights directly.
@@ -111,21 +114,21 @@ Talk focus:
 
 Purpose: give the audience the full system view before the methodology details.
 
-### Slide 10 - Contribution In One View
+### Slide 11 - Contribution In One View
 
 Talk focus:
 - Present the pipeline as four linked contributions: point-in-time data engineering, monthly predicted risk ranking, profile universe selection, and historical diagnostic evaluation.
 - Explain that each step has a separate responsibility so the claims stay clean.
 - Use this slide as the high-level map the audience can return to during the technical section.
-- FIGURE in methodology chapter can be used here
-- Define the model as a black box AI not RL/PPO
+- Reuse the methodology-chapter pipeline figure here.
+- At this overview stage, present the model as an AI risk-scoring component. Introduce RL and PPO later in the methodology section.
 
-### Slide 11 - What The Model Predicts
+### Slide 12 - What The Model Predicts
 
 Talk focus:
-- Explain that the model outputs one risk-ranking score for every active asset in a given decision month.
+- Explain that the model outputs the predicted risk score for every active asset in a given decision month.
 - Clarify that assets are sorted from low predicted risk to high predicted risk.
-- Define the target in finance terms: a composite realized-risk rank built from realized volatility, downside deviation, and maximum drawdown.
+- Clarify the goal is correct asset ranking and not exact scores
 
 ## 4. Methodology: Data And Risk Target
 
@@ -143,69 +146,69 @@ Talk focus:
 
 Talk focus:
 - Define one row as one active `(Date, AssetID)` monthly state.
-- Explain why the long monthly panel is needed: each month has a variable active asset universe.
+- Explain that this panel was designed to support variable available assets per month
 - Explain that assets are not backfilled before they existed or before reliable data is available.
 - Stress the point-in-time rule: monthly features use only information available up to that month.
-- Mention that asset identity metadata is excluded from model inputs.
-
+- Mention that asset identity metadata is excluded from model inputs, So the model only see the features not the asset so it cannot remember specific risk scores for specific assets
 
 ### Slide 15 - Feature Families
 
 Talk focus:
 - Group the model inputs by meaning rather than reading every feature mechanically.
-- Risk, volatility, and downside-tail behavior: EGARCH volatility, downside deviation, max drawdown, and downside-tail ratio.
-- Liquidity: volume.
-- Technical state: ATR percentage, moving-average distance, RSI, and distance from recent high.
-- Market sensitivity and macro context: beta to EGX30, USD volatility, and CPI trajectory.
+- Risk behaviour, Liquidity, Technical state and market sensitivity
 - Explain that the features describe asset behavior, not asset identity.
-
-### Slide 16 - Composite Realized-Risk Target
-
-Talk focus:
+#### Realized Risk:
 - Explain the three finance components: realized volatility captures general variability, downside deviation focuses on harmful negative movement, and maximum drawdown captures peak-to-trough loss.
 - Explain that each component is rank-normalized within the same month so assets are compared only against the active alternatives at that time.
-- Explain that the final target averages the normalized component ranks into `realized_risk`.
-- Make the claim precise: the model learns ordering of realized risk, not a perfectly calibrated numeric risk forecast.
+- Explain that the final target is the equal weighted average of the normalized component into `realized_risk`.
 
 ## 5. Methodology: PPO Ranking Model
 
 Purpose: explain the reinforcement-learning formulation in a way that proves you understand the full PPO process, while staying tied to the finance objective.
 
+### Slide 16 - What Is Reinforcement Learning
+
+Talk focus:
+- Explain reinforcement learning as a learning loop: the model observes a state, takes an action, receives a reward, and updates its policy.
+- Explain that the reward function tells the model what behavior should improve.
+- Explain that the policy is the model's decision rule, and training changes its weights so future actions are more likely to earn higher reward.
+- Keep the explanation short and connect it directly to monthly asset-risk ranking.
+
 ### Slide 17 - Why Reinforcement Learning
 
 Talk focus:
 - Explain that the problem is not a single fixed-asset prediction problem; every month is a new decision over a changing active universe.
-- Frame each month as an environment state: available assets, point-in-time features, and market context.
+- Frame each month as an environment state: available assets each with its set of features
 - Explain the model action: assign one risk-ranking score to every active asset, then evaluate the full monthly ordering.
 - Explain why RL fits the thesis objective: the reward is computed at the decision-month level after the entire universe is ranked, so the model learns a scoring policy for monthly ranking decisions rather than independent asset labels.
-- Clarify that RL is used for dynamic risk-ranking and universe selection, not for guaranteed return optimization or final portfolio weights.
+- Clarify that RL is used for dynamic risk-ranking and universe selection
 
-### Slide 17.5 - Why PPO
+### Slide 18 - Why PPO
 
 Talk focus:
 - Explain PPO as the chosen policy-gradient method for learning the monthly ranking policy.
 - Mention clipping explicitly: PPO limits how much the policy can change in one update, which helps avoid unstable jumps when financial months are noisy or unusually hard to rank.
-- Explain the actor-critic structure: the actor outputs asset-level risk scores, while the critic estimates the expected monthly reward from the pooled active-universe context.
-- Explain why the critic matters: in hard-to-predict months, the critic gives a baseline expectation, so PPO updates are based on advantage rather than raw reward alone.
-- Connect this to the architecture slide: shared row encoder plus pooled context lets the critic judge the whole month, while the actor still scores individual assets.
-- Keep the claim narrow: PPO improves training stability for this setup; it does not prove future financial outperformance.
+- Introduce actor-critic only at a high level here: PPO also uses a critic to stabilize updates.
+- Defer the full actor-critic architecture until after the audience understands what one monthly PPO decision contains.
 
-### Slide 18 - PPO Episode Format
+### Slide 19 - PPO Episode Format
 
 Talk focus:
 - Define one PPO episode as one monthly decision.
-- Explain the observation: a padded tensor of active-asset features plus an active-asset mask.
-- Explain the action: one bounded continuous risk score per asset slot.
+- Explain the observation: a tensor of active-asset features plus an active-asset mask.
+- Explain why the mask appears in the observation: every decision month can have a different number of available assets.
+- Explain the action: one bounded continuous risk score per asset slot between [0,1].
 - Explain the environment response: active assets are sorted by predicted score and compared against realized-risk ranks for that month.
-- Figure showing the input as N assets each with its set of features
+- Use a figure showing the input as `N` active assets, each with its feature vector.
 
 ### Slide 20 - Variable Universe And Masking
 
 Talk focus:
-- Explain the practical problem: each month has a different number of active assets.
+- Explain the practical problem: each month has a different number of active assets as some assets were offered publicly later than others like stocks.
 - Padding gives a fixed tensor shape for neural-network training.
-- Masks ensure padded rows do not affect action sampling, log probabilities, entropy, PPO loss, reward, or evaluation metrics.
+- Masks ensure padded rows do not affect the model during training.
 - Make this slide examiner-friendly: masking is what lets the model handle a changing investable universe without pretending every month has the same assets.
+- Transition from here into actor-critic: once the monthly tensor and mask are clear, the architecture can be explained without confusion.
 
 ### Slide 21 - Actor-Critic Architecture
 
@@ -214,28 +217,27 @@ Talk focus:
 - A shared row encoder reads each asset using the same parameters.
 - A pooled context vector summarizes the active month using mask-aware aggregation.
 - The actor head outputs asset-level risk-ranking scores.
-- The critic head estimates the expected monthly reward and stabilizes PPO learning.
-- Figure for PPO internals including the 3 MLP
-- Explain Advantage ( might need to split this slide )
+- The critic head estimates the expected monthly reward from the pooled active-universe context and stabilizes PPO learning.
+- Explain advantage as the difference between the received monthly reward and the critic's expected reward, then state that PPO uses it to update the policy.
+- Use a figure for the PPO internals, including the shared row-encoder MLP, actor-head MLP, critic-head MLP, and reward signal.
 
 
-### Slide 21.5 - Reward Definition
+### Slide 22 - Reward Definition
 
 Talk focus:
 - Explain that the reward is computed after the whole monthly universe is scored.
-- Show that other reward formulas were used but this was the promoted formula
 - Present the reward formula: `0.7 * Spearman rank correlation + 0.3 * (1 - MSE)`.
 - Explain the role of Spearman: it rewards correct ordering, which is the main thesis objective.
 - Explain the role of MSE: it adds score discipline so the model is not only rewarded for relative order.
 
-### Slide 22 - Investor Bucket Mapping
+### Slide 23 - Profile-Specific Asset Universes
 
 Talk focus:
 - Explain that after assets are sorted, predicted ranks are converted into rank percentiles.
-- Present the selected bucket rule.
-- Conservative universe: lowest 30% predicted-risk assets.
-- Balanced universe: 20% to 80% predicted-risk assets.
-- Aggressive universe: highest 30% predicted-risk assets.
+- Present the mapping without using internal rule names.
+- Conservative asset universe: lowest 30% predicted-risk assets.
+- Balanced asset universe: 20% to 80% predicted-risk assets.
+- Aggressive asset universe: highest 30% predicted-risk assets.
 - Explain why overlap is acceptable: suitability categories can share some middle-border assets and do not need to be strictly mutually exclusive.
 - Figure used in thesis can be used here
 
@@ -245,51 +247,50 @@ Talk focus:
 
 Purpose: show how the project was tested and why the selected model configuration is defensible.
 
-### Slide 23 - Chronological Split Design
+### Slide 24 - Chronological Split Design
 
 Talk focus:
 - Present the chronological split as part of the leakage-control design.
-- Training: 2011-01 to 2021-12.
-- Inner validation: 2022-01 to 2022-12.
-- Validation: 2023-01 to 2025-02.
-- Test: 2025-03 to 2026-01.
+- Training: 2011-01 to 2021-12; used to learn the PPO policy.
+- Inner validation: 2022-01 to 2022-12; used for intermediate model-selection checks.
+- Validation: 2023-01 to 2025-02; used to guide final framework, feature, and hyperparameter choices.
+- Test: 2025-03 to 2026-01; held back for final reporting only.
 - Explain that the test period is only used for final reporting.
 
-### Slide 24 - Framework Selection
+### Slide 25 - Framework Selection
 
 Talk focus:
 - Explain that several formulations were compared before choosing the final one.
 - State that framework testing used a fixed base feature set so the comparison measured the input/architecture formulation rather than changing features at the same time.
-- Monthly PPO without context tested the basic monthly-ranking setup.
-- Monthly PPO with pooled active-universe context added information about the whole decision month.
-- Daily-flat and daily-CNN variants were explored but not selected.
-- 1 Month features vs 3 Month Features
-- State the final choice: monthly PPO with pooled context, because it best matched the thesis objective and evaluation behavior.
+- Explain the trials as design choices, not code names: one-month versus three-month feature windows, asset-row features alone versus pooled active-universe context, and whether daily price information should be included more directly.
+- Explain that adding daily price information introduced too much noise and dropped performance.
+- State the promoted framework in plain language: a monthly PPO setup with a three-month view and active-universe context, because it best matched the thesis objective and evaluation behavior.
 
-### Slide 25 - Feature And Hyperparameter Selection
+### Slide 26 - Feature And Hyperparameter Selection
 
 Talk focus:
 - Explain that feature selection followed a sequential evaluation process after the framework was locked.
 - Stage 1: run leave-one-out / drop-one-feature tests on the base feature set to check whether each feature added value relative to the baseline.
 - Stage 2: confirm any apparent drop-feature winner with additional seeds instead of promoting it from one seed only.
 - Stage 3: test redesigns and replacements for individual feature families, such as alternate windows or definitions.
-- Stage 4: Tested the additional of candidate features like tail-risk for improved high-rosl identification
+- Stage 4: test additions such as the downside-tail ratio to improve identification of high-risk assets.
+- Explain that hyperparameters were tuned with Optuna, which runs multiple parameter trials, evaluates them on the validation objective, and uses earlier trial results to guide later suggestions.
 - Explain the selection rule: validation reward was primary and validation Spearman was the guardrail.
 
-### Slide 26 - Evaluation Logic
+### Slide 27 - Evaluation Logic
 
 Talk focus:
 - Explain the two-stage evaluation.
-- First, evaluate predicted risk ranks against realized-risk ranks mainly using Spearman Ranking.
+- First, evaluate predicted risk ranks against realized-risk ranks mainly using Spearman rank correlation.
 - Second, evaluate conservative, balanced, and aggressive selected universes against the full active universe when used in similar portfolio allocation methods.
 - Explain why equal weighting is used: it keeps the comparison focused on universe selection rather than weight optimization.
 - State that return metrics are secondary historical diagnostics after risk metrics like volatility and downside deviation.
 
 ## 7. Results
 
-Purpose: show that the model achieved the main thesis claim: predicted-rank buckets produced distinct realized-risk behavior in the historical test.
+Purpose: show that the model achieved the main thesis claim: predicted-rank asset universes produced distinct realized-risk behavior in the historical test.
 
-### Slide 27 - Ranking Quality
+### Slide 28 - Ranking Quality
 
 Talk focus:
 - Present the main model-ranking diagnostics.
@@ -297,67 +298,73 @@ Talk focus:
 - Test Spearman diagnostic was about `0.6690`.
 - Reward stayed positive across all 11 test months.
 
-### Slide 28 - Risk-Bucket Separation
+### Slide 29 - Profile-Universe Risk Separation
 
 Talk focus:
-- Present the strongest thesis result: the buckets separated realized risk in the expected order.
+- Present the strongest thesis result: the profile-specific asset universes separated realized risk in the expected order.
 - Full universe mean realized risk: `0.500`.
-- Low-risk bucket: `0.239`.
-- Medium-risk bucket: `0.536`.
-- High-risk bucket: `0.688`.
+- Conservative asset universe: `0.239`.
+- Balanced asset universe: `0.536`.
+- Aggressive asset universe: `0.688`.
 - Monthly monotonicity on test: `11/11`.
-- Explain the finance meaning: the conservative bucket behaved materially safer by the target definition, while the aggressive bucket captured higher-risk assets.
+- Explain the finance meaning: the conservative asset universe behaved materially safer by the target definition, while the aggressive asset universe captured higher-risk assets.
 
-### Slide 29 - Economic Diagnostics
+### Slide 30 - Economic Diagnostics
 
 Talk focus:
 - Present the historical cumulative return diagnostics carefully.
+- Mention briefly that all universes use the same equal-weight allocation rule.
 - Full universe: `49.59%`.
-- Low-risk bucket: `29.91%`.
-- Medium-risk bucket: `50.17%`.
-- High-risk bucket: `86.24%`.
-- Explain that the high-risk bucket also had higher volatility and larger drawdown, so the higher return is not a free improvement.
+- Conservative asset universe: `29.91%`.
+- Balanced asset universe: `50.17%`.
+- Aggressive asset universe: `86.24%`.
+- Explain that the aggressive asset universe also had higher volatility and larger drawdown, so the higher return is not a free improvement.
 - Say explicitly that this is historical risk-return behavior in the test window, not future outperformance proof.
 
-### Slide 30 - Baseline Comparison
+### Slide 31 - Baseline Comparison
 
 Talk focus:
 - Define the baseline as the filter-off full active universe under the same equal-weight rule.
 - Explain that using the same equal-weight rule isolates the effect of asset universe filtering.
-- Summarize the key comparison: low-risk filtering reduced realized risk versus the full universe; high-risk filtering increased realized risk and had higher historical return in the short test window.
+- Summarize the key comparison: conservative-universe filtering reduced realized risk versus the full universe; aggressive-universe filtering increased realized risk and had higher historical return in the short test window.
 - Connect this result back to the goal: the system created risk-profile-specific candidate universes.
 
 ## 8. Conclusion
 
 Purpose: answer the research questions directly and leave the audience with the exact contribution.
 
-### Slide 31 - Research Question Answers
+### Slide 32 - Research Question Answers
 
 Talk focus:
-- Answer each research question in one controlled sentence.
-- RQ1: PPO supported dynamic realized-risk ranking in this historical setting.
-- RQ2: Predicted-rank buckets created distinct realized-risk groups.
-- RQ3: Filtered universes differed from the full active universe under the same equal-weight diagnostic rule in risk and return metrics.
+- Include each research question and its answer, not only the RQ label.
+- RQ1 question: Can AI/ML support dynamic asset-universe selection before allocation using asset-level realized-risk prediction?
+- RQ1 answer: Yes in this historical setting; PPO produced meaningful realized-risk ranking behavior across the changing active universe.
+- RQ2 question: Do the selected universes align with conservative, balanced, and aggressive investor risk-tolerance profiles?
+- RQ2 answer: Yes; predicted-rank asset universes created distinct realized-risk groups in the expected order.
+- RQ3 question: How do the proposed risk-tolerance-based asset universes compare with the full active-universe baseline under the same equal-weight historical simulation rule?
+- RQ3 answer: Filtered universes differed from the full active universe, especially in realized risk, while return stayed a historical diagnostic rather than a future-performance claim.
 - Keep the wording measured and avoid claiming general market superiority.
 
 
-## 9. Future Work
+## 9. Optional Future Work
 
-Purpose: explain the most realistic next steps after the thesis.
+Purpose: explain optional next steps beyond the thesis scope.
 
-### Slide 34 - Live Data And Forward Testing
+### Slide 33 - Live Data And Forward Testing
 
 Talk focus:
-- Explain that the next major validation step is live forward testing.
+- Frame this as an optional future step, not a required part of the thesis result.
+- Explain that one possible next validation step is live forward testing.
 - Connect the pipeline to live market-data APIs.
-- Rebuild monthly features as new data arrives through an ETL Pipelines.
-- Monitor ranking and bucket behavior in live market.
+- Rebuild monthly features as new data arrives through an ETL pipeline.
+- Monitor ranking and selected-universe behavior in the live market.
 
-### Slide 35 - Return-Aware Suitability Extensions
+### Slide 34 - Return-Aware Suitability Extensions
 
 Talk focus:
+- Frame this as another optional extension beyond the current risk-first objective.
 - Explain that the current objective is risk suitability.
-- Future work can add return-aware diagnostics after risk buckets are formed to act as a secondary filter
+- Future work may add return-aware diagnostics after risk-ranked universes are formed to act as a secondary filter.
 - Be careful with phrasing: this does not mean replacing risk ranking with return chasing.
 
 
@@ -365,17 +372,16 @@ Talk focus:
 
 Purpose: show the academic foundations without spending defense time on a long literature dump.
 
-### Slide 38 - Reference Map And Literature Gap
+### Slide 35 - Key References
 
+This should only act as a references slide listing the references below without description.
 Talk focus:
-- Do not present this as a bibliography slide. Present it as a compact evidence map showing where the thesis fits.
-- Use a table with columns like: literature stream, anchor references, what they support, and remaining gap.
-- Classical allocation and risk: Markowitz 1952, Black-Litterman 1992, Rockafellar and Uryasev 2000, DeMiguel et al. 2009, Lopez de Prado 2016, and Bodnar et al. 2021. Support: optimization and risk evaluation are established. Gap: the investable universe is usually already fixed.
-- AI/ML asset preselection: Wang et al. 2020, Ma et al. 2021, Kaczmarek and Perez 2022, Chaweewanchon and Chaysiri 2022, Hosseinzadeh et al. 2023, Abdi et al. 2024, and Chou and Pham 2025. Support: selecting assets before allocation is a valid portfolio-construction stage. Gap: selection is usually return-, Sharpe-, efficiency-, robustness-, or optimizer-performance-driven rather than investor-risk-suitability-driven.
-- Investor personalization and robo-advisory: Musto et al. 2015, Alsabah et al. 2021, Yu and Liu 2021, Capponi et al. 2022, Asemi et al. 2023/2024, Wei and Liu 2025, and Schneider and Yilmaz 2025. Support: investor profile and risk tolerance should affect financial recommendations. Gap: outputs are usually advice, funds, product types, or final allocations, not a separate asset-universe filter.
-- RL/DRL finance and PPO method: Schulman et al. 2017, Jiang et al. 2017, Liu et al. 2020, Choudhary et al. 2025, and Rezaei and Nezamabadi-Pour 2025. Support: adaptive RL methods and PPO are defensible for financial sequential decision problems. Gap: most work learns trading or allocation actions, not asset-level risk-ranking before allocation.
-- Closest comparison: Orra et al. 2025, with Chou and Pham 2025 and Schneider and Yilmaz 2025 as nearby context. Explain that these support investor-aware or stepwise portfolio construction, but the thesis differs by evaluating a mixed Egyptian variable universe as a pre-allocation realized-risk ranking problem.
-- Add a small final takeaway on the slide: "This thesis connects AI/ML preselection + investor risk tolerance by ranking assets for risk-suitable universe construction before allocation."
+- Present only the five core references listed below. Leave the descriptions and full bibliography in the written thesis.
+- Markowitz (1952), *Portfolio Selection*
+- Wang et al. (2020), *Portfolio Formation with Preselection Using Deep Learning from Long-Term Financial Data*
+- Ma et al. (2021), *Portfolio Optimization with Return Prediction Using Deep Learning and Machine Learning*
+- Chaweewanchon and Chaysiri (2022), *Markowitz Mean-Variance Portfolio Optimization with Predictive Stock Selection Using Machine Learning*
+- Atta Mills and Anyomi (2022), *A Hybrid Two-Stage Robustness Approach to Portfolio Construction under Uncertainty*
 
 ## Appendix Candidates
 
@@ -412,12 +418,12 @@ Talk focus:
 - Explain why masking matters for the variable active universe.
 - Use this if the CS examiner asks for implementation depth.
 
-### Appendix D - Bucket Method Ablation
+### Appendix D - Universe Mapping Method Ablation
 
 Talk focus:
-- Compare the bucket rules tested: `tail_30_overlap`, `tercile_no_overlap`, `overlap_40_50`, and `wide_overlap_50_60`.
-- Explain why `tail_30_overlap` was selected for reported results.
-- Use this if asked whether the bucket thresholds were arbitrary.
+- Compare the universe-mapping alternatives tested: non-overlapping thirds and several overlapping percentile bands.
+- Explain why the selected overlapping-tail mapping was selected for reported results.
+- Use this if asked whether the universe thresholds were arbitrary.
 
 ### Appendix E - Finance Q&A Backup
 
