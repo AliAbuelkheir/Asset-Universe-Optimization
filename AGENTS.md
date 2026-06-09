@@ -15,3 +15,17 @@
 - Until external model files are provided, keep questionnaire inference disabled and keep the optimizer clearly labeled as a mock equal-weight adapter.
 - Report portfolio results as historical simulation diagnostics, not as proof of guaranteed outperformance.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live as local markdown files under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, using their default label strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context: `CONTEXT-MAP.md` at the root points to a `CONTEXT.md` per component. See `docs/agents/domain.md`.
+

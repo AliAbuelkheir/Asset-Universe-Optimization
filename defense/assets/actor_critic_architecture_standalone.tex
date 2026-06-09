@@ -1,0 +1,98 @@
+\documentclass[tikz,border=8pt]{standalone}
+\usepackage{fontspec}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+
+\setmainfont[
+  Path=C:/Windows/Fonts/,
+  UprightFont=GOTHIC.TTF,
+  BoldFont=GOTHICB.TTF,
+  ItalicFont=GOTHICI.TTF,
+  BoldItalicFont=GOTHICBI.TTF
+]{Century Gothic}
+
+\definecolor{navy}{HTML}{0C171F}
+
+\tikzset{
+  box/.style={draw=navy,line width=0.9pt,rounded corners=4pt},
+  focus/.style={draw=navy,line width=1.3pt,rounded corners=5pt},
+  key/.style={text=navy,font=\bfseries\fontsize{11}{13}\selectfont,align=center},
+  label/.style={text=navy,font=\fontsize{8.5}{10.5}\selectfont,align=center},
+  small/.style={text=navy,font=\fontsize{7.3}{9}\selectfont,align=center},
+  arrow/.style={-{Latex[length=2.8mm,width=1.9mm]},draw=navy,line width=0.95pt},
+  feedback/.style={-{Latex[length=2.8mm,width=1.9mm]},draw=navy,line width=1.05pt,rounded corners=5pt}
+}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  % Shared feature representation
+  \draw[box] (0.35,3.3) rectangle (3.15,5.7);
+  \node[key] at (1.75,4.85) {Asset features};
+  \node[label] at (1.75,4.05) {one row\\per asset};
+
+  \draw[arrow] (3.15,4.5) -- (3.85,4.5);
+  \draw[focus] (3.85,3.3) rectangle (6.65,5.7);
+  \node[text=navy,font=\bfseries\fontsize{13}{15}\selectfont] at (5.25,4.85) {MLP};
+  \node[label] at (5.25,4.05) {encodes\\asset features};
+
+  % Three-way representation split
+  \draw[arrow] (6.65,4.5) -- (7.45,4.5);
+  \fill[navy] (7.45,4.5) circle (2.2pt);
+
+  \draw[arrow] (7.45,4.5) -- (7.45,6.65) -- (12.35,6.65);
+  \draw[arrow] (7.45,4.5) -- (7.45,2.35) -- (12.35,2.35);
+  \draw[arrow] (7.45,4.5) -- (8.25,4.5);
+
+  \draw[focus] (8.25,3.3) rectangle (11.35,5.7);
+  \node[key] at (9.8,4.85) {Pooled monthly\\context};
+  \node[label] at (9.8,4.0) {summarizes the\\active universe};
+
+  % Context also informs both heads
+  \draw[arrow] (11.35,5.05) -- (11.85,5.05) -- (11.85,6.35) -- (12.35,6.35);
+  \draw[arrow] (11.35,3.95) -- (11.85,3.95) -- (11.85,2.65) -- (12.35,2.65);
+
+  % Actor and critic
+  \draw[focus] (12.35,5.35) rectangle (15.25,7.65);
+  \node[text=navy,font=\bfseries\fontsize{13}{15}\selectfont] at (13.8,6.85) {Actor};
+  \node[label] at (13.8,6.05) {scores each asset};
+
+  \draw[focus] (12.35,1.35) rectangle (15.25,3.65);
+  \node[text=navy,font=\bfseries\fontsize{13}{15}\selectfont] at (13.8,2.85) {Critic};
+  \node[label] at (13.8,2.05) {month estimate};
+
+  % Symmetrical actor and critic outputs
+  \draw[arrow] (15.25,6.5) -- (15.95,6.5);
+  \draw[box] (15.95,5.35) rectangle (18.85,7.65);
+  \node[key] at (17.4,6.85) {Actual reward};
+  \node[small] at (17.4,5.95) {actor outcome};
+
+  \draw[arrow] (15.25,2.5) -- (15.95,2.5);
+  \draw[box] (15.95,1.35) rectangle (18.85,3.65);
+  \node[key] at (17.4,2.85) {Expected\\reward};
+  \node[small] at (17.4,1.95) {critic baseline};
+
+  % Symmetrical comparison and advantage
+  \draw[arrow] (18.85,6.5) -- (19.8,6.5) -- (19.8,5.7);
+  \draw[arrow] (18.85,2.5) -- (19.8,2.5) -- (19.8,3.3);
+
+  \draw[navy,line width=1pt] (19.8,3.3) -- (21.25,4.5) -- (19.8,5.7) -- (18.35,4.5) -- cycle;
+  \node[key] at (19.8,4.5) {Compare};
+
+  \draw[arrow] (21.25,4.5) -- (22.0,4.5);
+  \draw[focus] (22.0,3.3) rectangle (25.4,5.7);
+  \node[text=navy,font=\bfseries\fontsize{13}{15}\selectfont] at (23.7,4.95) {Advantage};
+  \node[label] at (23.7,4.0) {updates the\\actor policy};
+
+  % One policy boundary and update feedback
+  \draw[navy,line width=1.05pt,rounded corners=7pt] (-0.05,0.95) rectangle (25.75,8.1);
+  \node[text=navy,font=\bfseries\fontsize{9.5}{11.5}\selectfont,anchor=west]
+    at (0.35,7.75) {PPO Actor-Critic Flow};
+  \draw[feedback] (23.7,5.7) -- (23.7,8.65) -- (12.85,8.65) -- (12.85,8.1);
+  \node[label,anchor=south] at (18.3,8.65) {PPO policy update};
+
+  % Main takeaway
+  \node[text=navy,font=\bfseries\fontsize{9.3}{11.3}\selectfont,align=center]
+    at (13.1,0.35)
+    {The MLP representation and monthly context support both heads. Advantage tells PPO how to update the actor policy.};
+\end{tikzpicture}
+\end{document}

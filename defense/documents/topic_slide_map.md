@@ -16,7 +16,7 @@ Each slide has a short `Talk focus` section. Expand these into the script later.
 - [6. Experiments](#6-experiments)
 - [7. Results](#7-results)
 - [8. Conclusion](#8-conclusion)
-- [9. Optional Future Work](#9-optional-future-work)
+- [9. Future Work](#9-future-work)
 - [10. References](#10-references)
 - [Appendix Candidates](#appendix-candidates)
 
@@ -44,7 +44,8 @@ Purpose: explain why the project exists and why asset-universe selection is a me
 ### Slide 3 - The Fixed-Universe Assumption
 
 Talk focus:
-- Explain that many portfolio methods begin after the candidate assets have already been chosen.
+- State the fixed-universe assumption directly: many portfolio methods assume the investable universe is fixed before optimization begins.
+- Explain that the optimizer then works only inside that predefined universe.
 - Argue that this leaves an important earlier decision untreated: which assets should even enter the allocation stage.
 - Position the thesis as studying this earlier stage, not replacing classical portfolio allocation.
 
@@ -69,7 +70,7 @@ Talk focus:
 
 Talk focus:
 - Present the three research questions as in the thesis contract.
-- RQ1 asks whether AI/ML can support dynamic asset-universe selection using realized-risk ranking.
+- RQ1 asks whether AI/ML can support dynamic asset-universe selection before allocation using asset-level realized-risk prediction.
 - RQ2 asks whether the selected universes align with conservative, balanced, and aggressive profiles.
 - RQ3 asks how the selected universes compare against the full active universe under the same equal-weight diagnostic rule.
 
@@ -97,10 +98,11 @@ Talk focus:
 
 Talk focus:
 - Explain DEA briefly as an efficiency-screening method.
+- Frame DEA as a useful exception that also separates screening from later allocation.
 - Explain the main DEA comparison: Atta Mills and Anyomi (2022) use a two-stage portfolio-construction approach under uncertainty.
 - Stage 1 used a DEA model to rank candidate stocks by efficiency and filter qualified stocks before allocation.
 - Standard deviation is the risk-related DEA input used where the other three DEA inputs were return oriented.
-- Clarify that DEA is not AI/ML in the same sense as predictive stock-selection models, and it is still an efficiency filter rather than learned investor-risk-tolerance ranking.
+- Clarify that efficiency is the main DEA filter, and that DEA is a statistical method rather than an AI/ML ranking model.
 - Note that the paper studies stocks from the Shenzhen and Shanghai Stock Exchanges, not the Egyptian mixed-asset market setting used in this thesis.
 
 ### Slide 10 - RL And Investor Personalization Gap
@@ -197,7 +199,7 @@ Talk focus:
 - Define one PPO episode as one monthly decision.
 - Explain the observation: a tensor of active-asset features plus an active-asset mask.
 - Explain why the mask appears in the observation: every decision month can have a different number of available assets.
-- Explain the action: one bounded continuous risk score per asset slot between [0,1].
+- Explain the action: one bounded continuous risk score for each real asset row between [0,1].
 - Explain the environment response: active assets are sorted by predicted score and compared against realized-risk ranks for that month.
 - Use a figure showing the input as `N` active assets, each with its feature vector.
 
@@ -263,7 +265,7 @@ Talk focus:
 - Explain that several formulations were compared before choosing the final one.
 - State that framework testing used a fixed base feature set so the comparison measured the input/architecture formulation rather than changing features at the same time.
 - Explain the trials as design choices, not code names: one-month versus three-month feature windows, asset-row features alone versus pooled active-universe context, and whether daily price information should be included more directly.
-- Explain that adding daily price information introduced too much noise and dropped performance.
+- Explain that adding daily price information appeared to add noise in these trials and did not improve validation performance.
 - State the promoted framework in plain language: a monthly PPO setup with a three-month view and active-universe context, because it best matched the thesis objective and evaluation behavior.
 
 ### Slide 26 - Feature And Hyperparameter Selection
@@ -338,23 +340,23 @@ Purpose: answer the research questions directly and leave the audience with the 
 Talk focus:
 - Include each research question and its answer, not only the RQ label.
 - RQ1 question: Can AI/ML support dynamic asset-universe selection before allocation using asset-level realized-risk prediction?
-- RQ1 answer: Yes in this historical setting; PPO produced meaningful realized-risk ranking behavior across the changing active universe.
+- RQ1 answer: In this historical setting, yes; PPO produced meaningful realized-risk ranking behavior across the changing active universe.
 - RQ2 question: Do the selected universes align with conservative, balanced, and aggressive investor risk-tolerance profiles?
-- RQ2 answer: Yes; predicted-rank asset universes created distinct realized-risk groups in the expected order.
+- RQ2 answer: Also yes; predicted-rank asset universes created distinct realized-risk groups in the expected order.
 - RQ3 question: How do the proposed risk-tolerance-based asset universes compare with the full active-universe baseline under the same equal-weight historical simulation rule?
 - RQ3 answer: Filtered universes differed from the full active universe, especially in realized risk, while return stayed a historical diagnostic rather than a future-performance claim.
 - Keep the wording measured and avoid claiming general market superiority.
 
 
-## 9. Optional Future Work
+## 9. Future Work
 
-Purpose: explain optional next steps beyond the thesis scope.
+Purpose: explain possible next steps beyond the thesis scope.
 
 ### Slide 33 - Live Data And Forward Testing
 
 Talk focus:
-- Frame this as an optional future step, not a required part of the thesis result.
-- Explain that one possible next validation step is live forward testing.
+- Frame this as a future direction beyond the thesis scope, not a missing part of the thesis result.
+- Explain that one possible validation step is live forward testing.
 - Connect the pipeline to live market-data APIs.
 - Rebuild monthly features as new data arrives through an ETL pipeline.
 - Monitor ranking and selected-universe behavior in the live market.
@@ -362,7 +364,7 @@ Talk focus:
 ### Slide 34 - Return-Aware Suitability Extensions
 
 Talk focus:
-- Frame this as another optional extension beyond the current risk-first objective.
+- Frame this as another possible extension beyond the current risk-first objective.
 - Explain that the current objective is risk suitability.
 - Future work may add return-aware diagnostics after risk-ranked universes are formed to act as a secondary filter.
 - Be careful with phrasing: this does not mean replacing risk ranking with return chasing.

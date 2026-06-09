@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="624" viewBox="0 0 2048 624">
+  <defs>
+    <style>
+      .card { fill: none; stroke: #071f2d; stroke-width: 4; }
+      .dot { fill: #00ff19; }
+      .heading { fill: #071f2d; font: 700 38px 'Aptos Display', 'Aptos', Arial, sans-serif; }
+      .body { fill: #071f2d; font: 400 28px 'Aptos', Arial, sans-serif; }
+      .body-small { fill: #071f2d; font: 400 25px 'Aptos', Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Top row -->
+  <rect class="card" x="24" y="24" width="972" height="266" rx="12"/>
+  <circle class="dot" cx="83" cy="104" r="10"/>
+  <text class="heading" x="129" y="116">Fixed-Income Securities</text>
+  <text class="body" x="92" y="230">91-day treasury bills and 5-year government bonds</text>
+
+  <rect class="card" x="1038" y="24" width="970" height="266" rx="12"/>
+  <circle class="dot" cx="1097" cy="104" r="10"/>
+  <text class="heading" x="1143" y="116">Egyptian Equities</text>
+  <text class="body" x="1106" y="230">EGX30 index companies</text>
+
+  <!-- Bottom row -->
+  <rect class="card" x="24" y="335" width="648" height="265" rx="12"/>
+  <circle class="dot" cx="83" cy="414" r="10"/>
+  <text class="heading" x="129" y="426">Real Estate</text>
+  <text class="body" x="92" y="544">EGX Real Estate (EGREAL) index</text>
+
+  <rect class="card" x="702" y="335" width="646" height="265" rx="12"/>
+  <circle class="dot" cx="761" cy="414" r="10"/>
+  <text class="heading" x="807" y="426">Equity benchmark</text>
+  <text class="body" x="770" y="544">EGX30 index</text>
+
+  <rect class="card" x="1378" y="335" width="630" height="265" rx="12"/>
+  <circle class="dot" cx="1437" cy="414" r="10"/>
+  <text class="heading" x="1483" y="426">Gold</text>
+  <text class="body" x="1446" y="544">24K gold price in EGP</text>
+</svg>

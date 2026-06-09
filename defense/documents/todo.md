@@ -7,10 +7,11 @@
 
 
 ## TODO NOW
-1. WHY RL WHY PPO slides
 1. appendix slides
+1. MLP encoders
+1. COMPARE node needs update in actor-critic slide
 
 ## TODO LATER:
 1. Study Features and categorize them to feature families.
 1. Study Spearman and MSE for reward functions exactly
-1. Study spearman ranking and MSE?
+1. 

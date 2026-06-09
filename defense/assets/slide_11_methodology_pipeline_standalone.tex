@@ -1,0 +1,47 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{xcolor}
+\usetikzlibrary{positioning,fit,arrows.meta}
+
+\begin{document}
+\begin{tikzpicture}[
+    node distance=0.9cm and 1.1cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.0cm, minimum height=0.9cm, font=\small},
+    data/.style={box, fill=blue!10},
+    construct/.style={box, fill=cyan!10},
+    learn/.style={box, fill=green!12},
+    decide/.style={box, fill=violet!10},
+    eval/.style={box, fill=gray!12},
+    group/.style={draw, rounded corners, dashed, inner sep=0.23cm},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+]
+\node[data] (raw) {Raw market CSVs\\and macro series};
+\node[construct, right=of raw] (panel) {Leakage-controlled\\monthly panel};
+\node[construct, above right=0.65cm and 1.15cm of panel] (features) {Point-in-time\\feature tensor};
+\node[construct, below right=0.65cm and 1.15cm of panel] (target) {Target-only\\realized-risk labels};
+\node[learn, right=3.0cm of panel] (ppo) {Monthly PPO\\risk-ranking policy};
+\node[decide, right=of ppo] (rank) {Predicted\\asset ranking};
+\node[decide, right=of rank] (bucket) {Investor-profile\\risk buckets};
+\node[eval, below=0.75cm of rank] (scoreeval) {Reward/evaluation\\comparison};
+\node[eval, right=of bucket] (diag) {Historical\\diagnostics};
+\node[group, fit=(raw)] (g1) {};
+\node[font=\scriptsize, above=0.08cm of g1] {Data layer};
+\node[group, fit=(panel)(features)(target)] (g2) {};
+\node[font=\scriptsize, above=0.08cm of g2] {Construction layer};
+\node[group, fit=(ppo)] (g3) {};
+\node[font=\scriptsize, above=0.08cm of g3] {Learning layer};
+\node[group, fit=(rank)(bucket)] (g4) {};
+\node[font=\scriptsize, above=0.08cm of g4] {Selection layer};
+\node[group, fit=(scoreeval)(diag)] (g5) {};
+\node[font=\scriptsize, above=0.08cm of diag] {Evaluation layer};
+\draw[arrow] (raw) -- (panel);
+\draw[arrow] (panel) -- (features);
+\draw[arrow] (panel) -- (target);
+\draw[arrow] (features) -- (ppo);
+\draw[arrow] (ppo) -- (rank);
+\draw[arrow] (rank) -- (bucket);
+\draw[arrow] (rank) -- (scoreeval);
+\draw[arrow] (target) -- (scoreeval);
+\draw[arrow] (scoreeval) -- (diag);
+\draw[arrow] (bucket) -- (diag);
+\end{tikzpicture}
+\end{document}

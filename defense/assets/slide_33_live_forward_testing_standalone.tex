@@ -1,0 +1,72 @@
+\documentclass[tikz,border=12pt]{standalone}
+\usepackage{fontspec}
+\setmainfont{Century Gothic}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning}
+
+\definecolor{navy}{HTML}{0C171F}
+\definecolor{green}{HTML}{00F700}
+
+\tikzset{
+  card/.style={
+    draw=navy,
+    line width=1.15pt,
+    rounded corners=5pt,
+    minimum width=4.25cm,
+    minimum height=3.25cm,
+    text width=3.75cm,
+    align=center,
+    text=navy,
+    fill=none,
+    font=\fontsize{9}{11.3}\selectfont
+  },
+  flow/.style={
+    -{Latex[length=3.3mm,width=2.1mm,fill=green]},
+    draw=navy,
+    line width=1.35pt
+  },
+  return/.style={
+    flow,
+    rounded corners=10pt
+  },
+  caption/.style={
+    text=navy,
+    align=center,
+    font=\fontsize{9.5}{12}\selectfont
+  }
+}
+
+\begin{document}
+\begin{tikzpicture}
+  \node[card] (collect)
+    {\textbf{\fontsize{12.5}{15}\selectfont Collect New Data}\\[9pt]
+     Investing.com and EGX\\through web scraping};
+
+  \node[card, right=1.0cm of collect] (features)
+    {\textbf{\fontsize{12.5}{15}\selectfont Rebuild Features}\\[9pt]
+     Update the monthly\\point-in-time feature set};
+
+  \node[card, right=1.0cm of features] (predict)
+    {\textbf{\fontsize{12.5}{15}\selectfont Generate Predictions}\\[9pt]
+     Produce the next\\predicted-risk ranking};
+
+  \node[card, right=1.0cm of predict] (monitor)
+    {\textbf{\fontsize{12.5}{15}\selectfont Monitor Progress}\\[9pt]
+     Track live ranking and\\asset-universe behavior};
+
+  \node[card, right=1.0cm of monitor] (update)
+    {\textbf{\fontsize{12.5}{15}\selectfont Update PPO Policy}\\[9pt]
+     Learn from newly observed\\forward outcomes};
+
+  \draw[flow] (collect.east) -- (features.west);
+  \draw[flow] (features.east) -- (predict.west);
+  \draw[flow] (predict.east) -- (monitor.west);
+  \draw[flow] (monitor.east) -- (update.west);
+
+  \draw[return]
+    (update.south) -- ++(0,-1.25cm) -| (collect.south);
+
+  \node[caption] at ($(collect.south)!0.5!(update.south)+(0,-0.72cm)$)
+    {Start the next monthly forward-testing round};
+\end{tikzpicture}
+\end{document}

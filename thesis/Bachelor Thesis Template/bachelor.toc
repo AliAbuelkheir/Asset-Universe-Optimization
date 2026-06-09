@@ -16,22 +16,21 @@
 \contentsline {section}{\numberline {3.1}Methodological Scope and Objective}{9}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Proposed Framework Overview}{10}{section.3.2}%
 \contentsline {section}{\numberline {3.3}Dataset and Point-in-Time Feature Construction}{11}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Composite Realized-Risk Target}{12}{section.3.4}%
+\contentsline {section}{\numberline {3.4}Composite Realized-Risk Target}{13}{section.3.4}%
 \contentsline {section}{\numberline {3.5}Reinforcement-Learning-Based Risk Scoring}{14}{section.3.5}%
 \contentsline {section}{\numberline {3.6}Actor-Critic Architecture}{15}{section.3.6}%
 \contentsline {section}{\numberline {3.7}Method Selection and Promotion Protocol}{17}{section.3.7}%
-\contentsline {section}{\numberline {3.8}Feature-Set Testing and Input Selection}{17}{section.3.8}%
-\contentsline {section}{\numberline {3.9}Investor Risk Profile Mapping and Bucketing}{18}{section.3.9}%
-\contentsline {section}{\numberline {3.10}Evaluation Protocol}{19}{section.3.10}%
-\contentsline {section}{\numberline {3.11}Chapter Summary}{20}{section.3.11}%
+\contentsline {section}{\numberline {3.8}Investor Risk Profile Mapping and Bucketing}{18}{section.3.8}%
+\contentsline {section}{\numberline {3.9}Evaluation Protocol}{19}{section.3.9}%
+\contentsline {section}{\numberline {3.10}Chapter Summary}{20}{section.3.10}%
 \contentsline {chapter}{\numberline {4}Results}{21}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Experimental Environment}{21}{section.4.1}%
 \contentsline {section}{\numberline {4.2}Data Coverage and Splits}{21}{section.4.2}%
 \contentsline {section}{\numberline {4.3}Model and Parameter Selection}{22}{section.4.3}%
 \contentsline {section}{\numberline {4.4}Ranking Results}{24}{section.4.4}%
 \contentsline {section}{\numberline {4.5}Risk-Bucket Diagnostics}{26}{section.4.5}%
-\contentsline {section}{\numberline {4.6}Filter-Ablation Baseline Comparison}{27}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Discussion and Limitations}{28}{section.4.7}%
+\contentsline {section}{\numberline {4.6}Filter-Ablation Baseline Comparison}{26}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Discussion and Limitations}{27}{section.4.7}%
 \contentsline {chapter}{\numberline {5}Conclusion \& Future Work}{29}{chapter.5}%
 \contentsline {section}{\numberline {5.1}Conclusion}{29}{section.5.1}%
 \contentsline {section}{\numberline {5.2}Future Work}{30}{section.5.2}%

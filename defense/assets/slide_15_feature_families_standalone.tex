@@ -1,0 +1,77 @@
+\documentclass[tikz,border=8pt]{standalone}
+\usepackage{fontspec}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\setmainfont[
+  Path=C:/Windows/Fonts/,
+  UprightFont=GOTHIC.TTF,
+  BoldFont=GOTHICB.TTF,
+  ItalicFont=GOTHICI.TTF,
+  BoldItalicFont=GOTHICBI.TTF
+]{Century Gothic}
+
+\definecolor{navy}{HTML}{0C171F}
+\definecolor{green}{HTML}{00F700}
+
+\tikzset{
+  card/.style={
+    draw=navy,
+    line width=0.8pt,
+    rounded corners=4pt,
+    inner sep=0pt,
+    minimum height=3.15cm,
+    text=navy
+  },
+  family/.style={
+    font=\bfseries\fontsize{13}{15}\selectfont,
+    text=navy,
+    align=left
+  },
+  features/.style={
+    font=\fontsize{10.5}{13.2}\selectfont,
+    text=navy,
+    align=left
+  }
+}
+
+\begin{document}
+\begin{tikzpicture}
+  \node[card, minimum width=11.5cm, anchor=north west] (risk) at (0,0) {};
+  \fill[green] ([xshift=20pt,yshift=-27pt]risk.north west) circle (3pt);
+  \node[family, anchor=north west] at ([xshift=32pt,yshift=-18pt]risk.north west)
+    {Risk behavior};
+  \node[features, anchor=north west] at ([xshift=20pt,yshift=-50pt]risk.north west)
+    {Recent variability, harmful losses,\\[5pt]
+     and severe downside events};
+
+  \node[card, minimum width=11.5cm, right=0.5cm of risk] (technical) {};
+  \fill[green] ([xshift=20pt,yshift=-27pt]technical.north west) circle (3pt);
+  \node[family, anchor=north west] at ([xshift=32pt,yshift=-18pt]technical.north west)
+    {Technical state};
+  \node[features, anchor=north west] at ([xshift=20pt,yshift=-50pt]technical.north west)
+    {Recent trading range, trend, momentum,\\[5pt]
+     and position relative to prior highs};
+
+  \node[card, minimum width=7.65cm, below=0.5cm of risk.south west, anchor=north west] (liquidity) {};
+  \fill[green] ([xshift=20pt,yshift=-27pt]liquidity.north west) circle (3pt);
+  \node[family, anchor=north west] at ([xshift=32pt,yshift=-18pt]liquidity.north west)
+    {Liquidity};
+  \node[features, anchor=north west] at ([xshift=20pt,yshift=-54pt]liquidity.north west)
+    {How actively the asset trades};
+
+  \node[card, minimum width=7.65cm, right=0.35cm of liquidity] (market) {};
+  \fill[green] ([xshift=20pt,yshift=-27pt]market.north west) circle (3pt);
+  \node[family, anchor=north west] at ([xshift=32pt,yshift=-18pt]market.north west)
+    {Market sensitivity};
+  \node[features, anchor=north west] at ([xshift=20pt,yshift=-54pt]market.north west)
+    {How strongly the asset moves\\[5pt]with the equity market};
+
+  \node[card, minimum width=7.65cm, right=0.35cm of market] (macro) {};
+  \fill[green] ([xshift=20pt,yshift=-27pt]macro.north west) circle (3pt);
+  \node[family, anchor=north west] at ([xshift=32pt,yshift=-18pt]macro.north west)
+    {Macro context};
+  \node[features, anchor=north west] at ([xshift=20pt,yshift=-50pt]macro.north west)
+    {Shared currency and\\[5pt]inflation conditions};
+\end{tikzpicture}
+\end{document}

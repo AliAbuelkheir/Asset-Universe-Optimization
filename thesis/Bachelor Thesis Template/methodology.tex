@@ -153,30 +153,36 @@ CPI & Macro feature & Inflation context; monthly file cleaned separately from da
 
 Raw market CSV files use a tabular market-data format with dates, price, open, high, low, volume, and quoted percentage change. Numeric fields are parsed after removing formatting characters; volume suffixes are converted into numeric values. The vendor change field is retained as a quality-control field, while authoritative returns are computed from cleaned prices. Money-market and bond series are quoted as yields, so fixed-maturity price proxies are used before return and range-derived features are calculated.
 
-Daily series are aligned to the Egyptian market calendar. Short forward filling is applied only to quoted level series where a missing observation reflects non-trading or publication timing rather than a missing asset history. Audit fields, range-price fields, volume, and vendor change values remain missing on synthetic forward-filled rows. Pre-listing history is never imputed; an absent row means the asset is unavailable for that month.
+Daily series are aligned to the Egyptian market calendar. Short forward filling is applied only to quoted level series where a missing observation reflects non-trading rather than a missing asset history. Audit fields, range-price fields, volume, and vendor change values remain missing on synthetic forward-filled rows. Pre-listing history is never imputed; an absent row means the asset is unavailable for that month.
 
-Table~\ref{tab:feature_families} groups the model inputs by financial role. The volatility family includes walk-forward EGARCH summaries, following Nelson's conditional heteroskedasticity specification \cite{nelson1991egarch}. The model-facing tensor excludes \texttt{AssetID}, \texttt{AssetName}, and \texttt{AssetGroup}; those identifiers are retained only as metadata.
+The volatility family includes walk-forward summaries estimated using a zero-mean EGARCH(1,0,1) model with normal innovations \cite{nelson1991egarch}. The model-facing tensor excludes \texttt{AssetID}, \texttt{AssetName}, and \texttt{AssetGroup}; those identifiers are retained only as metadata. Table~\ref{tab:final_model_inputs} lists the final promoted model inputs.
 
 \begin{table}[H]
 \centering
 \scriptsize
-\caption{Feature families used for point-in-time asset risk scoring}
-\label{tab:feature_families}
-\begin{tabularx}{\textwidth}{L{3.0cm}Y}
+\caption{Final promoted model input features}
+\label{tab:final_model_inputs}
+\begin{tabularx}{\textwidth}{L{3.3cm}L{2.8cm}Y}
 \toprule
-Feature family & Methodological role \\
+Input feature & Duration or window & Description \\
 \midrule
-Volatility and risk & Captures recent realized variation, walk-forward EGARCH volatility summaries, drawdown behavior, and downside variation. \\
-Downside and tail behavior & Captures harmful return asymmetry and recent downside-tail contribution. \\
-Liquidity & Represents trading activity through observed volume where available. \\
-Momentum and technical state & Captures relative price location, range behavior, momentum, and overbought or oversold state. \\
-Market beta & Measures recent co-movement with the EGX30 benchmark. \\
-Macro context & Represents USD/EGP foreign-exchange volatility and CPI inflation trajectory shared across the active universe. \\
+Conditional volatility & Trailing 3 months & Walk-forward EGARCH volatility summary for recent asset return variation. \\
+Downside deviation & Trailing 3 months & Downside-risk measure based on negative daily returns in the recent window. \\
+Maximum drawdown & Trailing 3 months & Largest peak-to-trough loss observed in the recent return path. \\
+Trading volume & Trailing 3 months & Observed trading activity, used as a liquidity and market-attention input. \\
+Average true range percentage & 20 observations & Range-based volatility measure divided by the latest observed close. \\
+Market beta & Trailing 3 months & Sensitivity of the asset's returns to the EGX30 reference series. \\
+Price versus moving average & 20 observations & Latest price position relative to a simple moving-average benchmark. \\
+Relative strength index & 14 observations & Momentum and overbought-or-oversold state based on recent price movement. \\
+Distance from recent high & Trailing 3 months & Latest price distance from the highest observed price in the recent window. \\
+USD exchange-rate volatility & Trailing 3 months & Foreign-exchange volatility context shared across active assets in a month. \\
+CPI trajectory & Trailing 3 months & Inflation trajectory context shared across active assets in a month. \\
+Downside-tail contribution ratio & Trailing 3 months & Share of total absolute movement explained by the largest downside daily-return tail observations. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The implemented feature names and the final promoted feature set are reported in Chapter~\ref{chap:result}. Algorithm~\ref{alg:panel_construction} summarizes the panel-construction process used by the methodology.
+Algorithm~\ref{alg:panel_construction} summarizes the panel-construction process used by the methodology.
 
 \begin{algorithm}[H]
 \caption{Point-in-time monthly panel construction}
@@ -268,9 +274,9 @@ Downside-and-drawdown definition & \(0.00\) & \(0.50\) & \(0.50\) & Downside and
 \section{Reinforcement-Learning-Based Risk Scoring}
 \label{sec:rl_risk_scoring}
 
-The active implementation uses PPO, a policy-gradient reinforcement-learning algorithm designed to update policies through a clipped objective that limits destructive policy changes \cite{schulman2017ppo}. PPO is used here because the task is naturally expressed as repeated month-level ranking over a changing active universe. Each decision month contains a different set of available assets, a different market context, and a different realized-risk ordering.
+The task is formulated as a reinforcement-learning problem because the model repeatedly observes a changing active asset universe, assigns asset-level risk-ranking scores, and receives a month-level reward based on the quality of the resulting full-universe ranking. Each decision month contains a different set of available assets, market context, and realized-risk ordering.
 
-One PPO episode corresponds to one decision month. The observation is a padded feature tensor and an active-asset mask. The action is one bounded continuous risk-ranking score for each padded asset slot. Padded rows are retained only to keep tensor shapes fixed; they do not contribute to action sampling, log probability, entropy, loss terms, reward, or evaluation metrics.
+The active implementation uses Proximal Policy Optimization (PPO), a policy-gradient RL algorithm that updates the scoring policy through a clipped objective designed to limit destructive policy changes \cite{schulman2017ppo}. One RL episode corresponds to one decision month. The observation is a padded feature tensor and an active-asset mask. The action is one bounded continuous risk-ranking score for each padded asset slot. Padded rows are retained only to keep tensor shapes fixed; they do not contribute to action sampling, log probability, entropy, loss terms, reward, or evaluation metrics.
 
 Assets are sorted from low to high predicted risk-ranking score to form the predicted rank order. The promoted reward is computed once per month across the active universe and combines Spearman rank correlation with a mean squared error (MSE) score term, as shown in Equation~\ref{eq:ppo_reward}.
 
@@ -409,20 +415,7 @@ Daily-CNN PPO & Encodes a short observed daily strip with convolutional filters.
 \end{tabularx}
 \end{table}
 
-\section{Feature-Set Testing and Input Selection}
-\label{sec:feature_set_testing}
-
-Feature-set testing began after the monthly pooled-context framework had been selected. This ordering was important because feature effects should be judged inside the same model structure that would later be tuned and reported. The promotion rule matched the framework-selection rule: each candidate was compared under controlled conditions, validation reward was the primary metric, Spearman rank correlation was retained as the rank-quality guardrail, and the test split was reserved for final reporting.
-
-The first feature step defined the baseline feature families. The model used risk and volatility features, downside-risk features, liquidity features, technical and momentum features, market-sensitivity features, and macroeconomic context features. This gave the feature phase a broad starting point: the candidate set could be tested as a risk-ranking input design rather than as isolated univariate predictors.
-
-The next group of checks used leave-one-out and feature-drop tests. These experiments asked whether a feature family could be removed without weakening validation ranking quality. The purpose was diagnostic: if removing a field improved validation reward or preserved reward with simpler inputs, that feature family would be considered for removal or redesign. The drop checks were therefore used to identify weak or redundant inputs before adding new information.
-
-Replacement and window checks then tested whether selected features should use shorter, longer, or differently defined windows. Examples included replacing the three-month high-distance signal with a one-month high-distance signal, testing a 14-day moving-average distance instead of a 20-day moving-average distance, using one-month maximum drawdown, changing USD volatility to a shorter window, and checking market-beta alternatives. These comparisons kept the broad feature family fixed while changing the definition of the candidate input.
-
-The additive tail and ratio checks tested whether the selected feature set needed an extra signal for abrupt downside behavior. These candidates included downside-adjusted ratios, drawdown-aware ratios, expected shortfall, drawdown duration, worst-return measures, absolute-return shock measures, volatility instability, and downside-tail contribution. The main feature-profile phase was completed before PPO hyperparameter tuning. PPO tuning then fixed the final training configuration as the final model-development step.
-
-The final selected input set kept the broad baseline families and added the three-month downside-tail contribution ratio. Chapter~\ref{chap:result} reports the descriptive final feature list, feature-selection evidence, and tuned PPO configuration.
+After selecting the monthly pooled-context framework, feature candidates were evaluated under the same controlled validation protocol. The evaluation included feature-drop checks, alternative definitions and windows, and additive tail-risk candidates. Validation reward was the primary promotion criterion, Spearman rank correlation was retained as a ranking-quality guardrail, and the test split remained reserved for final reporting. Chapter~\ref{chap:result} reports the resulting feature-selection evidence.
 
 \section{Investor Risk Profile Mapping and Bucketing}
 \label{sec:bucket_mapping}

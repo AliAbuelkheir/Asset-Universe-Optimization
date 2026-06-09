@@ -13,7 +13,7 @@ This is the main slide-by-slide speaking script for the current defense topic sl
 - Experiments: ~1 min 45 sec
 - Results: ~1 min 35 sec
 - Conclusion: ~25 sec
-- Optional Future Work: ~40 sec
+- Future Work: ~40 sec
 - References: ~15 sec
 - Main talk total: ~16 min 30 sec
 - Optional appendix backup: ~3 min to 4 min if needed in discussion
@@ -50,11 +50,19 @@ So firstly, what is the actual portfolio problem I am trying to solve?
 
 **Talk track**
 
-Many portfolio optimization methods start after the candidate assets have already been chosen. At that point, the main task becomes how to allocate weights across a given set of assets.
+Many portfolio optimization methods make a fixed-universe assumption. This means the investable assets are treated as already known and fixed before optimization begins.
 
-But there is an earlier decision that also matters: which assets should even enter the allocation stage. If that first decision is weak, a strong optimizer that starts from the wrong menu of choices can be outperformed by a weaker optimizer that worked on the correct asset universe.
+After that assumption is made, the main task becomes how to allocate weights inside that predefined universe.
+
+But there is an earlier decision that also matters: which assets should even enter the allocation stage. If that first decision is weak, even a strong optimizer is limited by the menu of assets it receives.
 
 My thesis focuses on this earlier step. It studies asset-universe selection before allocation.
+
+**Slide bullets**
+
+- Fixed-universe assumption: the investable assets are predefined before optimization.
+- The optimizer only decides weights inside that fixed asset menu.
+- This thesis studies the earlier question: which assets should enter the universe?
 
 **Estimated time**
 ~30 sec
@@ -92,11 +100,11 @@ With that scope in place, the thesis asks three direct research questions.
 
 **Talk track**
 
-The first question asks whether AI and machine learning can support dynamic asset-universe selection before allocation using predicted asset risk levels.
+The first question asks whether AI and machine learning can support dynamic asset-universe selection before allocation using predictions of each asset's realized-risk behavior.
 
 The second asks whether the selected universes actually align with conservative, balanced, and aggressive investor profiles.
 
-The third asks how the proposed risk-tolerance-based universes compare with the full active universe when both are evaluated under the same allocation method in historical simulation.
+The third asks how the proposed risk-tolerance-based universes compare with the full active universe when both are evaluated under the same equal-weight historical simulation rule.
 
 Together, these questions keep the project focused on asset suitability for the investor.
 
@@ -134,11 +142,11 @@ Risk measures such as Sharpe ratio, volatility, drawdown, or robustness usually 
 
 **Talk track**
 
-However, the DEA paper is useful because it also splits the process into two stages. First, assets are screened and qualified. Then weight allocation happens after that.
+One useful exception is the DEA paper, because it also splits the process into two stages. First, assets are screened and qualified. Then weight allocation happens after that.
 
 In Atta Mills and Anyomi, DEA is used to rank candidate stocks by efficiency under uncertainty. Standard deviation appears as the key risk-related input, while the rest of the screening still leans toward return and robustness considerations.
 
-So the paper supports risk-oriented selection, but it still does not directly learn investor-specific universes in the Egyptian market using AI.
+So the paper supports pre-allocation screening, but the main filter is still efficiency. It is also a statistical DEA method, not an AI model that learns investor-specific risk-tolerance universes.
 
 **Transition**
 After that, the remaining gap becomes easier to state clearly.
@@ -257,11 +265,11 @@ With that idea clear, I can explain why this problem fits reinforcement learning
 
 **Talk track**
 
-This problem changes every month because the active universe changes. Some assets enter later, some are unavailable in earlier history, and the model always scores a whole monthly set rather than a single isolated asset.
+Reinforcement learning fits this problem for three main reasons. First, the available assets change from month to month. Second, the model scores the full monthly set together rather than treating each asset as an isolated prediction. Third, the reward is calculated only after the complete universe has been ranked.
 
-That makes each month feel like one decision environment. The model receives the active assets and their features, assigns risk scores across the whole month, and then gets rewarded based on the final monthly ordering.
+The figure shows how these ideas form one monthly decision environment. The state is the active asset universe and its features. The action is assigning one risk score to every active asset, and the resulting scores create the predicted monthly ranking.
 
-Reinforcement learning fits that setup well because the feedback arrives at the month level after the ranking is complete.
+The predicted ranking is then compared with the realized-risk ranking to calculate the reward. That feedback is used to update the scoring policy, so it can produce better rankings in future decision months.
 
 **Transition**
 Among reinforcement learning methods, I used PPO because it gives a more controlled training update.
@@ -287,14 +295,16 @@ Before opening the actor-critic architecture, I first need to define what one PP
 
 **Talk track**
 
-One PPO episode equals one monthly decision. The observation is a tensot of all asset features, together with a mask that marks which rows are real assets. This setup supports a different number of available assets depending on the decision month.
+One PPO episode represents one complete monthly ranking decision.
 
-The action is one continuous risk score for each asset slot between zero and one. After the model scores the month, the assets are sorted and compared with the realized-risk ordering for that same month.
+The episode begins with the month's fixed-size asset-feature tensor and an active-asset mask. The mask identifies the rows representing assets that are actually available during that month.
 
-So the reward is based on how well the full monthly ranking matches reality.
+The PPO policy assigns one continuous risk score between zero and one to every active asset. These scores are then sorted to create the predicted low-to-high risk ranking.
+
+Finally, the complete predicted ranking is compared with the realized-risk ranking for the same month. That comparison produces one reward for the entire monthly decision, rather than a separate reward for each asset.
 
 **Transition**
-That episode design depends on handling a changing number of assets cleanly.
+To make this work across months with different numbers of available assets, the model needs padding and masking.
 
 **Estimated time**
 ~25 sec
@@ -319,13 +329,13 @@ With the monthly decision and masking logic clear, I will explain the actor-crit
 
 **Talk track**
 
-The architecture has four main pieces. A row encoder reads each asset using the same parameters, then a pooled context vector summarizes the active month.
+The architecture starts by encoding every asset with the same row encoder. Those row representations are then pooled into one context vector that summarizes the active month.
 
-From there, the actor outputs a risk score per asset, and the critic estimates the expected monthly reward. That critic estimate gives the algorithm a baseline for how good or bad the actual month turned out.
+The actor combines each asset representation with that monthly context and outputs one risk score per asset. In parallel, the critic uses the pooled context to estimate the expected reward for the complete monthly decision.
 
-The difference between the actual monthly reward and the critic's expected monthly reward is called the advantage. PPO uses that advantage to decide how strongly the policy should be updated.
+The actor's scores first form a ranking, and that complete ranking is evaluated to produce the actual monthly reward. PPO compares this actual reward with the critic's expected reward. The difference is called the advantage, and it tells PPO how the policy should learn from that month.
 
-This structure is a good fit because the decision mixes asset-level scoring with month-level context.
+This structure combines asset-level scoring with a month-level baseline.
 
 **Transition**
 The final training signal then comes from the reward function.
@@ -388,7 +398,7 @@ Several formulations were compared before locking the final framework. The goal 
 
 I tested whether the model should look at only the most recent month or a three-month feature window. I also tested whether adding pooled context from the whole active universe in that month improved the model's performance.
 
-I also explored variants that included daily price information more directly, but that added too much noise and the performance dropped. The three-month view with active-universe context had the best performance, so it was promoted as the final framework for the next stage.
+I also explored variants that included daily price information more directly, but in these trials that appeared to add noise and did not improve validation performance. The three-month view with active-universe context had the best performance, so it was promoted as the final framework for the next stage.
 
 **Transition**
 After the framework was locked, I moved to feature tuning and hyperparameter tuning phases.
@@ -400,11 +410,11 @@ After the framework was locked, I moved to feature tuning and hyperparameter tun
 
 **Talk track**
 
-Feature selection followed a sequential process. I first tested drop-one-feature ablations to the fixed feature set from before, then confirmed apparent winners with 3 seed runs, then redesigned feature-family alternatives, and finally tested new additions like downtail ratio.
+Feature selection followed a sequential process. I first used drop-one-feature ablations on the fixed feature set, then confirmed promising changes with three-seed runs. After that, I tested redesigned feature-family alternatives and new additions such as the downside-tail ratio.
 
-Hyperparameter tuning came after the framework and feature decisions. I used Optuna, which is a hyperparameter optimization tool that runs multiple trials with different parameter combinations, measures them against the validation objective, and then uses the earlier trial results to guide the next suggested configurations Until it reaches the best Paramaters set.
+Hyperparameter tuning came after the framework and feature decisions. I used Optuna, a hyperparameter optimization tool that runs multiple parameter trials, evaluates them on the validation objective, and uses earlier results to suggest better configurations.
 
-The main decision guardrail was validation reward.
+The main selection metric was validation reward, with validation Spearman kept as the ranking-quality guardrail.
 
 **Transition**
 Once the model was locked, I evaluated it in two connected stages.
@@ -466,7 +476,7 @@ After risk separation, we can look carefully at the return side of the same test
 
 Using the same equal-weight allocation rule, cumulative return in the test window was 49.59 percent for the full universe, 29.91 percent for the conservative universe, 50.17 percent for the balanced universe, and 86.24 percent for the aggressive universe.
 
-The aggressive universe also carried higher volatility and a deeper drawdown. So the higher return came with a visibly higher risk bill.
+The aggressive universe also carried higher volatility and a deeper drawdown. So the higher return came with visibly higher risk exposure.
 
 That is why I present these numbers as historical diagnostics. They help interpret the selected universes economically, but they do not prove future outperformance.
 
@@ -482,7 +492,7 @@ That brings us to the baseline comparison.
 
 The baseline here is the full active universe under the same equal-weight rule. Keeping the allocation rule fixed makes the comparison much cleaner.
 
-Under that comparison, low-risk filtering materially reduced realized risk versus the full universe, while high-risk filtering produced higher realized risk and stronger return participation in the short test window.
+Under that comparison, conservative-universe filtering materially reduced realized risk versus the full universe, while aggressive-universe filtering produced higher realized risk and stronger return participation in the short test window.
 
 So the filtering stage itself already changes the opportunity set in a meaningful, investor-specific way.
 
@@ -496,16 +506,16 @@ With that evidence in place, I can answer the research questions directly.
 
 **Talk track**
 
-RQ1 asks whether AI and machine learning can support dynamic asset-universe selection before allocation using asset-level realized-risk prediction. The answer is yes in this historical setting: the PPO model produced meaningful realized-risk ranking behavior across the changing active universe.
+RQ1 asks whether AI and machine learning can support dynamic asset-universe selection before allocation using asset-level realized-risk prediction. In this historical setting, the answer is yes: the PPO model produced meaningful realized-risk ranking behavior across the changing active universe.
 
-RQ2 asks whether the selected universes align with conservative, balanced, and aggressive investor profiles. The answer is also yes: the predicted-rank universes produced distinct realized-risk groups in the expected order.
+RQ2 asks whether the selected universes align with conservative, balanced, and aggressive investor profiles. For this question, also yes: the predicted-rank universes produced distinct realized-risk groups in the expected order.
 
 RQ3 asks how the proposed risk-tolerance-based universes compare with the full active universe under the same equal-weight historical simulation rule. The answer is that the filtered universes behaved differently from the full active universe, especially in realized risk, while return remained a historical diagnostic rather than a future-performance claim.
 
 These answers stay measured, but they are still strong enough to defend the contribution clearly.
 
 **Transition**
-The last content section is optional future work.
+The last content section is future work.
 
 **Estimated time**
 ~40 sec
@@ -514,7 +524,7 @@ The last content section is optional future work.
 
 **Talk track**
 
-These are optional next steps beyond the thesis scope. One possible next step is live forward testing: connecting the pipeline to live market-data APIs, rebuilding the monthly features over time, and monitoring how the selected asset universes behave in real conditions.
+These are possible next steps beyond the thesis scope. One future direction is live forward testing: connecting the pipeline to live market-data APIs, rebuilding the monthly features over time, and monitoring how the selected asset universes behave in real conditions.
 
 That would matter because historical evidence is useful, but forward observation is a stronger test of stability.
 
@@ -524,13 +534,13 @@ There is also a natural extension on the objective side.
 **Estimated time**
 ~20 sec
 
-## Slide 34 - Return-Aware Suitability Extensions
+## Slide 34 - Return-Aware Suitability
 
 **Talk track**
 
-Another optional extension is return-aware suitability. The current thesis objective is risk suitability, but a future version may add return-aware diagnostics or utility logic after the risk-ranked universes are formed.
+The current thesis defines suitability mainly through investor risk tolerance. However, risk alone may not provide a complete view of whether an asset is suitable for an investor.
 
-That would let the system stay investor-aware while exploring richer tradeoffs inside each selected universe.
+Return information could later be considered within the set of choices that already satisfy the investor's risk requirements. The exact implementation would require further research, but the main principle is that return awareness should refine suitability without overriding the investor's risk limits.
 
 **Transition**
 I'll close the main talk with the core references behind the framing.

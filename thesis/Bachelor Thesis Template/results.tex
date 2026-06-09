@@ -90,34 +90,7 @@ Tail and ratio additions & Downside, tail, jump, drawdown-duration, ratio, and v
 \end{tabularx}
 \end{table}
 
-Table~\ref{tab:final_model_inputs} lists the final model inputs using descriptive labels. Most asset-level inputs use the trailing three-month feature window, while some technical indicators use their own observation count inside that window. Macro inputs are repeated for every active asset in the same decision month.
-
-\begin{table}[H]
-\centering
-\scriptsize
-\caption{Final promoted model input features}
-\label{tab:final_model_inputs}
-\begin{tabularx}{\textwidth}{L{3.3cm}L{2.8cm}Y}
-\toprule
-Input feature & Duration or window & Description \\
-\midrule
-Conditional volatility & Trailing 3 months & Walk-forward EGARCH volatility summary for recent asset return variation. \\
-Downside deviation & Trailing 3 months & Downside-risk measure based on negative daily returns in the recent window. \\
-Maximum drawdown & Trailing 3 months & Largest peak-to-trough loss observed in the recent return path. \\
-Trading volume & Trailing 3 months & Observed trading activity, used as a liquidity and market-attention input. \\
-Average true range percentage & 20 observations & Range-based volatility measure divided by the latest observed close. \\
-Market beta & Trailing 3 months & Sensitivity of the asset's returns to the EGX30 reference series. \\
-Price versus moving average & 20 observations & Latest price position relative to a simple moving-average benchmark. \\
-Relative strength index & 14 observations & Momentum and overbought-or-oversold state based on recent price movement. \\
-Distance from recent high & Trailing 3 months & Latest price distance from the highest observed price in the recent window. \\
-USD exchange-rate volatility & Trailing 3 months & Foreign-exchange volatility context shared across active assets in a month. \\
-CPI trajectory & Trailing 3 months & Inflation trajectory context shared across active assets in a month. \\
-Downside-tail contribution ratio & Trailing 3 months & Share of total absolute movement explained by the largest downside daily-return tail observations. \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-The final promoted model uses the selected monthly pooled-context framework, the reported input feature set, the promoted realized-risk target, the promoted reward design, and the tuned PPO configuration. Table~\ref{tab:promoted_config} summarizes the evaluated configuration without repeating the full feature list or the tuned hyperparameter values.
+The final promoted model uses the selected monthly pooled-context framework, the final input feature set listed in Table~\ref{tab:final_model_inputs}, the promoted realized-risk target, the promoted reward design, and the tuned PPO configuration. Table~\ref{tab:promoted_config} summarizes the evaluated configuration without repeating the full feature list or the tuned hyperparameter values.
 
 \begin{table}[H]
 \centering

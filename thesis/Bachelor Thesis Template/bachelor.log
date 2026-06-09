@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  28 MAY 2026 03:19
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.23)  6 JUN 2026 16:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -749,24 +749,24 @@ duction.aux) (literature_review.aux) (methodology.aux) (results.aux)
 (conclusion.aux) (appendix.aux))
 \openout1 = `bachelor.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 90.
+LaTeX Font Info:    ... okay on input line 90.
 
 (C:\Users\aliab\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
 ii
@@ -797,7 +797,7 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring ON on input line 87.
+Package hyperref Info: Link coloring ON on input line 90.
  (bachelor.out) (bachelor.out)
 \@outlinefile=\write4
 \openout4 = `bachelor.out'.
@@ -805,32 +805,32 @@ Package hyperref Info: Link coloring ON on input line 87.
 \openout2 = `GUC_TitlePage.aux'.
 
  (GUC_TitlePage.tex
-Package epstopdf Info: Source file: <GUC-logo-ss.eps>
-(epstopdf)                    date: 2026-03-22 13:46:23
-(epstopdf)                    size: 23913 bytes
-(epstopdf)             Output file: <GUC-logo-ss-eps-converted-to.pdf>
-(epstopdf)                    date: 2026-05-25 03:53:43
-(epstopdf)                    size: 7043 bytes
-(epstopdf)             Command: <miktex-epstopdf --outfile=GUC-logo-ss-eps-conv
-erted-to.pdf GUC-logo-ss.eps>
-(epstopdf)             \includegraphics on input line 74.
-Package epstopdf Info: Output file is already uptodate.
-<GUC-logo-ss-eps-converted-to.pdf, id=178, 271.0125pt x 259.97125pt>
-File: GUC-logo-ss-eps-converted-to.pdf Graphic file (type pdf)
-<use GUC-logo-ss-eps-converted-to.pdf>
-Package pdftex.def Info: GUC-logo-ss-eps-converted-to.pdf  used on input line 7
-4.
-(pdftex.def)             Requested size: 60.80562pt x 58.32823pt.
+<../assets/The_German_University_in_Cairo_Official_logo.jpg, id=174, 143.78719p
+t x 146.04562pt>
+File: ../assets/The_German_University_in_Cairo_Official_logo.jpg Graphic file (
+type jpg)
+<use ../assets/The_German_University_in_Cairo_Official_logo.jpg>
+Package pdftex.def Info: ../assets/The_German_University_in_Cairo_Official_logo
+.jpg  used on input line 54.
+(pdftex.def)             Requested size: 57.42609pt x 58.32823pt.
+<../assets/robin_logo-removebg-preview.png, id=175, 547.04375pt x 193.72375pt>
+File: ../assets/robin_logo-removebg-preview.png Graphic file (type png)
+<use ../assets/robin_logo-removebg-preview.png>
+Package pdftex.def Info: ../assets/robin_logo-removebg-preview.png  used on inp
+ut line 54.
+(pdftex.def)             Requested size: 116.49358pt x 41.25641pt.
  [1
 
 
-{C:/Users/aliab/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map} <./GUC-logo-s
-s-eps-converted-to.pdf>] [2
+{C:/Users/aliab/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map} <../assets/Th
+e_German_University_in_Cairo_Official_logo.jpg> <../assets/robin_logo-removebg-
+preview.png>] [2
 
 ])
 \openout2 = `acknowledgments.aux'.
 
- (acknowledgments.tex) [3
+
+(acknowledgments.tex) [3
 
 
 
@@ -889,14 +889,15 @@ Chapter 3.
 
 
 ] [10] [11]
-Overfull \hbox (3.44693pt too wide) in paragraph at lines 158--159
-\OT1/cmr/m/n/12 walk-forward EGARCH sum-maries, fol-low-ing Nel-son's con-di-ti
-onal het-eroskedas-tic-ity spec-
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
+put line 188.
+ [12] [13]
+Overfull \hbox (5.3996pt too wide) in paragraph at lines 279--280
+[]\OT1/cmr/m/n/12 The ac-tive im-ple-men-ta-tion uses Prox-i-mal Pol-icy Op-ti-
+miza-tion (PPO), a policy-gradient
  []
 
-Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
-put line 182.
-[12] [13] [14] [15] [16] [17] [18] [19]) [20]
+[14] [15] [16] [17] [18] [19]) [20]
 \openout2 = `results.aux'.
 
  (results.tex
@@ -906,14 +907,14 @@ Chapter 4.
 
 
 
-] [22] [23] [24]
-<./images/ch4_test_rank_alignment.png, id=532, 514.1025pt x 384.345pt>
+] [22] [23]
+<./images/ch4_test_rank_alignment.png, id=516, 514.1025pt x 384.345pt>
 File: ./images/ch4_test_rank_alignment.png Graphic file (type png)
 <use ./images/ch4_test_rank_alignment.png>
 Package pdftex.def Info: ./images/ch4_test_rank_alignment.png  used on input li
-ne 197.
+ne 170.
 (pdftex.def)             Requested size: 371.43698pt x 277.68999pt.
- [25 <./images/ch4_test_rank_alignment.png>] [26] [27])
+ [24] [25 <./images/ch4_test_rank_alignment.png>] [26] [27])
 [28]
 \openout2 = `conclusion.aux'.
 
@@ -963,16 +964,16 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `bachelor.out' has not changed.
-(rerunfilecheck)             Checksum: 4A44A37639F9AA5294E3745A853D989E;7663.
+(rerunfilecheck)             Checksum: E7AE3945F9BFF2D7BF556E9FBCA571F1;7400.
  ) 
 Here is how much of TeX's memory you used:
- 24427 strings out of 467871
- 465029 string characters out of 5418376
- 867317 words of memory out of 5000000
- 52669 multiletter control sequences out of 15000+600000
- 636402 words of font info for 70 fonts, out of 8000000 for 9000
+ 24413 strings out of 467871
+ 465197 string characters out of 5418376
+ 866242 words of memory out of 5000000
+ 52659 multiletter control sequences out of 15000+600000
+ 635507 words of font info for 67 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,13n,94p,1172b,873s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,11n,94p,1172b,874s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\aliab\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm
 1200.pk><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfon
 ts/cm/cmbx12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/publ
@@ -983,19 +984,17 @@ s/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/aliab/AppData/Local
 /Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/aliab/AppDat
 a/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/aliab
 /AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsl12.pfb><C:/Us
-ers/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmss12.p
+ers/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.p
 fb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
-/cmssbx10.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/
-amsfonts/cm/cmsy10.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type
-1/public/amsfonts/cm/cmsy6.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fo
-nts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/aliab/AppData/Local/Programs/M
-iKTeX/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Users/aliab/AppData/Local/P
-rograms/MiKTeX/fonts/type1/public/amsfonts/cm/cmti8.pfb><C:/Users/aliab/AppData
-/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt12.pfb><C:/Users/alia
-b/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
-Output written on bachelor.pdf (44 pages, 604271 bytes).
+/cmsy6.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
+fonts/cm/cmsy8.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts/type1/pu
+blic/amsfonts/cm/cmti12.pfb><C:/Users/aliab/AppData/Local/Programs/MiKTeX/fonts
+/type1/public/amsfonts/cm/cmti8.pfb><C:/Users/aliab/AppData/Local/Programs/MiKT
+eX/fonts/type1/public/amsfonts/cm/cmtt12.pfb><C:/Users/aliab/AppData/Local/Prog
+rams/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
+Output written on bachelor.pdf (44 pages, 629094 bytes).
 PDF statistics:
- 758 PDF objects out of 1000 (max. 8388607)
- 179 named destinations out of 1000 (max. 500000)
- 367 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 740 PDF objects out of 1000 (max. 8388607)
+ 177 named destinations out of 1000 (max. 500000)
+ 364 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -1,0 +1,80 @@
+\documentclass[tikz,border=12pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning}
+
+\definecolor{navy}{HTML}{0C171F}
+\definecolor{green}{HTML}{00F700}
+
+\tikzset{
+  split/.style={
+    text=navy,
+    text width=4.1cm,
+    align=center,
+    font=\fontsize{9}{11.2}\selectfont
+  },
+  date/.style={
+    text=navy,
+    align=center,
+    font=\bfseries\fontsize{9.5}{12}\selectfont
+  },
+  timeline/.style={
+    -{Latex[length=3.4mm,width=2.2mm,fill=green]},
+    draw=navy,
+    line width=1.5pt
+  },
+  tick/.style={
+    draw=green,
+    line width=1.8pt
+  },
+  guide/.style={
+    draw=navy,
+    line width=0.8pt,
+    dashed
+  }
+}
+
+\begin{document}
+\begin{tikzpicture}
+  % Proportional split boundaries.
+  \coordinate (start) at (0,0);
+  \coordinate (trainEnd) at (9.2,0);
+  \coordinate (innerEnd) at (12.7,0);
+  \coordinate (validationEnd) at (17.2,0);
+  \coordinate (testEnd) at (21.0,0);
+
+  \node[split] at ($(start)!0.5!(trainEnd)+(0,2.05cm)$)
+    {\textbf{\fontsize{13}{16}\selectfont Training}\\[6pt]
+     Learn the PPO policy\\126 decision months};
+
+  \node[split] at ($(trainEnd)!0.5!(innerEnd)+(0,2.05cm)$)
+    {\textbf{\fontsize{12}{15}\selectfont Inner Validation}\\[6pt]
+     Checkpoint selection\\12 months};
+
+  \node[split] at ($(innerEnd)!0.5!(validationEnd)+(0,2.05cm)$)
+    {\textbf{\fontsize{13}{16}\selectfont Validation}\\[6pt]
+     Framework, feature, and\\hyperparameter choices\\26 months};
+
+  \node[split] at ($(validationEnd)!0.5!(testEnd)+(0,2.05cm)$)
+    {\textbf{\fontsize{13}{16}\selectfont Test}\\[6pt]
+     Final reporting only\\11 months};
+
+  \draw[timeline] (start) -- ($(testEnd)+(0.3cm,0)$);
+
+  \foreach \point/\label in {
+    start/01-2011,
+    trainEnd/01-2022,
+    innerEnd/01-2023,
+    validationEnd/03-2025,
+    testEnd/01-2026
+  } {
+    \draw[tick] ($(\point)+(0,-0.23cm)$) -- ($(\point)+(0,0.23cm)$);
+    \node[date, below=0.35cm of \point] {\label};
+  }
+
+  \draw[guide] ($(trainEnd)+(0,0.28cm)$) -- ($(trainEnd)+(0,1.25cm)$);
+  \draw[guide] ($(innerEnd)+(0,0.28cm)$) -- ($(innerEnd)+(0,1.25cm)$);
+  \draw[guide] ($(validationEnd)+(0,0.28cm)$) -- ($(validationEnd)+(0,1.25cm)$);
+\end{tikzpicture}
+\end{document}

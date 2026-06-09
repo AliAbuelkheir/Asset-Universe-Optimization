@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="900" viewBox="0 0 1920 900">
+  <defs>
+    <style>
+      .title { font: 700 29px 'Aptos', 'Arial', sans-serif; fill: #071d2a; }
+      .label { font: 700 24px 'Aptos', 'Arial', sans-serif; fill: #071d2a; }
+      .small { font: 400 19px 'Aptos', 'Arial', sans-serif; fill: #173342; }
+      .tiny { font: 600 17px 'Aptos', 'Arial', sans-serif; fill: #173342; }
+      .card { fill: #ffffff; stroke: #0a2635; stroke-width: 3; rx: 22; }
+      .asset { fill: #f7fbfc; stroke: #0a2635; stroke-width: 3; rx: 20; }
+      .macro { fill: #f3f7f8; stroke: #0a2635; stroke-width: 3; stroke-dasharray: 9 8; rx: 20; }
+      .accent { fill: #00ff19; }
+      .line { fill: none; stroke: #0a2635; stroke-width: 3; }
+      .dash { fill: none; stroke: #0a2635; stroke-width: 3; stroke-dasharray: 9 8; }
+      .greenline { fill: none; stroke: #00d91b; stroke-width: 4; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0a2635"/>
+    </marker>
+    <marker id="greenarrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#00d91b"/>
+    </marker>
+  </defs>
+
+  <!-- Center scope -->
+  <rect class="card" x="720" y="325" width="480" height="210"/>
+  <circle class="accent" cx="770" cy="382" r="10"/>
+  <text class="title" x="800" y="392">Egyptian Mixed-Asset Universe</text>
+  <text class="small" x="960" y="440" text-anchor="middle">Selectable assets span defensive, equity,</text>
+  <text class="small" x="960" y="470" text-anchor="middle">and real-asset exposures.</text>
+  <text class="tiny" x="960" y="510" text-anchor="middle">USD/EGP + CPI provide shared market context</text>
+
+  <!-- Defensive -->
+  <rect class="asset" x="80" y="80" width="430" height="150"/>
+  <circle class="accent" cx="125" cy="127" r="9"/>
+  <text class="label" x="155" y="137">91-day Treasury Bills</text>
+  <text class="small" x="125" y="181">Benchmark / role: money-market exposure</text>
+
+  <rect class="asset" x="80" y="330" width="430" height="150"/>
+  <circle class="accent" cx="125" cy="377" r="9"/>
+  <text class="label" x="155" y="387">5-year Government Bonds</text>
+  <text class="small" x="125" y="431">Benchmark / role: fixed-income exposure</text>
+
+  <!-- Real assets -->
+  <rect class="asset" x="80" y="580" width="430" height="150"/>
+  <circle class="accent" cx="125" cy="627" r="9"/>
+  <text class="label" x="155" y="637">Real Assets</text>
+  <text class="small" x="125" y="681">REIT index proxy + gold priced in EGP</text>
+
+  <!-- EGX branch -->
+  <rect class="card" x="1410" y="245" width="430" height="190"/>
+  <circle class="accent" cx="1455" cy="292" r="9"/>
+  <text class="label" x="1485" y="302">EGX30 Equity Benchmark</text>
+  <text class="small" x="1455" y="346">Common reference for Egyptian equities</text>
+  <text class="small" x="1455" y="378">and market-beta calculations</text>
+
+  <rect class="asset" x="1300" y="545" width="300" height="165"/>
+  <circle class="accent" cx="1342" cy="590" r="8"/>
+  <text class="label" x="1368" y="600">EGX30 Index</text>
+  <text class="small" x="1342" y="642">Included as one investable</text>
+  <text class="small" x="1342" y="672">fund / ETF-style exposure</text>
+
+  <rect class="asset" x="1630" y="545" width="250" height="165"/>
+  <circle class="accent" cx="1672" cy="590" r="8"/>
+  <text class="label" x="1698" y="600">EGX30 Stocks</text>
+  <text class="small" x="1672" y="642">Individual constituent</text>
+  <text class="small" x="1672" y="672">stocks included separately</text>
+
+  <!-- Macro -->
+  <rect class="macro" x="690" y="690" width="540" height="145"/>
+  <circle class="accent" cx="740" cy="738" r="9"/>
+  <text class="label" x="770" y="748">Macro Context: USD/EGP + CPI</text>
+  <text class="small" x="960" y="794" text-anchor="middle">Shared model inputs, not selectable portfolio assets</text>
+
+  <!-- Connectors -->
+  <path class="line" marker-end="url(#arrow)" d="M510 155 C610 155, 620 360, 720 385"/>
+  <path class="line" marker-end="url(#arrow)" d="M510 405 C610 405, 630 415, 720 420"/>
+  <path class="line" marker-end="url(#arrow)" d="M510 655 C620 655, 635 500, 720 475"/>
+  <path class="line" marker-end="url(#arrow)" d="M1200 410 C1290 410, 1320 350, 1410 340"/>
+  <path class="greenline" marker-end="url(#greenarrow)" d="M1515 435 C1515 480, 1450 500, 1450 545"/>
+  <path class="greenline" marker-end="url(#greenarrow)" d="M1735 435 C1735 485, 1755 500, 1755 545"/>
+  <path class="dash" marker-end="url(#arrow)" d="M960 690 L960 535"/>
+
+  <!-- Legend -->
+  <rect x="1375" y="790" width="470" height="60" rx="18" fill="#ffffff" stroke="#0a2635" stroke-width="2"/>
+  <circle class="accent" cx="1415" cy="820" r="8"/>
+  <text class="tiny" x="1440" y="826">Selectable asset / exposure</text>
+  <path class="dash" d="M1670 820 L1720 820"/>
+  <text class="tiny" x="1735" y="826">Context only</text>
+</svg>

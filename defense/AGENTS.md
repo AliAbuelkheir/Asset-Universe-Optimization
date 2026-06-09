@@ -77,6 +77,9 @@ figures, and rehearsal material here.
 
 ## Working Rules
 
+- Do not create, edit, modify, repair, or regenerate `.pptx` files in this
+  folder. The user handles PowerPoint files manually. Keep slide content,
+  speaker notes, and deck instructions in Markdown/source files only.
 - Do not edit `../thesis/` from defense work unless explicitly requested.
 - When a defense claim depends on model methodology, check
   `../ranked-risk-model/AGENTS.md` first.

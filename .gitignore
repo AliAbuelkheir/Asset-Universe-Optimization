@@ -40,4 +40,7 @@ tmp/
 .agents/
 skills-lock.json
 
+# Generated defense slide snapshots
+defense/slides/current/
+
 # PPO project ignored artifacts are managed by ranked-risk-model/.gitignore

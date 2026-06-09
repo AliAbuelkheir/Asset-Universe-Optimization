@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="650" viewBox="0 0 1600 650">
+  <defs>
+    <style>
+      .heading { font: 700 30px "Century Gothic", Arial, sans-serif; fill: #132331; }
+      .body { font: 24px "Century Gothic", Arial, sans-serif; fill: #132331; }
+      .small { font: 20px "Century Gothic", Arial, sans-serif; fill: #53616c; }
+      .white { fill: #ffffff; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#203f55"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1 -->
+  <circle cx="145" cy="190" r="70" fill="#203f55"/>
+  <text x="145" y="180" text-anchor="middle" class="body white">Stage</text>
+  <text x="145" y="220" text-anchor="middle" class="heading white">1</text>
+
+  <rect x="260" y="95" width="430" height="190" rx="30" fill="#f5f6f7" stroke="#d2d4d6" stroke-width="3"/>
+  <text x="475" y="145" text-anchor="middle" class="heading">Ranking quality</text>
+  <text x="475" y="205" text-anchor="middle" class="body">Predicted ranks</text>
+  <line x1="445" y1="225" x2="505" y2="225" stroke="#203f55" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="475" y="265" text-anchor="middle" class="body">Realized-risk ranks</text>
+
+  <!-- Main arrow -->
+  <line x1="730" y1="190" x2="870" y2="190" stroke="#203f55" stroke-width="6" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2 -->
+  <circle cx="975" cy="190" r="70" fill="#203f55"/>
+  <text x="975" y="180" text-anchor="middle" class="body white">Stage</text>
+  <text x="975" y="220" text-anchor="middle" class="heading white">2</text>
+
+  <rect x="1090" y="95" width="450" height="190" rx="30" fill="#f5f6f7" stroke="#d2d4d6" stroke-width="3"/>
+  <text x="1315" y="145" text-anchor="middle" class="heading">Risk separation</text>
+  <text x="1315" y="205" text-anchor="middle" class="body">Profile universes</text>
+  <line x1="1285" y1="225" x2="1345" y2="225" stroke="#203f55" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="1315" y="265" text-anchor="middle" class="body">Full active universe</text>
+
+  <!-- Shared control -->
+  <rect x="445" y="390" width="710" height="105" rx="28" fill="#203f55"/>
+  <text x="800" y="435" text-anchor="middle" class="heading white">Same equal-weight rule</text>
+  <text x="800" y="470" text-anchor="middle" class="small white">Isolates the effect of universe selection</text>
+</svg>
