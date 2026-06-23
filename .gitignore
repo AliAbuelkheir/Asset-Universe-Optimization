@@ -38,6 +38,12 @@ thesis/**/*-eps-converted-to.pdf
 # Local workspace/tool scratch
 tmp/
 .agents/
+!.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/update-defense-docs/
+!.agents/skills/update-defense-docs/**
 skills-lock.json
 
 # Generated defense slide snapshots

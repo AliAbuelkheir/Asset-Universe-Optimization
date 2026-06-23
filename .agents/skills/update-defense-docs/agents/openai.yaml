@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Defense Docs"
+  short_description: "Sync defense notes and slide guide"
+  default_prompt: "Use $update-defense-docs to refresh the defense script and slide guide from defense.pptx."

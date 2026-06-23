@@ -30,5 +30,23 @@ Use these rules for future diagrams and figures created in `defense/assets/`.
 
 - Keep an editable source file beside each rendered asset.
 - Export a transparent PNG as the primary PowerPoint asset.
-- Also export a white-background PNG for quick visual review.
+- Create any white-background or PDF preview outside `defense/` and delete it
+  after visual review; do not retain duplicate renders in the asset folder.
 - Use descriptive names such as `slide_15_feature_families_transparent.png`.
+
+
+## Motion Graphics
+
+- Match the slide canvas with a solid light-gray background (`#F2F3F3`) when
+  exporting H.264, because the PowerPoint-compatible codec does not preserve
+  transparency.
+- Use Century Gothic throughout motion assets so typography remains consistent
+  with the deck.
+- Keep chart structure, bars, labels, and explanatory text in navy (`#0C171F`).
+- Use green (`#00F700`) only for short cap markers, small transition
+  emphasis, or a compact visual cue; it must not become a large fill.
+- Keep data identities in fixed screen positions whenever the intended lesson is
+  change over time. Animate the measured value, not the category location.
+- State chart direction explicitly whenever a larger mark could be interpreted
+  as better performance.
+- Include a concise historical-diagnostic qualifier in full-slide videos.

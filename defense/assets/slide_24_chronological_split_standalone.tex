@@ -20,7 +20,6 @@
     font=\bfseries\fontsize{9.5}{12}\selectfont
   },
   timeline/.style={
-    -{Latex[length=3.4mm,width=2.2mm,fill=green]},
     draw=navy,
     line width=1.5pt
   },
@@ -60,14 +59,14 @@
     {\textbf{\fontsize{13}{16}\selectfont Test}\\[6pt]
      Final reporting only\\11 months};
 
-  \draw[timeline] (start) -- ($(testEnd)+(0.3cm,0)$);
+  \draw[timeline] (start) -- (testEnd);
 
   \foreach \point/\label in {
     start/01-2011,
     trainEnd/01-2022,
     innerEnd/01-2023,
     validationEnd/03-2025,
-    testEnd/01-2026
+    testEnd/02-2026
   } {
     \draw[tick] ($(\point)+(0,-0.23cm)$) -- ($(\point)+(0,0.23cm)$);
     \node[date, below=0.35cm of \point] {\label};

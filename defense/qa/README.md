@@ -1,10 +1,9 @@
 # Defense Q&A
 
-Use this folder for expected questions, concise answers, objections, and examiner notes.
+Use this folder for examiner-ready questions after slide revisions stabilize.
+Each finance-heavy slide should receive at least one concise, thesis-safe answer.
 
-1. Why MSE in reward?
-a: we first used 50-50 then found out 70-30 is better in rewards. Why? because the model learns to differentiate with a large gap between the scores of different assets instead of minor changes.
-
-2. Why macro input is repeated for each asset but Context is given to the model once?
-a: We can change this?
+Do not claim an experiment was performed unless it is supported by the model or
+thesis artifacts. Current priority questions and answer framing are listed in
+`../documents/defense_revision_roadmap.md`.
 

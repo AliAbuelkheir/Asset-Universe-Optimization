@@ -1,1 +1,0 @@
-Rendered sample deck for visual QA. Manual inspection/fix pass pending.

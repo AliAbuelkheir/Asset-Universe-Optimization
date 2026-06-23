@@ -1,7 +1,0 @@
-task mode: create
-primary deck-profile: engineering-platform
-secondary gates: finance-ir for exact metrics and thesis-safe historical diagnostic wording
-required proof objects: logo chrome, asset table, thesis figure screenshots, result callouts, reference list, appendix dense backup
-source/asset requirements: only use existing ROBIN/GUC logos and thesis figure/result assets; do not invent identity marks
-qa gates: render full sample PPTX, inspect contact sheet, fix at least one issue, rerender
-known missing inputs: final reviewed script and final speaker notes
